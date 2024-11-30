@@ -51,10 +51,10 @@ void Point::show(bool closed, const Point & parent)
 }
 
 
-//Method to draw a circle at the point's position
-void Point::drawCircle(cv::Mat &image, const cv::Scalar &color, int radius) const
-{
-    cv::circle(image, cv::Point(x, y), radius, color, -1);
-}
+// //Method to draw a circle at the point's position
+// void Point::drawCircle(cv::Mat &image, const cv::Scalar &color, int radius) const
+// {
+//     cv::circle(image, cv::Point(x, y), radius, color, -1);
+// }
 
 }

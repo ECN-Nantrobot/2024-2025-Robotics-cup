@@ -35,20 +35,20 @@ public:
                     curr = new_pos;
                     optimized = false;
                 }
-                new_pos.drawCircle(maze.im, cv::Scalar(0, 255, 0));
+                // new_pos.drawCircle(maze.im, cv::Scalar(0, 255, 0));
             }
         }
     }
 
     const vector<Position>& getPath() const { return path; }
 
-    void drawCircles(cv::Mat &image, const cv::Scalar &color, int radius = 5) const
-    {
-        for (const auto& pos : path)
-        {
-            pos.drawCircle(image, color, radius);
-        }
-    }
+    // void drawCircles(cv::Mat &image, const cv::Scalar &color, int radius = 5) const
+    // {
+    //     for (const auto& pos : path)
+    //     {
+    //         pos.drawCircle(image, color, radius);
+    //     }
+    // }
 
 private:
     vector<Position> path;

@@ -25,15 +25,15 @@ int main(int argc, char **argv)
     vector<Position> initial_path = ecn::Astar(start, goal);
 
 
-    // Create and optimize the elastic band
-    ElasticBand elastic_band(initial_path, Position::maze);
-    elastic_band.optimize();
+    // // Create and optimize the elastic band
+    // ElasticBand elastic_band(initial_path, Position::maze);
+    // elastic_band.optimize();
 
-    const vector<Position>& optimized_path = elastic_band.getPath();
+    // const vector<Position>& optimized_path = elastic_band.getPath();
 
-    cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
-    elastic_band.drawCircles(image, cv::Scalar(0, 0, 255)); // Draw in red color
-    cv::imshow("Elastic Bands Path", image);
+    // cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
+    // elastic_band.drawCircles(image, cv::Scalar(0, 0, 255)); // Draw in red color
+    // cv::imshow("Elastic Bands Path", image);
 
 
     // Save the solution

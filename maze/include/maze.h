@@ -191,6 +191,15 @@ public:
     display("Solution", out);
   }
 
+
+
+  const cv::Mat& getIm() const { return im; }
+  const cv::Mat& getOut() const { return out; }
+
+  // Provide setter methods if needed
+  void setIm(const cv::Mat& image) { im = image; }
+  void setOut(const cv::Mat& output) { out = output; }
+
 protected:
   cv::Mat im, out;
   std::string filename;

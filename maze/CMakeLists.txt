@@ -1,12 +1,14 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.0.0)
 project (maze)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
 
+set(OpenCV_DIR "C:/Users/ferdi/Libraries/opencv/build")
 find_package(OpenCV REQUIRED)
 
-find_package(yaml-cpp)
+set(yaml-cpp_DIR "C:/Users/ferdi/Libraries/yaml-cpp/install/lib/cmake/yaml-cpp")
+find_package(yaml-cpp REQUIRED)
 
 add_definitions(-DMAZES="${CMAKE_CURRENT_SOURCE_DIR}/mazes")
 
