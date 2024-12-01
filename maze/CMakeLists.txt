@@ -1,8 +1,11 @@
-cmake_minimum_required (VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5)
 project (maze)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
+
+# Add a definition for the source directory
+add_definitions(-DSOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
 set(OpenCV_DIR "C:/Users/ferdi/Libraries/opencv/build")
 find_package(OpenCV REQUIRED)
@@ -14,12 +17,31 @@ add_definitions(-DMAZES="${CMAKE_CURRENT_SOURCE_DIR}/mazes")
 
 include_directories(${YamlCpp_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} include)
 
-add_library(maze SHARED include/maze.h include/a_star.h include/elastic_bands.h include/position.h
-    include/point.h src/point.cpp)
+add_library(maze SHARED 
+        include/maze.h 
+        include/a_star.h 
+        include/elastic_bands.h 
+        include/position.h
+        include/point.h 
+        src/point.cpp)
 target_link_libraries(maze ${OpenCV_LIBS})
 
+# Elastic-Bands-Bib
+add_library(elastic_bands src/elastic_bands.cpp)
+target_link_libraries(elastic_bands maze ${OpenCV_LIBS})
+
+# Generator-Executable
 add_executable(generator src/maze_generation.cpp)
 target_link_libraries(generator maze)
+
+# Diagonal-Executable
+add_executable(diagonal src/solve_cell_diagonal.cpp)
+target_link_libraries(diagonal maze elastic_bands)
+
+
+
+
+
 
 #add_executable(line src/solve_line.cpp)
 #target_link_libraries(line maze)
@@ -29,7 +51,4 @@ target_link_libraries(generator maze)
 
 #add_executable(corridor src/solve_corridor.cpp)
 #target_link_libraries(corridor maze)
-
-add_executable(diagonal src/solve_cell_diagonal.cpp)
-target_link_libraries(diagonal maze)
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <filesystem>
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
@@ -106,9 +107,8 @@ void drawMazeToImage(const std::string &filename)
         }
     }
 
-    // Specify the full path to the "maze" folder
-    std::string fullPath = "/home/ecn/ecn_arpro/maze/mazes/" + filename;
-    std::string fullPath2 = "/media/sf_SharedFolderVBox/" + filename;
+    std::string baseDir = SOURCE_DIR; // Use the SOURCE_DIR macro defined by CMake
+    std::string fullPath = baseDir + "/mazes/" + filename;
 
     // Save the maze as an image
     if (!cv::imwrite(fullPath, image))
@@ -116,14 +116,7 @@ void drawMazeToImage(const std::string &filename)
         fprintf(stderr, "Error: Could not save image to %s!\n", fullPath.c_str());
         exit(1);
     }
-    if (!cv::imwrite(fullPath2, image))
-    {
-        fprintf(stderr, "Error: Could not save image to %s!\n", fullPath2.c_str());
-        exit(1);
-    }
-
     std::cout << "Maze saved as image: " << fullPath << std::endl;
-
 
 
     // Display the generated image
@@ -145,18 +138,20 @@ void drawMazeToImage(const std::string &filename)
 
 int main()
 {
+    const double scale = 2.0;
+    
     // Set maze dimensions (must be odd to ensure proper border handling)
-    width_maze = 61;
-    height_maze = 41;
+    width_maze = 61 *scale;
+    height_maze = 41 *scale;
 
     // Initialize an empty maze with a black border
     initializeEmptyMaze();
 
     // Place rectangle obstacle at x,y with hight,width and border
-    placeObstacle(10, 20, 10, 5, 1);
-    placeObstacle(20, 35, 10, 2, 2);
-    placeObstacle(30, 20, 12, 8, 2);
-    placeObstacle(40, 4, 4, 9, 3);
+    placeObstacle(10*scale, 20*scale, 5*scale, 5*scale, 1*scale);
+    placeObstacle(20*scale, 35*scale, 5*scale, 2*scale, 2*scale);
+    placeObstacle(30*scale, 20*scale, 6*scale, 3*scale, 2*scale);
+    placeObstacle(50*scale, 25*scale, 4*scale, 10*scale, 2*scale);
 
     // Save and display the maze
     std::string outputFile = "maze_generated.png";

@@ -25,21 +25,27 @@ int main(int argc, char **argv)
     vector<Position> initial_path = ecn::Astar(start, goal);
 
 
-    // // Create and optimize the elastic band
-    // ElasticBand elastic_band(initial_path, Position::maze);
-    // elastic_band.optimize();
+    // Elastic Bands optimieren den Pfad
+    ecn::ElasticBand elastic_band(initial_path, Position::maze);
+    elastic_band.optimize();
 
-    // const vector<Position>& optimized_path = elastic_band.getPath();
+    // Visualisiere den optimierten Pfad
+    const auto& optimizedPath = elastic_band.getPath();
+    //cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
+    //elastic_band.drawCircles(image, cv::Scalar(0, 0, 255), 1); // Zeichne in Rot
+    //elastic_band.drawPath(image, cv::Scalar(0, 0, 255), 1); // Zeichne in Rot
+    //cv::imshow("Elastic Bands Path", image);
 
-    // cv::Mat image = cv::imread(filename, cv::IMREAD_COLOR);
-    // elastic_band.drawCircles(image, cv::Scalar(0, 0, 255)); // Draw in red color
-    // cv::imshow("Elastic Bands Path", image);
-
+    // Convert the path to cv::Point for saving
+    std::vector<cv::Point> elasticBandPathCv;
+    for (const auto& pos : optimizedPath) {
+        elasticBandPathCv.emplace_back(pos.x, pos.y);
+    }
 
     // Save the solution
     std::cout << "Search completed. Saving solution..." << std::endl;
-    Position::maze.saveSolution("cell"); // No return value, so no condition here
-    std::cout << "Solution saved successfully to 'cell.png'" << std::endl;
+    Position::maze.saveSolution("combined", elasticBandPathCv); // No return value, so no condition here
+    std::cout << "Solution saved successfully to 'combined.png'" << std::endl;
 
     cv::waitKey(0);
 

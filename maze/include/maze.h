@@ -162,18 +162,27 @@ public:
     display("Maze", im);
   }
 
-  void saveSolution(std::string suffix)
+  void saveSolution(std::string suffix, const std::vector<cv::Point>& elasticBandPath)
   {
     cv::cvtColor(im, out, cv::COLOR_GRAY2BGR);
-    cv::Vec3b col(0, 255, 0);
+    cv::Vec3b colour_astar(255, 0, 0); // Blue Green Red 
 
-    col[1] = 0;
+    colour_astar[1] = 0;
     for(int i = 0; i < path.size(); ++i)
     {
-      col[2] = i*255/path.size();
-      col[0] = 255-col[2];
-      out.at<cv::Vec3b>(path[i]) = col;
+      //colour from blue to red
+      // colour_astar[2] = i*255/path.size(); 
+      // colour_astar[0] = 255-colour_astar[2];
+      out.at<cv::Vec3b>(path[i]) = colour_astar;
     }
+
+
+    // draw elastic band path in green
+    for(const auto& p : elasticBandPath)
+    {
+      out.at<cv::Vec3b>(p) = cv::Vec3b(0, 255, 0); // Blue Green Red 
+    }
+
 
     // re-write black nodes just to be sure...
     for(int x = 0; x < im.cols; ++x)
