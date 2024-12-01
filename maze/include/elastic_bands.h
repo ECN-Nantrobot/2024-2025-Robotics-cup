@@ -14,6 +14,11 @@ public:
     // Optimize the path using elastic band algorithm
     void optimize();
 
+    void fillGaps(int maxGap);
+
+    void showPath(int iteration, int pause_inbetween) const;
+
+
     // Retrieve the optimized path
     const std::vector<Position>& getPath() const;
 
@@ -22,10 +27,10 @@ private:
     const Maze& maze;           // Reference to the maze
 
     // Compute the internal spring force (gluing force)
-    Position computeSpringForce(size_t idx) const;
+    Position computeSpringForce(size_t idx, const double spr_weight, const int radius) const;
 
     // Compute the repulsive force to avoid obstacles
-    Position computeRepulsiveForce(size_t idx) const;
+    Position computeRepulsiveForce(size_t idx, const double rep_radius, const double rep_strength) const;
 
     // Check if a point is within free space
     bool isFree(const Position& pos) const;
