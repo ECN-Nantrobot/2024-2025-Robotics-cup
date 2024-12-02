@@ -162,7 +162,7 @@ public:
     display("Maze", im);
   }
 
-  void saveSolution(std::string suffix, const std::vector<cv::Point>& elasticBandPath)
+  void saveSolution(std::string suffix, const std::vector<cv::Point>& path, const std::vector<cv::Point>& elasticBandPath)
   {
     cv::cvtColor(im, out, cv::COLOR_GRAY2BGR);
     cv::Vec3b colour_astar(255, 0, 0); // Blue Green Red 
@@ -197,9 +197,13 @@ public:
     int dot = filename.find(".");
     std::string name = filename.substr(0, dot) + "_" + suffix + ".png";
     cv::imwrite(mazeFile(name), out);
-    display("Solution", out);
+    //display("Solution", out);
+    std::string window_name = "Solution, resolution 1:1";
+    cv::namedWindow(window_name, cv::WINDOW_NORMAL); 
+    cv::resizeWindow(window_name, 1000, 750); 
+    cv::moveWindow(window_name, 800, 500);
+    cv::imshow(window_name, out);
   }
-
 
 
   const cv::Mat& getIm() const { return im; }

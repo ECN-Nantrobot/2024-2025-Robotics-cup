@@ -127,17 +127,18 @@ void drawMazeToImage(const std::string &filename)
     }
 
     // Create a resizable window
+    std::string window_name = "Generated Maze";
     cv::namedWindow("Generated Maze", cv::WINDOW_NORMAL);
-    cv::resizeWindow("Generated Maze", 1000, 800);         // Resize to 800x800 pixels
-
-    cv::imshow("Generated Maze", maze_image);
+    cv::resizeWindow(window_name, 1500, 1200);
+    cv::moveWindow(window_name, 50, 50);
+    cv::imshow(window_name, maze_image); 
     cv::waitKey(0);
 }
 
 
 int main()
 {
-    const double scale = 2.0;
+    const double scale = 3.0;
     
     // Set maze dimensions (must be odd to ensure proper border handling)
     width_maze = 61 *scale;
@@ -149,8 +150,8 @@ int main()
     // Place rectangle obstacle at x,y with hight,width and border
     placeObstacle(10*scale, 20*scale, 5*scale, 5*scale, 1*scale);
     placeObstacle(12*scale, 30*scale, 7*scale, 5*scale, 2*scale);
-    placeObstacle(28*scale, 20*scale, 10*scale, 5*scale, 2*scale);
-    placeObstacle(50*scale, 25*scale, 4*scale, 10*scale, 2*scale);
+    placeObstacle(32*scale, 15*scale, 5*scale, 30*scale, 2*scale);
+    placeObstacle(50*scale, 30*scale, 4*scale, 17*scale, 2*scale);
 
     // Save and display the maze
     std::string outputFile = "maze_generated.png";

@@ -183,87 +183,87 @@ public:
         }
     }
 
-    //only intersections and dead ends should be children
-    void searchCorridor(direc direction, std::vector<Position>& generated){
-        int current_x = x;
-        int current_y = y;
-        int current_d = 0;
-        bool dont_save = false;
+//only intersections and dead ends should be children
+void searchCorridor(direc direction, std::vector<Position>& generated){
+    int current_x = x;
+    int current_y = y;
+    int current_d = 0;
+    bool dont_save = false;
 
-        if (!forwardIsFree(current_x, current_y, direction)) {
-            dont_save = true;
-            //std::cout << "Forward blocked, BLOCKED. End search completely" << std::endl;
+    if (!forwardIsFree(current_x, current_y, direction)) {
+        dont_save = true;
+        //std::cout << "Forward blocked, BLOCKED. End search completely" << std::endl;
+    }
+
+    if(dont_save == false){
+
+        if (forwardIsFree(current_x, current_y, direction)) { //walk forward one time so one is not in a corridor anymore
+            moveForward(current_x, current_y, direction);
+            current_d++;
+
+            if(maze.end().x == current_x && maze.end().y == current_y) {
+                    Position tempPosit(current_x, current_y, 0);
+                    std::cout << "Goal reached at (" << current_x << ", " << current_y << ")" << std::endl;
+            }
         }
 
-        if(dont_save == false){
+        while (is_corridor(current_x, current_y)) {
 
-            if (forwardIsFree(current_x, current_y, direction)) { //walk forward one time so one is not in a corridor anymore
+            if (forwardIsFree(current_x, current_y, direction)) {
                 moveForward(current_x, current_y, direction);
                 current_d++;
 
                 if(maze.end().x == current_x && maze.end().y == current_y) {
                         Position tempPosit(current_x, current_y, 0);
                         std::cout << "Goal reached at (" << current_x << ", " << current_y << ")" << std::endl;
+                        break;
                 }
             }
 
-            while (is_corridor(current_x, current_y)) {
+            else {
+                //std::cout << "Forward blocked, checking sides..." << std::endl;
 
-                if (forwardIsFree(current_x, current_y, direction)) {
-                    moveForward(current_x, current_y, direction);
-                    current_d++;
+                if (rightIsFree(current_x, current_y, direction) && leftIsFree(current_x, current_y, direction)) {
+                    //std::cout << "Both sides free: INTERSECTION, end search." << std::endl;
+                    break;
+                }
 
-                    if(maze.end().x == current_x && maze.end().y == current_y) {
-                            Position tempPosit(current_x, current_y, 0);
-                            std::cout << "Goal reached at (" << current_x << ", " << current_y << ")" << std::endl;
-                            break;
-                    }
+                if (rightIsFree(current_x, current_y, direction)) {
+                    direction = turnRight(direction);
+                }
+
+                else if (leftIsFree(current_x, current_y, direction)) {
+                    direction = turnLeft(direction);
                 }
 
                 else {
-                    //std::cout << "Forward blocked, checking sides..." << std::endl;
-
-                    if (rightIsFree(current_x, current_y, direction) && leftIsFree(current_x, current_y, direction)) {
-                        //std::cout << "Both sides free: INTERSECTION, end search." << std::endl;
-                        break;
-                    }
-
-                    if (rightIsFree(current_x, current_y, direction)) {
-                        direction = turnRight(direction);
-                    }
-
-                    else if (leftIsFree(current_x, current_y, direction)) {
-                        direction = turnLeft(direction);
-                    }
-
-                    else {
-                        //std::cout << "Both sides blocked: DEAD END, end search." << std::endl;
-                        break;
-                    }
+                    //std::cout << "Both sides blocked: DEAD END, end search." << std::endl;
+                    break;
                 }
             }
-            generated.push_back(Position(current_x, current_y, current_d));
         }
+        generated.push_back(Position(current_x, current_y, current_d));
     }
+}
 
 
-    std::vector<Position> children() {
-        std::vector<Position> generated;
+std::vector<Position> children() {
+    std::vector<Position> generated;
 
-//        std::cout << "\nPosition: (" << x << ", " << y << ")" << std::endl;
+    //        std::cout << "\nPosition: (" << x << ", " << y << ")" << std::endl;
 
-        searchCorridor(RIGHT, generated);
-        searchCorridor(LEFT, generated);
-        searchCorridor(UP, generated);
-        searchCorridor(DOWN, generated);
+    searchCorridor(RIGHT, generated);
+    searchCorridor(LEFT, generated);
+    searchCorridor(UP, generated);
+    searchCorridor(DOWN, generated);
 
-//        std::cout << "Generated children positions: " << std::endl;
-//        for (const auto& child : generated) {
-//            std::cout << "(" << child.x << ", " << child.y << ", " << child.dist << ")" << std::endl;
-//        }
+    //        std::cout << "Generated children positions: " << std::endl;
+    //        for (const auto& child : generated) {
+    //            std::cout << "(" << child.x << ", " << child.y << ", " << child.dist << ")" << std::endl;
+    //        }
 
-        return generated;
-    }
+    return generated;
+}
 
 
 
@@ -276,7 +276,6 @@ public:
 
 
 void print(const Point &parent) const override{
-
     int current_x = x;
     int current_y = y;
 

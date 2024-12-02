@@ -12,11 +12,11 @@ public:
     ElasticBand(const std::vector<Position>& path, const Maze& maze);
 
     // Optimize the path using elastic band algorithm
-    void optimize();
+    void optimize(int sparsity);
 
     void fillGaps(int maxGap);
 
-    void showPath(int iteration, int pause_inbetween) const;
+    void showPath(int pause_inbetween, const int radius) const;
 
 
     // Retrieve the optimized path
@@ -25,6 +25,8 @@ public:
 private:
     std::vector<Position> path; // Path to be optimized
     const Maze& maze;           // Reference to the maze
+
+    std::vector<Position> downsamplePath(int sparsity = 1) const;
 
     // Compute the internal spring force (gluing force)
     Position computeSpringForce(size_t idx, const double spr_weight, const int radius) const;
