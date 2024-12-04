@@ -20,6 +20,15 @@ int main() {
         std::cout << "Updated X: " << robot_pose.getX() << std::endl;
         std::cout << "Updated Y: " << robot_pose.getY() << std::endl;
         std::cout << "Updated Theta: " << robot_pose.getTheta() << std::endl;
+
+
+        double kp = 1.0; // Proportional gain
+        // Compute the wheel angles
+        std::pair<double, double> wheel_angles = robot_pose.computeWheelAngles(target_x, target_y, r, L, kp);
+    
+        // Output the results
+        std::cout << "Theta Left (thetaL): " << wheel_angles.first << std::endl;
+        std::cout << "Theta Right (thetaR): " << wheel_angles.second << std::endl;
     }
     return 0;
 }
