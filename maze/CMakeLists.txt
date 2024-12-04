@@ -13,6 +13,8 @@ find_package(OpenCV REQUIRED)
 set(yaml-cpp_DIR "C:/Users/ferdi/Libraries/yaml-cpp/install/lib/cmake/yaml-cpp")
 find_package(yaml-cpp REQUIRED)
 
+find_package(SFML 2.5 REQUIRED graphics window system)
+
 add_definitions(-DMAZES="${CMAKE_CURRENT_SOURCE_DIR}/mazes")
 
 include_directories(${YamlCpp_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} include)
@@ -23,6 +25,7 @@ add_library(maze SHARED
         include/elastic_bands.h 
         include/position.h
         include/point.h 
+        include/fposition.h
         src/point.cpp)
 target_link_libraries(maze ${OpenCV_LIBS})
 
@@ -37,6 +40,10 @@ target_link_libraries(generator maze)
 # Diagonal-Executable
 add_executable(diagonal src/solve_cell_diagonal.cpp)
 target_link_libraries(diagonal maze elastic_bands)
+
+# Interactive Generation-Executable
+add_executable(interactive_generation src/interactive_generation.cpp)
+target_link_libraries(interactive_generation sfml-graphics sfml-window sfml-system)
 
 
 

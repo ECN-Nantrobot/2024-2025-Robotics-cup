@@ -5,11 +5,13 @@
 #include <position.h>
 #include <maze.h>
 
+#include <fposition.h>
+
 namespace ecn {
 
 class ElasticBand {
 public:
-    ElasticBand(const std::vector<Position>& path, const Maze& maze);
+    ElasticBand(const std::vector<FPosition>& path, const Maze& maze);
 
     // Optimize the path using elastic band algorithm
     void optimize(int sparsity);
@@ -20,22 +22,24 @@ public:
 
 
     // Retrieve the optimized path
-    const std::vector<Position>& getPath() const;
+    const std::vector<FPosition>& getPath() const;
 
 private:
-    std::vector<Position> path; // Path to be optimized
+    std::vector<FPosition> path; // Path to be optimized
     const Maze& maze;           // Reference to the maze
 
-    std::vector<Position> downsamplePath(int sparsity = 1) const;
+    std::vector<FPosition> downsamplePath(int sparsity = 1) const;
 
     // Compute the internal spring force (gluing force)
-    Position computeSpringForce(size_t idx, const double spr_weight, const int radius) const;
+    FPosition computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
 
     // Compute the repulsive force to avoid obstacles
-    Position computeRepulsiveForce(size_t idx, const double rep_radius, const double rep_strength) const;
+    FPosition computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const;
 
     // Check if a point is within free space
-    bool isFree(const Position& pos) const;
+    bool isPointFree(const FPosition& pos, float bufferRadius) const;
+
+    bool isWithinBounds(const FPosition& pos) const;
 };
 
 }

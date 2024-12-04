@@ -27,6 +27,10 @@ public:
     // Constructor with distance
     Position(int _x, int _y, float _dist) : Point(_x, _y, _dist) {}
 
+    // Position_float(float _x, float _y, float _dist) : Point(_x, _y, _dist) {}
+
+
+
     double distToParent(){
         int penalty = 0;
         return Position::dist + penalty;

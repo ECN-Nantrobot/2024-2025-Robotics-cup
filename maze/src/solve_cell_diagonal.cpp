@@ -13,7 +13,14 @@ using namespace ecn;
 
 
 
-void savePathToFile(const std::string& filename, const std::vector<Position>& path) {
+void saveAstarPathToFile(const std::string& filename, const std::vector<Position>& path) {
+    std::ofstream outFile(filename);
+    for (const auto& pos : path) {
+        outFile << pos.x << " " << pos.y << "\n";
+    }
+}
+
+void saveEBPathToFile(const std::string& filename, const std::vector<FPosition>& path) {
     std::ofstream outFile(filename);
     for (const auto& pos : path) {
         outFile << pos.x << " " << pos.y << "\n";
@@ -50,16 +57,17 @@ int main(int argc, char **argv)
     }
 
     std::string filename_maze = Maze::mazeFile("maze_generated.png");
-    std::string filename_path = Maze::mazeFile("generated_astarpath.txt");
+    std::string filename_astar_path = Maze::mazeFile("generated_astar_path.txt");
+    std::string filename_eb_path = Maze::mazeFile("generated_eb_path.txt");
 
     Position::maze.load(filename_maze);
 
     // Load or calculate the A* path
     std::vector<Position> astar_path;
 
-    if (forceRecalculate == false && fileExists(filename_path) && (getFileModificationTime(filename_path) >= getFileModificationTime(filename_maze))) {
-        std::cout << "Loading precomputed path from file: " << filename_path << std::endl;
-        astar_path = loadPathFromFile(filename_path);
+    if (forceRecalculate == false && fileExists(filename_astar_path) && (getFileModificationTime(filename_astar_path) >= getFileModificationTime(filename_maze))) {
+        std::cout << "Loading precomputed path from file: " << filename_astar_path << std::endl;
+        astar_path = loadPathFromFile(filename_astar_path);
 
     } else {
         Position start = Position::maze.start(), goal = Position::maze.end();
@@ -69,15 +77,23 @@ int main(int argc, char **argv)
         std::cout << "Starting A* search..." << std::endl;
         astar_path = ecn::Astar(start, goal);
 
-        savePathToFile(filename_path, astar_path);
-        std::cout << "Path saved to file: " << filename_path << std::endl;
+        saveAstarPathToFile(filename_astar_path, astar_path);
+        std::cout << "Path saved to file: " << filename_astar_path << std::endl;
     }
 
-    ecn::ElasticBand elastic_band(astar_path, Position::maze);
+    std::vector<FPosition> fPosition_astar_path;
+    for (const auto& pos : astar_path) {
+        // Convert each Position to FPosition
+        fPosition_astar_path.push_back(FPosition(static_cast<float>(pos.x), static_cast<float>(pos.y)));
+    }
+    ecn::ElasticBand elastic_band(fPosition_astar_path, Position::maze);
     elastic_band.optimize(2); //use every ... point
 
 
     const auto& optimizedPath = elastic_band.getPath();
+
+    saveEBPathToFile(filename_eb_path, optimizedPath);
+    std::cout << "Path saved to file: " << filename_eb_path << std::endl;
 
     
     // Convert the path to cv::Point for saving
