@@ -23,6 +23,11 @@ public:
 
     // Update the pose based on the odometry equations
     vector<double> updatePose(double microstep_left, double microstep_right, double r_l, double r_r, double e);
+
+    // Compute motors rotation required to reach target position
+        // kp = gain of the controller
+    std::pair<double, double> computeWheelAngles(double target_x, double target_y, double r, double L, double kp);
+
 };
 
 #endif  // LOCALIZATION_H
