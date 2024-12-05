@@ -11,6 +11,43 @@
 using namespace std;
 using namespace ecn;
 
+// Function to find the start (blue) and end (red) points in the maze
+std::pair<Point, Point> findStartAndEnd(const std::string& filename) {
+    cv::Mat mazeImage = cv::imread(filename);
+    if (mazeImage.empty()) {
+        throw std::runtime_error("Failed to load maze image: " + filename);
+    }
+
+    Point start(-1, -1), end(-1, -1);
+
+    // Define blue and red color ranges (in BGR format)
+    cv::Scalar lowerBlue(200, 0, 0), upperBlue(255, 50, 50);
+    cv::Scalar lowerRed(0, 0, 200), upperRed(50, 50, 255);
+
+    for (int y = 0; y < mazeImage.rows; ++y) {
+        for (int x = 0; x < mazeImage.cols; ++x) {
+            cv::Vec3b color = mazeImage.at<cv::Vec3b>(y, x);
+            // Check for blue (start point)
+            if (color[0] >= lowerBlue[0] && color[0] <= upperBlue[0] &&
+                color[1] >= lowerBlue[1] && color[1] <= upperBlue[1] &&
+                color[2] >= lowerBlue[2] && color[2] <= upperBlue[2]) {
+                start = Position(x, y);
+            }
+            // Check for red (end point)
+            if (color[0] >= lowerRed[0] && color[0] <= upperRed[0] &&
+                color[1] >= lowerRed[1] && color[1] <= upperRed[1] &&
+                color[2] >= lowerRed[2] && color[2] <= upperRed[2]) {
+                end = Position(x, y);
+            }
+        }
+    }
+
+    if (start.x == -1 || end.x == -1) {
+        throw std::runtime_error(" !!! Failed to find coloured start (blue) or end points (red) in the maze.");
+    }
+
+    return {start, end};
+}
 
 
 void saveAstarPathToFile(const std::string& filename, const std::vector<Position>& path) {
@@ -56,11 +93,16 @@ int main(int argc, char **argv)
             forceRecalculate = true; // Force recalculation of the A* path
     }
 
+    // CHOOSE WHICH MAZE YOU WANT TO USE
     std::string filename_maze = Maze::mazeFile("maze_generated.png");
+    //std::string filename_maze = Maze::mazeFile("maze_generated_interactive.png");
+
     std::string filename_astar_path = Maze::mazeFile("generated_astar_path.txt");
     std::string filename_eb_path = Maze::mazeFile("generated_eb_path.txt");
 
     Position::maze.load(filename_maze);
+
+    
 
     // Load or calculate the A* path
     std::vector<Position> astar_path;
@@ -71,8 +113,20 @@ int main(int argc, char **argv)
 
     } else {
         Position start = Position::maze.start(), goal = Position::maze.end();
-        std::cout << "Start position: (" << start.x << ", " << start.y << ")" << std::endl;
-        std::cout << "Goal position: (" << goal.x << ", " << goal.y << ")" << std::endl;
+        // Check if it's an interactive maze and find start/end based on colors
+        if (filename_maze.find("interactive") != std::string::npos) {
+            std::cout << "Detecting start and end points based on colors..." << std::endl;
+            auto [detectedStart, detectedEnd] = findStartAndEnd(filename_maze);
+            start = detectedStart;
+            goal = detectedEnd;
+            std::cout << "Detected Start: (" << start.x << ", " << start.y << ")" << std::endl;
+            std::cout << "Detected Goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+        } else {
+            start = Position::maze.start();
+            goal = Position::maze.end();
+            std::cout << "Start position: (" << start.x << ", " << start.y << ")" << std::endl;
+            std::cout << "Goal position: (" << goal.x << ", " << goal.y << ")" << std::endl;
+        }
 
         std::cout << "Starting A* search..." << std::endl;
         astar_path = ecn::Astar(start, goal);

@@ -37,7 +37,7 @@ private:
     FPosition computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const;
 
     // Check if a point is within free space
-    bool isPointFree(const FPosition& pos, float bufferRadius) const;
+    bool isPointFree(const FPosition& pos) const;
 
     bool isWithinBounds(const FPosition& pos) const;
 };
