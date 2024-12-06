@@ -9,8 +9,37 @@
 #include <fstream>
 #include <chrono>
 #include <memory>
+#include <position.h>
 
 namespace ecn {
+
+inline void saveAstarPathToFile(const std::string& filename, const std::vector<Position>& path) {
+  std::ofstream outFile(filename);
+  if (!outFile) {
+      std::cerr << "Error opening file for writing: " << filename << std::endl;
+      return;
+  }
+
+  for (const auto& pos : path) {
+      outFile << pos.x << " " << pos.y << "\n";
+  }
+
+  outFile.close();
+}
+
+std::vector<Position> loadPathFromFile(const std::string& filename) {
+    std::vector<Position> path;
+    std::ifstream inFile(filename);
+    Point pos;
+    while (inFile >> pos.x >> pos.y) {
+        path.push_back(pos);
+    }
+    return path;
+}
+
+
+
+
 
 // anonymous namespace for implementation details
 namespace astar_impl {

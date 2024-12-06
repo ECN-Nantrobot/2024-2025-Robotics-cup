@@ -4,8 +4,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
-#include <opencv2/opencv.hpp> // Include OpenCV
-#include <algorithm> // Include algorithm for std::min and std::max
+#include <opencv2/opencv.hpp>
+#include <algorithm>
+// #include <maze.h>
 
 namespace ecn {
 
@@ -14,24 +15,25 @@ class Maze;
 class Point {
 public:
 
-    Point(int _x=0, int _y=0, float _dist=0.0): x(_x), y(_y), dist(_dist){}
+    Point(float _x=0, float _y=0): x(_x), y(_y){}
 
-    void operator=(const Point &p)
-    {
+    void operator=(const Point &p){
         x = p.x;
         y = p.y;
-        dist = p.dist;
     }
 
-    // prints the grid with all positions from parent
-    virtual void print(const Point &parent) const;  // Declaration only
+    Point toInt() const { return Point(static_cast<int>(x), static_cast<int>(y)); }
+    Point toFloat() const { return Point(static_cast<float>(x), static_cast<float>(y)); }
+
     
     void start();
     
     // online print, color depends on closed / open set
     virtual void show(bool closed, const Point &parent);
-    
-    void drawCircle(cv::Mat &image, const cv::Scalar &color, int radius = 5) const;
+    // prints the grid with all positions from parent
+    virtual void print(const Point &parent) const;  // Declaration only
+
+    // void drawCircle(cv::Mat &image, const cv::Scalar &color, int radius = 5) const;
 
     friend std::ostream& operator<<(std::ostream& out, const Point& p)
     {
@@ -40,9 +42,14 @@ public:
     }
 
     // 2 positions are equal if they have the same x and y
-    bool operator==(const Point &other) const
-    {
-        return x == other.x && y == other.y;
+    bool operator==(const Point &other) const{
+        return std::round(x) == std::round(other.x) &&
+               std::round(y) == std::round(other.y);
+    }
+
+    bool operator!=(const Point &other) const {
+        return std::round(x) != std::round(other.x) || 
+               std::round(y) != std::round(other.y);
     }
 
     double heuristic(const Point &goal, bool use_manhattan) const
@@ -55,10 +62,9 @@ public:
         }
     }
 
-
-    int x, y;
-    float dist;
+    float x, y;
     static Maze maze;
+    // static Maze *maze;
 };
 
 }

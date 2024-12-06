@@ -15,9 +15,9 @@ public:
         : window(sf::VideoMode(1, 1), "Maze Editor") {
 
         //PARAMETERS TO SET
-        maze_width = 31;
-        maze_height = 21;
-        grid_size = 4; // (scale for visualization)
+        maze_width = 301;
+        maze_height = 201;
+        grid_size = std::max(6, std::min(45, 700 / std::max(maze_width, maze_height))); //automatically set grid size based on maze dimensions(for visualization)
 
         border_size = 1;
         grid_color = sf::Color::White;

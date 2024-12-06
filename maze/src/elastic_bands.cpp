@@ -1,20 +1,35 @@
 #include "elastic_bands.h"
 #include <cmath>
 #include <algorithm>
-#include <fposition.h>
+#include <maze.h>
+#include <point.h>
+#include <fstream>
+#include <iostream>
+
 
 namespace ecn {
 
 // Constructor
-ElasticBand::ElasticBand(const std::vector<FPosition>& initialPath, const Maze& maze): path(initialPath), maze(maze) {}
+ElasticBand::ElasticBand(const std::vector<Point>& initialPath, const Maze& maze): path(initialPath), maze(maze) {}
 
+void ElasticBand::savePathToFile(const std::string &filename) const{
+    std::ofstream outFile(filename);
+    if (!outFile.is_open()){
+        throw std::runtime_error("Could not open file for saving: " + filename);
+    }
+
+    for (const auto &pos : path){
+        outFile << pos.x << " " << pos.y << "\n";
+    }
+    std::cout << "Path saved successfully to " << filename << std::endl;
+}
 
 void ElasticBand::fillGaps(int max_gap) {
-    std::vector<FPosition> filledPath;
+    std::vector<Point> filledPath;
 
     for (size_t i = 0; i < path.size() - 1; ++i) {
-        FPosition current = path[i];
-        FPosition next = path[i + 1];
+        Point current = path[i];
+        Point next = path[i + 1];
 
         filledPath.push_back(current); // Keep the current point
 
@@ -25,7 +40,7 @@ void ElasticBand::fillGaps(int max_gap) {
         if (distance > max_gap) {
             int numIntermediatePoints = static_cast<int>(std::ceil(distance / max_gap)) - 1;
             for (int j = 1; j <= numIntermediatePoints; ++j) {
-                FPosition intermediate = {
+                Point intermediate = {
                     current.x + (float)j * (next.x - current.x) / (numIntermediatePoints + 1),
                     current.y + (float)j * (next.y - current.y) / (numIntermediatePoints + 1)
                 };
@@ -91,8 +106,8 @@ void ElasticBand::showPath(int pause_inbetween, const int radius) const {
     cv::waitKey(pause_inbetween);
 }
 
-std::vector<FPosition> ElasticBand::downsamplePath(int sparsity) const {
-    std::vector<FPosition> sparsePath;
+std::vector<Point> ElasticBand::downsamplePath(int sparsity) const {
+    std::vector<Point> sparsePath;
     for (size_t i = 0; i < path.size(); i += sparsity) {
         sparsePath.push_back(path[i]);
     }
@@ -114,7 +129,7 @@ void ElasticBand::optimize(int sparsity) {
     float max_change = 0;
 
     const float spring_weight = 15.0;  
-    const int spring_radius = 6;         // Radius of the spring force (average FPosition of neighbors in radius)
+    const int spring_radius = 6;         // Radius of the spring force (average Point of neighbors in radius)
     const float repulsive_radius = 8.0; //circle around the point
     const float repulsive_strength = 13.5;
 
@@ -128,15 +143,15 @@ void ElasticBand::optimize(int sparsity) {
         // Iterate over all points except start and end
         for (size_t i = 1; i < path.size() - 1; ++i) {
 
-            FPosition spring_force = computeSpringForce(i, spring_weight, spring_radius);
-            FPosition repulsive_force = computeRepulsiveForce(i, repulsive_radius, repulsive_strength);
+            Point spring_force = computeSpringForce(i, spring_weight, spring_radius);
+            Point repulsive_force = computeRepulsiveForce(i, repulsive_radius, repulsive_strength);
 
-            FPosition displacement = {
+            Point displacement = {
                 alpha * (spring_force.x + repulsive_force.x),
                 alpha * (spring_force.y + repulsive_force.y)
             };
 
-            FPosition newPos = {
+            Point newPos = {
                 path[i].x + displacement.x,
                 path[i].y + displacement.y
             };
@@ -167,10 +182,10 @@ void ElasticBand::optimize(int sparsity) {
 }
 
 
-FPosition ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int radius) const {
-    FPosition current = path[idx];
-    FPosition force = {0, 0};
-    int count = 0; //used to calculate the number of neighbors contributing to the force: so that spring force pulls the current point toward the average FPosition of its neighbors
+Point ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int radius) const {
+    Point current = path[idx];
+    Point force = {0, 0};
+    int count = 0; //used to calculate the number of neighbors contributing to the force: so that spring force pulls the current point toward the average Point of its neighbors
 
     // Special handling for the first and last movable points (send and second last point)
     if (idx == 1) {
@@ -187,7 +202,7 @@ FPosition ElasticBand::computeSpringForce(size_t idx, const float spr_weight, in
 
             int neighbor_idx = idx + i;
             if (neighbor_idx >= 0 && neighbor_idx < path.size()) {
-                FPosition neighbor = path[neighbor_idx];
+                Point neighbor = path[neighbor_idx];
                 force.x += neighbor.x;
                 force.y += neighbor.y;
                 count++;
@@ -202,9 +217,9 @@ FPosition ElasticBand::computeSpringForce(size_t idx, const float spr_weight, in
     return force;
 }
 
-FPosition ElasticBand::computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const {
-    FPosition current = path[idx];
-    FPosition force = {0, 0};
+Point ElasticBand::computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const {
+    Point current = path[idx];
+    Point force = {0, 0};
 
     // Check surrounding cells in the radius (actually square but we remove the corners)
     for (int dx = -rep_radius; dx <= rep_radius; ++dx) {
@@ -213,7 +228,7 @@ FPosition ElasticBand::computeRepulsiveForce(size_t idx, const float rep_radius,
 
             // Include only cells within the circular radius
             if (distance > 0 && distance <= rep_radius) {
-                FPosition neighbor = {current.x + dx, current.y + dy};
+                Point neighbor = {current.x + dx, current.y + dy};
 
                 if (!isPointFree(neighbor)) {
                     float scale = rep_strength / (distance * distance);
@@ -228,7 +243,7 @@ FPosition ElasticBand::computeRepulsiveForce(size_t idx, const float rep_radius,
     return force;
 }
 
-bool ElasticBand::isPointFree(const FPosition& pos) const {
+bool ElasticBand::isPointFree(const Point& pos) const {
     int x = static_cast<int>(std::round(pos.x));
     int y = static_cast<int>(std::round(pos.y));
 
@@ -238,7 +253,7 @@ bool ElasticBand::isPointFree(const FPosition& pos) const {
     return true;
 }
 
-const std::vector<FPosition>& ElasticBand::getPath() const {
+const std::vector<Point>& ElasticBand::getPath() const {
     return path;
 }
 

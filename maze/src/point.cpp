@@ -1,5 +1,6 @@
-#include <point.h>
 #include <maze.h>
+#include <point.h>
+
 
 using std::min;
 using std::max;
@@ -7,7 +8,7 @@ using std::max;
 namespace ecn {
 
 Maze Point::maze;
-
+// Maze *Point::maze = nullptr;
 // final print, maze deals with the color, just tell the points
 void Point::print(const Point &parent) const
 {
