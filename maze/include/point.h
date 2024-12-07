@@ -1,23 +1,25 @@
 #ifndef POINT_H
 #define POINT_H
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <math.h>
 #include <opencv2/opencv.hpp>
-#include <algorithm>
 // #include <maze.h>
 
-namespace ecn {
+namespace ecn
+{
 
 class Maze;
 
-class Point {
+class Point
+{
 public:
+    Point(float _x = 0, float _y = 0) : x(_x), y(_y) {}
 
-    Point(float _x=0, float _y=0): x(_x), y(_y){}
-
-    void operator=(const Point &p){
+    void operator=(const Point& p)
+    {
         x = p.x;
         y = p.y;
     }
@@ -25,13 +27,13 @@ public:
     Point toInt() const { return Point(static_cast<int>(x), static_cast<int>(y)); }
     Point toFloat() const { return Point(static_cast<float>(x), static_cast<float>(y)); }
 
-    
+
     void start();
-    
+
     // online print, color depends on closed / open set
-    virtual void show(bool closed, const Point &parent);
+    virtual void show(bool closed, const Point& parent);
     // prints the grid with all positions from parent
-    virtual void print(const Point &parent) const;  // Declaration only
+    virtual void print(const Point& parent) const; // Declaration only
 
     // void drawCircle(cv::Mat &image, const cv::Scalar &color, int radius = 5) const;
 
@@ -42,22 +44,18 @@ public:
     }
 
     // 2 positions are equal if they have the same x and y
-    bool operator==(const Point &other) const{
-        return std::round(x) == std::round(other.x) &&
-               std::round(y) == std::round(other.y);
-    }
+    bool operator==(const Point& other) const { return std::round(x) == std::round(other.x) && std::round(y) == std::round(other.y); }
 
-    bool operator!=(const Point &other) const {
-        return std::round(x) != std::round(other.x) || 
-               std::round(y) != std::round(other.y);
-    }
+    bool operator!=(const Point& other) const { return std::round(x) != std::round(other.x) || std::round(y) != std::round(other.y); }
 
-    double heuristic(const Point &goal, bool use_manhattan) const
+    double heuristic(const Point& goal, bool use_manhattan) const
     {
-        if (use_manhattan){
+        if (use_manhattan)
+        {
             return std::abs(goal.x - x) + std::abs(goal.y - y);
         }
-        else{
+        else
+        {
             return std::sqrt(std::pow(goal.x - x, 2) + std::pow(goal.y - y, 2)); // Euclidean distance
         }
     }
@@ -67,6 +65,6 @@ public:
     // static Maze *maze;
 };
 
-}
+} // namespace ecn
 
 #endif // POINT_H

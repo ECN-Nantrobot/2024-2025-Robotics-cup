@@ -37,9 +37,9 @@ target_link_libraries(elastic_bands maze ${OpenCV_LIBS})
 add_executable(generator src/maze_generation.cpp)
 target_link_libraries(generator maze)
 
-# Diagonal-Executable
-add_executable(diagonal src/solve_cell_diagonal.cpp)
-target_link_libraries(diagonal maze elastic_bands)
+# main-Executable
+add_executable(solve src/main.cpp)
+target_link_libraries(solve maze elastic_bands)
 
 # Interactive Generation-Executable
 add_executable(interactive_generation src/interactive_generation.cpp)
