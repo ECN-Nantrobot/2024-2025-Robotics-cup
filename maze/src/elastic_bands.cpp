@@ -48,7 +48,8 @@ void ElasticBand::fillGaps(int max_gap)
             int numIntermediatePoints = static_cast<int>(std::ceil(distance / max_gap)) - 1;
             for (int j = 1; j <= numIntermediatePoints; ++j)
             {
-                Point intermediate = { current.x + (float)j * (next.x - current.x) / (numIntermediatePoints + 1), current.y + (float)j * (next.y - current.y) / (numIntermediatePoints + 1) };
+                Point intermediate = { current.x + (float)j * (next.x - current.x) / (numIntermediatePoints + 1),
+                                       current.y + (float)j * (next.y - current.y) / (numIntermediatePoints + 1) };
 
                 // Only add the point if it's free
                 if (maze.isFree(intermediate))
@@ -89,7 +90,8 @@ void ecn::ElasticBand::showPath(int pause_inbetween, const std::vector<float>& r
     // Draw the points
     for (const auto& point : path)
     {
-        cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale - grid_size, (point.y + 1) * scale - grid_size), cv::Scalar(0, 255, 0), cv::FILLED);
+        cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale - grid_size, (point.y + 1) * scale - grid_size),
+                      cv::Scalar(0, 255, 0), cv::FILLED);
     }
 
     // Draw Circles aroung the points
@@ -173,14 +175,16 @@ void ElasticBand::optimize(int sparsity)
     const float threshold    = 2.1;  // Convergence threshold (number of cells that move)
     float max_change         = 0;
 
-    const float spring_weight      = 16.0;
-    const int spring_radius        = 6; // Radius of the spring force (average Point of neighbors in radius)
+    const float spring_weight = 16.0;
+    const int spring_radius   = 6; // Radius of the spring force (average Point of neighbors in radius)
+    int dynamic_spring_radius = 6;
+    float rep_to_spring_radius_factor = 0.5;
 
     const float repulsive_strength = 13.5;
     const int min_rep_radius       = 8;
-    const int max_rep_radius       = 20;
+    const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
-    std::vector<float> dynamic_rep_radii(path.size() - 1, dynamic_rep_radius);
+    std::vector<float> dynamic_rep_radii(path.size(), dynamic_rep_radius);
 
     showPath(500, dynamic_rep_radii);
 
@@ -193,12 +197,11 @@ void ElasticBand::optimize(int sparsity)
         // Iterate over all points except start and end
         for (size_t i = 1; i < path.size() - 1; ++i)
         {
+            dynamic_rep_radius = std::max(static_cast<float>(min_rep_radius), std::min(static_cast<float>(max_rep_radius), distanceToClosestObstacle(path[i], max_rep_radius)));
+            dynamic_rep_radii[i]    = dynamic_rep_radius;
+            dynamic_spring_radius       = dynamic_rep_radius * rep_to_spring_radius_factor;
 
-            // int adaptive_spring_radius = std::max(3, spring_radius - iter / 3);
-            dynamic_rep_radius       = std::max(static_cast<float>(min_rep_radius), std::min(static_cast<float>(max_rep_radius), distanceToClosestObstacle(path[i], max_rep_radius)));
-            dynamic_rep_radii[i - 1] = dynamic_rep_radius;
-
-            Point spring_force    = computeSpringForce(i, spring_weight, spring_radius);
+            Point spring_force    = computeSpringForce(i, spring_weight, dynamic_spring_radius);
             Point repulsive_force = computeRepulsiveForce(i, dynamic_rep_radius, repulsive_strength);
 
             Point displacement = { alpha * (spring_force.x + repulsive_force.x), alpha * (spring_force.y + repulsive_force.y) };
@@ -216,6 +219,18 @@ void ElasticBand::optimize(int sparsity)
                 path[i].y += std::copysign(1.0, displacement.y);
             }
         }
+
+        std::cout << "Dynamic repulsive radii: ";
+        for (const auto& radius : dynamic_rep_radii)
+        {
+            std::cout << radius << " ";
+        }
+
+std::cout << "size of path" << path.size() << std::endl;
+
+std:: cout << "size of dynamic rep radii" << dynamic_rep_radii.size() << std::endl;
+
+        std::cout << std::endl;
 
         showPath(300, dynamic_rep_radii);
 
@@ -241,7 +256,7 @@ Point ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int ra
 {
     Point current = path[idx];
     Point force   = { 0, 0 };
-    int count     = 0; // used to calculate the number of neighbors contributing to the force: so that spring force pulls the current point toward the average Point of its neighbors
+    int count = 0; // used to calculate the number of neighbors contributing to the force: so that spring force pulls the current point toward the average Point of its neighbors
 
     // Special handling for the first and last movable points (send and second last point)
     if (idx == 1)
@@ -251,7 +266,7 @@ Point ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int ra
     }
     else if (idx == path.size() - 2)
     {
-        force.x += (path.back().x - path[idx].x) * spr_weight; // Pull towards end, 0.5 added to pampen because of high forces
+        force.x += (path.back().x - path[idx].x) * spr_weight; // Pull towards end
         force.y += (path.back().y - path[idx].y) * spr_weight;
     }
     else
