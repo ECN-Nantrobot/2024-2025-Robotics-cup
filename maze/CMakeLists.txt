@@ -25,13 +25,13 @@ add_library(maze SHARED
         include/elastic_bands.h 
         include/point.h 
         include/position.h
+        include/obstacle.h
         src/maze.cpp
-        src/point.cpp)
+        src/point.cpp
+        src/maze.cpp
+        src/elastic_bands.cpp)
 target_link_libraries(maze ${OpenCV_LIBS})
 
-# Elastic-Bands-Bib
-add_library(elastic_bands src/elastic_bands.cpp)
-target_link_libraries(elastic_bands maze ${OpenCV_LIBS})
 
 # Generator-Executable
 add_executable(generator src/maze_generation.cpp)
@@ -39,7 +39,7 @@ target_link_libraries(generator maze)
 
 # main-Executable
 add_executable(solve src/main.cpp)
-target_link_libraries(solve maze elastic_bands)
+target_link_libraries(solve maze)
 
 # Interactive Generation-Executable
 add_executable(interactive_generation src/interactive_generation.cpp)

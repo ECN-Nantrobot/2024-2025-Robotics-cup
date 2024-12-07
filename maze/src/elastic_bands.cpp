@@ -6,12 +6,15 @@
 #include <maze.h>
 #include <point.h>
 
+#include <chrono>
+#include <thread>
 
 namespace ecn
 {
 
 // Constructor
-ElasticBand::ElasticBand(const std::vector<Point>& initialPath, const Maze& maze) : path(initialPath), maze(maze) {}
+ElasticBand::ElasticBand(const std::vector<Point>& initialPath, const Maze& maze) : path(initialPath), maze(maze) {
+}
 
 void ElasticBand::savePathToFile(const std::string& filename) const
 {
@@ -69,30 +72,23 @@ void ElasticBand::fillGaps(int max_gap)
 
 void ecn::ElasticBand::showPath(int pause_inbetween, const std::vector<float>& radii) const
 {
-    const int scale     = 10; // Scale factor: Each grid cell becomes 10x10 pixels
+    const int scale     = 15; // Scale factor: Each grid cell becomes 10x10 pixels
     const int grid_size = 1;  // Grid line thickness
 
-    // Create a higher-resolution blank image
-    cv::Mat visualization(maze.getOut().rows * scale, maze.getOut().cols * scale, CV_8UC3, cv::Scalar(255, 255, 255));
+    
 
-    for (int y = 0; y < maze.getOut().rows; ++y)
-    {
-        for (int x = 0; x < maze.getOut().cols; ++x)
-        {
-            if (!maze.isFree(x, y))
-            {
-                cv::rectangle(visualization, cv::Point(x * scale, y * scale), cv::Point((x + 1) * scale, (y + 1) * scale), cv::Scalar(0, 0, 0), // Black for obstacles
-                              cv::FILLED);
-            }
-        }
-    }
+    // Create a higher-resolution blank image
+    // cv::Mat visualization(maze.getIm().rows * scale, maze.getIm().cols * scale, CV_8UC3, cv::Scalar(255, 255, 255));
+    cv::Mat visualization;
+    cv::resize(maze.getIm(), visualization, cv::Size(), scale, scale, cv::INTER_NEAREST);
 
     // Draw the points
     for (const auto& point : path)
     {
         cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale - grid_size, (point.y + 1) * scale - grid_size),
-                      cv::Scalar(0, 255, 0), cv::FILLED);
+                      cv::Scalar(0, 0, 255), cv::FILLED);
     }
+
 
     // Draw Circles aroung the points
     int i = 0;
@@ -112,26 +108,6 @@ void ecn::ElasticBand::showPath(int pause_inbetween, const std::vector<float>& r
     cv::moveWindow(window_name, 50, 50);
     cv::imshow(window_name, visualization);
     cv::waitKey(pause_inbetween);
-}
-
-std::vector<Point> ElasticBand::downsamplePath(int sparsity) const
-{
-    size_t sparseSize = (path.size() + sparsity - 1) / sparsity; // Ceiling of path.size() / sparsity
-    std::vector<Point> sparsePath(sparseSize);
-
-    size_t index = 0;
-    for (size_t i = 0; i < path.size(); i += sparsity)
-    {
-        sparsePath[index++] = path[i];
-    }
-
-    // Ensure the last point (goal) is included
-    if (sparsePath.empty() || sparsePath.back() != path.back())
-    {
-        sparsePath.push_back(path.back());
-    }
-
-    return sparsePath;
 }
 
 float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radius) const
@@ -165,34 +141,115 @@ float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radi
     return min_distance == std::numeric_limits<float>::max() ? -1.0f : min_distance; // Return -1 if no obstacle found
 }
 
-void ElasticBand::optimize(int sparsity)
+void ElasticBand::adjustPath(float minDistance, float maxDistance)
 {
+    std::vector<Point> adjustedPath(path.size() * 2); // Allow space for potential splits
+    size_t adjustedIndex = 0;
+    int n = 0;
 
-    path = downsamplePath(sparsity);
+    adjustedPath[adjustedIndex++] = path.front();
 
+    for (size_t i = 1; i < path.size(); ++i)
+    {
+        Point previous = path[i - 1];
+        Point current    = path[i+n];
+
+        float distance = std::hypot(current.x - previous.x, current.y - previous.y);
+        // std::cout << "Distance from " << i -1 << " to " << i+n << " = " << distance << " ";
+
+        if (distance > maxDistance) {
+            int numIntermediatePoints = static_cast<int>(std::ceil(distance / maxDistance)) - 1;
+            // std ::cout << "numIntermediatePoints: " << numIntermediatePoints << std::endl;
+
+            for (int j = 1; j <= numIntermediatePoints; ++j) {
+                Point intermediate            = { previous.x + (float)j * (current.x - previous.x) / (numIntermediatePoints + 1),
+                                                  previous.y + (float)j * (current.y - previous.y) / (numIntermediatePoints + 1) };
+                adjustedPath[adjustedIndex++] = intermediate;
+                // std::cout << "added intermdiate: " << adjustedIndex -1 << std::endl;
+            }            
+            n = 0;
+        }
+        else if (distance >= minDistance && distance <= maxDistance) {
+            adjustedPath[adjustedIndex++] = current; //increment after assignement
+
+            // std::cout << "added: " <<  i + n << " to " << adjustedIndex -1 << std::endl;
+
+            if(i+n < path.size() - 1)
+                i = i + n;
+            else
+                break;
+            n = 0;
+        }
+        else{
+            i--;
+            if (i + n +1 < path.size() - 1)
+                n++;
+            else
+                break;
+        }
+        // std::cout << "i: " << i << ", " << n << std::endl;
+        // std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        // std::cout << "adjusted index: " << adjustedIndex << std::endl;
+    }
+
+    // std::cout << "Old Path:" << std::endl;
+    // for (size_t i = 1; i < path.size(); ++i)
+    // {
+    //     float distance = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+    //     std::cout << "Index: " << i << ", Distance to previous point: " << distance << std::endl;
+    // }
+
+    // // Print index and distance to the point before for the new path
+    // std::cout << "New Path:" << std::endl;
+    // for (size_t i = 1; i < adjustedPath.size(); ++i)
+    // {
+    //     float distance = std::hypot(adjustedPath[i].x - adjustedPath[i - 1].x, adjustedPath[i].y - adjustedPath[i - 1].y);
+    //     std::cout << "Index: " << i << ", Distance to previous point: " << distance << std::endl;
+    // }
+
+    adjustedPath[adjustedIndex++] = path.back();
+    std ::cout << "Path size: " << path.size();
+    adjustedPath.resize(adjustedIndex);
+    path = adjustedPath;
+    std ::cout << " -> " << path.size();
+}
+
+
+void ElasticBand::optimize()
+{
     const float alpha        = 0.05; // Step size (scaling of the total force)
     const int max_iterations = 10;   // Maximum iterations
     const float threshold    = 2.1;  // Convergence threshold (number of cells that move)
     float max_change         = 0;
 
-    const float spring_weight = 16.0;
+    const float spring_weight = 15.0;
     const int spring_radius   = 6; // Radius of the spring force (average Point of neighbors in radius)
     int dynamic_spring_radius = 6;
     float rep_to_spring_radius_factor = 0.5;
 
-    const float repulsive_strength = 13.5;
-    const int min_rep_radius       = 8;
+    const float repulsive_strength = 6.0;
+    const int min_rep_radius       = 5;
     const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
     std::vector<float> dynamic_rep_radii(path.size(), dynamic_rep_radius);
 
-    showPath(500, dynamic_rep_radii);
+
+    float min_distance = 2.5;
+    float max_distance = 3.5;
+
+    showPath(1000, dynamic_rep_radii);
 
     for (int iter = 0; iter < max_iterations; ++iter)
     {
+        
         max_change = 0;
 
-        std::cout << "Iteration: " << iter;
+        std::cout << "Iteration: " << iter << ": ";
+
+        adjustPath(min_distance, max_distance);
+        std::vector<float> dynamic_rep_radii(path.size(), dynamic_rep_radius);
+
 
         // Iterate over all points except start and end
         for (size_t i = 1; i < path.size() - 1; ++i)
@@ -200,6 +257,8 @@ void ElasticBand::optimize(int sparsity)
             dynamic_rep_radius = std::max(static_cast<float>(min_rep_radius), std::min(static_cast<float>(max_rep_radius), distanceToClosestObstacle(path[i], max_rep_radius)));
             dynamic_rep_radii[i]    = dynamic_rep_radius;
             dynamic_spring_radius       = dynamic_rep_radius * rep_to_spring_radius_factor;
+
+            
 
             Point spring_force    = computeSpringForce(i, spring_weight, dynamic_spring_radius);
             Point repulsive_force = computeRepulsiveForce(i, dynamic_rep_radius, repulsive_strength);
@@ -217,40 +276,100 @@ void ElasticBand::optimize(int sparsity)
             {
                 path[i].x += std::copysign(1.0, displacement.x);
                 path[i].y += std::copysign(1.0, displacement.y);
+
+                Point current = path[i];
+
+                if (!maze.isFree(current))
+                {
+                    int radius            = 1;
+                    bool foundAlternative = false;
+                    int max_search_radius = 10;
+
+                    while (radius <= max_search_radius && !foundAlternative)
+                    {
+                        for (int dx = -radius; dx <= radius; ++dx)
+                        {
+                            for (int dy = -radius; dy <= radius; ++dy)
+                            {
+                                if (std::hypot(dx, dy) > radius)
+                                    continue; // Nur innerhalb des Kreises prüfen
+                                Point alternative = { current.x + dx, current.y + dy };
+                                if (maze.isFree(alternative))
+                                {
+                                    path[i]          = alternative;
+                                    std ::cout << "Alternative found at: " << alternative.x << ", " << alternative.y << std::endl;
+                                    foundAlternative = true;
+                                    break;
+                                }
+                            }
+                            if (foundAlternative)
+                                break;
+                        }
+                        radius++;
+                    }
+                }
+
+
+                    // // Wenn keine Alternative gefunden wurde, aktiv herausdrücken
+                    // if (!foundAlternative)
+                    // {
+                    //     Point displacement = computeRepulsiveForce(i, /*rep_radius=*/5, /*rep_strength=*/10);
+                    //     Point newPos       = { current.x + displacement.x, current.y + displacement.y };
+
+                    //     // Prüfen, ob die neue Position außerhalb des Hindernisses liegt
+                    //     if (maze.isFree(newPos))
+                    //     {
+                    //         path[i] = newPos;
+                    //     }
+                    //     else
+                    //     {
+                    //         // Falls nicht, bewege in Richtung der nächsten freien Zelle
+                    //         for (int step = 1; step <= 10; ++step)
+                    //         {
+                    //             Point candidate = { current.x + step * displacement.x, current.y + step * displacement.y };
+                    //             if (maze.isFree(candidate))
+                    //             {
+                    //                 path[i] = candidate;
+                    //                 break;
+                    //             }
+                    //         }
+                    //     }
+                    // }
+                // }
             }
         }
+        // for (size_t i = 0; i < path.size(); ++i) {
+        //     float radius = dynamic_rep_radii[i];
+        //     if (radius < 0 || !std::isfinite(radius) || radius > max_rep_radius) {
+        //         std::cerr << "Invalid radius detected at index " << i << ": " << radius << " (point: " << path[i].x << ", " << path[i].y << ")" << std::endl;
+        //         // radius = 0; // Use a default valid value to prevent the program from crashing
+        //     }
+        // }
 
-        std::cout << "Dynamic repulsive radii: ";
-        for (const auto& radius : dynamic_rep_radii)
-        {
-            std::cout << radius << " ";
+            // // Print the radii for debugging
+            // std::cout << "Dynamic Repulsive Radii: ";
+            // for (const auto& radius : dynamic_rep_radii) {
+            //     std::cout << radius << " ";
+            // }
+            // std::cout << std::endl;
+
+            showPath(100, dynamic_rep_radii);
+
+            std::cout << ", max_change: " << max_change << std::endl;
+
+            if (max_change <= threshold) {
+                std::cout << "Optimization converged after " << max_iterations << " iterations, becuase: max_change vs threshold: " << max_change << " vs " << threshold << std::endl;
+                break;
+            }
         }
-
-std::cout << "size of path" << path.size() << std::endl;
-
-std:: cout << "size of dynamic rep radii" << dynamic_rep_radii.size() << std::endl;
-
-        std::cout << std::endl;
-
-        showPath(300, dynamic_rep_radii);
-
-        std::cout << ", max_change: " << max_change << std::endl;
-
-        if (max_change <= threshold)
-        {
-            std::cout << "Optimization converged after " << max_iterations << " iterations, becuase: max_change vs threshold: " << max_change << " vs " << threshold << std::endl;
-            break;
-        }
-    }
 
     if (max_change > threshold)
     {
         std::cout << "Optimization eded because of max iterations: " << max_iterations << std::endl;
     }
 
-    fillGaps(1); // Fill gaps after optimization (maybe not needed later in real world)
+    //fillGaps(1); // Fill gaps after optimization (maybe not needed later in real world)
 }
-
 
 Point ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int radius) const
 {
@@ -328,15 +447,6 @@ Point ElasticBand::computeRepulsiveForce(size_t idx, const float rep_radius, con
     return force;
 }
 
-// bool ElasticBand::isPointFree(const Point& pos) const {
-//     int x = static_cast<int>(std::round(pos.x));
-//     int y = static_cast<int>(std::round(pos.y));
-
-//     if (!maze.isFree(x, y)) {
-//         return false;
-//     }
-//     return true;
-// }
-
 const std::vector<Point>& ElasticBand::getPath() const { return path; }
+
 } // namespace ecn

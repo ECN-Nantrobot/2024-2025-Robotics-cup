@@ -165,11 +165,15 @@ BinPackParameters: false
 #   bool BeforeElse Wrap before else.
 #   bool IndentBraces Indent the wrapped braces themselves.
 #BraceWrapping:
-BraceWrapping:
-  AfterFunction: false                # Do not wrap braces after functions
-  AfterControlStatement: false        # Keep control statements compact
-  AfterClass: false                   # Keep classes compact if possible
-  BeforeElse: false                   # Compact else with previous closing brace
+; BraceWrapping:
+;   AfterClass: true                   # Keep classes compact if possible
+;   AfterControlStatement: true        # Keep control statements compact
+;   AfterEnum: false  
+;   AfterFunction: false                # Do not wrap braces after functions  
+;   BeforeElse: false                   # Compact else with previous closing brace
+;   IndentBraces: false
+  
+
 
 # BreakAfterJavaFieldAnnotations (bool)
 # Break after each annotation on a field in Java files.
@@ -194,7 +198,7 @@ BreakBeforeBinaryOperators: false
 #   BS_GNU (in configuration: GNU) Always break before braces and add an extra level of indentation to braces of control statements, not to those of class, function or other definitions.
 #   BS_WebKit (in configuration: WebKit) Like Attach, but break before functions.
 #   BS_Custom (in configuration: Custom) Configure each individual brace in BraceWrapping.
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Linux
 
 # BreakBeforeTernaryOperators (bool)
 # If true, ternary operators will be placed after line breaks.

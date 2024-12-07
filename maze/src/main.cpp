@@ -15,8 +15,7 @@ using namespace ecn;
 int main(int argc, char** argv)
 {
     bool forceRecalculate = false;
-    if (argc == 2 && std::string(argv[1]) == "new")
-    {
+    if (argc == 2 && std::string(argv[1]) == "new") {
         forceRecalculate = true; // Force recalculation of the A* path
     }
 
@@ -35,21 +34,15 @@ int main(int argc, char** argv)
 
     // Load or calculate the A* path
     if (forceRecalculate == false && std::filesystem::exists(filename_astar_path) &&
-        (std::filesystem::last_write_time(filename_astar_path) >= std::filesystem::last_write_time(filename_maze)))
-    {
+        (std::filesystem::last_write_time(filename_astar_path) >= std::filesystem::last_write_time(filename_maze))) {
         astar_path = loadPathFromFile(filename_astar_path);
         start      = astar_path.front();
         goal       = astar_path.back();
-    }
-    else
-    {
-        if (filename_maze.find("interac") != std::string::npos)
-        {
+    } else {
+        if (filename_maze.find("interac") != std::string::npos) {
             start = Point::maze.findStart();
             goal  = Point::maze.findGoal();
-        }
-        else
-        {
+        } else {
             start = Point::maze.findCornerStart();
             goal  = Point::maze.findCornerGoal();
         }
@@ -63,8 +56,30 @@ int main(int argc, char** argv)
         saveAstarPathToFile(filename_astar_path, astar_path);
     }
 
+    // Create a list of obstacles
+    std::vector<Obstacle> obstacles = {
+        Obstacle(150, 55, 40, 30, Obstacle::FIXED, "green"),     // Red fixed obstacle
+        Obstacle(230, 140, 50, 50, Obstacle::TEMPORARY, "green", 10), // Green temporary obstacle (5 updates)
+        Obstacle(10, 70, 15, 20, Obstacle::MOVABLE, "green")   // Blue movable obstacle
+    };
+
     ecn::ElasticBand elastic_band(astar_path, Point::maze);
-    elastic_band.optimize(2); // use every ... point
+
+    for (int i = 0; i < 10; i++) {
+        for (auto& obstacle : obstacles) {
+            obstacle.update();
+        }
+        Point::maze.updateObstacles(obstacles);
+
+        elastic_band.optimize(); // use every ... point
+
+        if (obstacles[2].getType() == Obstacle::MOVABLE && obstacles[2].isActive()) {
+            obstacles[2].moveTo(obstacles[2].getX() + 5, obstacles[2].getY());
+        }
+
+        // pause
+        cv::waitKey(500);
+    }
 
     const std::vector<Point>& optimizedPath = elastic_band.getPath();
 

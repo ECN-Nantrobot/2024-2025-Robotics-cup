@@ -8,6 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
+#include <obstacle.h>
 
 namespace ecn
 {
@@ -31,7 +32,7 @@ public:
     inline int width() const { return im.cols; }
 
     void passThrough(int x, int y);
-    void display(const std::string& name, const cv::Mat& im);
+    void display(const std::string& name, const std::string& type);
     void write(int x, int y, int r = 0, int g = 0, int b = 0, bool show = true);
 
     void save();
@@ -55,8 +56,11 @@ public:
     void setIm(const cv::Mat& image) { im = image; }
     void setOut(const cv::Mat& output) { out = output; }
 
-protected:
-    cv::Mat im, out;
+    void renderObstacle(const Obstacle& obstacle);
+    void updateObstacles(const std::vector<Obstacle>& obstacles);
+
+    protected : cv::Mat im,
+                out;
     std::string filename;
     std::vector<cv::Point> path;
     std::vector<cv::Point> path_eb;

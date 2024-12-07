@@ -15,18 +15,14 @@ void Maze::load(std::string _filename)
 
     im = cv::imread(filename, cv::IMREAD_UNCHANGED);
 
-    if (im.empty())
-    {
+    if (im.empty()) {
         throw std::runtime_error("Failed to load the image at: " + filename);
     }
 
-    if (im.channels() == 4)
-    {
+    if (im.channels() == 4) {
         cv::cvtColor(im, im, cv::COLOR_RGBA2BGR);
         std::cout << "Converted RGBA image to BGR format ... ";
-    }
-    else if (im.channels() == 1)
-    {
+    } else if (im.channels() == 1) {
         cv::cvtColor(im, im, cv::COLOR_GRAY2BGR);
         std::cout << "Converted grayscale image to BGR format ... ";
     }
@@ -40,19 +36,20 @@ bool Maze::isFree(float fx, float fy) const
     int x = static_cast<int>(std::round(fx));
     int y = static_cast<int>(std::round(fy));
 
-    if (x < 0 || y < 0 || x >= im.cols || y >= im.rows)
-    {
+    if (x < 0 || y < 0 || x >= im.cols || y >= im.rows) {
         return false;
     }
 
     cv::Vec3b color = im.at<cv::Vec3b>(y, x);
 
-    if (color[0] == color[1] && color[1] == color[2])
+    if (color[0] == color[1] && color[1] == color[2]) // if the color is gray
     {
-        if (color[0] < 255)
-        {
+        if (color[0] < 255) {
             return false;
         }
+    } else if (color[0] == 0 && color[1] > 0 && color[2] == 0) // if the color is green
+    {
+        return false;
     }
 
     return true;
@@ -62,23 +59,24 @@ bool Maze::isFree(const Point& p) const { return isFree(p.x, p.y); }
 
 void Maze::passThrough(int x, int y) { path.push_back(cv::Point(x, y)); }
 
-void Maze::display(const std::string& name, const cv::Mat& im)
+void Maze::display(const std::string& name, const std::string& type)
 {
-    if (std::find(windows.begin(), windows.end(), name) == windows.end())
-    {
+    cv::Mat& imageToShow = (type == "im") ? im : (type == "out") ? out : im; // Default to `im` if invalid input
+
+    if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
         windows.push_back(name);
         cv::namedWindow(name, cv::WINDOW_NORMAL);
-        cv::resizeWindow(name, 1000, (1000 * im.rows) / im.cols);
+        cv::resizeWindow(name, 1000, (1000 * imageToShow.rows) / imageToShow.cols);
     }
-    cv::imshow(name, im);
+    cv::imshow(name, imageToShow);
 }
+
 
 void Maze::write(int x, int y, int r, int g, int b, bool show)
 {
     out.at<cv::Vec3b>(y, x) = cv::Vec3b(b, g, r);
-    if (show)
-    {
-        display("Maze", out);
+    if (show) {
+        display("Maze", "out");
         cv::waitKey(1);
     }
 }
@@ -86,7 +84,7 @@ void Maze::write(int x, int y, int r, int g, int b, bool show)
 void Maze::save()
 {
     cv::imwrite(mazeFile(), im);
-    display("Maze", im);
+    display("Maze", "im");
 }
 
 void Maze::saveSolution(std::string suffix)
@@ -96,13 +94,11 @@ void Maze::saveSolution(std::string suffix)
     cv::Vec3b colour_astar(255, 0, 0); // Color for A* path
     cv::Vec3b colour_eb(0, 255, 0);    // Color for Elastic Band path
 
-    for (const auto& point : path)
-    {
+    for (const auto& point : path) {
         out.at<cv::Vec3b>(point) = colour_astar;
     }
 
-    for (const auto& point : path_eb)
-    {
+    for (const auto& point : path_eb) {
         out.at<cv::Vec3b>(point) = colour_eb;
     }
 
@@ -131,12 +127,9 @@ void Maze::saveSolution(std::string suffix)
     // }
 
     // Ensure obstacles remain correctly represented
-    for (int x = 0; x < im.cols; ++x)
-    {
-        for (int y = 0; y < im.rows; ++y)
-        {
-            if (!isFree(x, y))
-            {
+    for (int x = 0; x < im.cols; ++x) {
+        for (int y = 0; y < im.rows; ++y) {
+            if (!isFree(x, y)) {
                 write(x, y, 0, 0, 0, false); // Set obstacles to black
             }
         }
@@ -145,12 +138,9 @@ void Maze::saveSolution(std::string suffix)
     int dot          = filename.find(".");
     std::string name = filename.substr(0, dot) + "_" + suffix + ".png";
     cv::imwrite(name, out);
-    if (!cv::imwrite(name, out))
-    {
+    if (!cv::imwrite(name, out)) {
         std::cerr << "Error: Failed to save image to " << name << std::endl;
-    }
-    else
-    {
+    } else {
         std::cout << "Saved solution to " << name << std::endl;
     }
     cv::namedWindow("Solution", cv::WINDOW_NORMAL);
@@ -166,10 +156,8 @@ Point Maze::getGoal() const { return goal_; }
 Point Maze::findStart()
 {
     Point start(-1, -1);
-    for (int y = 0; y < im.rows; ++y)
-    {
-        for (int x = 0; x < im.cols; ++x)
-        {
+    for (int y = 0; y < im.rows; ++y) {
+        for (int x = 0; x < im.cols; ++x) {
             cv::Vec3b color = im.at<cv::Vec3b>(y, x);
             if (color[0] == 0 && color[1] == 0 && color[2] == 255) // red
             {                                                      // Red color
@@ -186,10 +174,8 @@ Point Maze::findStart()
 Point Maze::findGoal()
 {
     Point goal(-1, -1);
-    for (int y = 0; y < im.rows; ++y)
-    {
-        for (int x = 0; x < im.cols; ++x)
-        {
+    for (int y = 0; y < im.rows; ++y) {
+        for (int x = 0; x < im.cols; ++x) {
             cv::Vec3b color = im.at<cv::Vec3b>(y, x);
             if (color[0] == 255 && color[1] == 0 && color[2] == 0) // blue
             {                                                      // Blue color
@@ -205,12 +191,9 @@ Point Maze::findGoal()
 
 Point Maze::findCornerStart()
 {
-    for (int y = 0; y < im.rows; ++y)
-    {
-        for (int x = 0; x < im.cols; ++x)
-        {
-            if (isFree(x, y))
-            {
+    for (int y = 0; y < im.rows; ++y) {
+        for (int x = 0; x < im.cols; ++x) {
+            if (isFree(x, y)) {
                 Point start(x, y);
                 std::cout << "Corner Start: (" << start.x << ", " << start.y << ")\n";
                 start_ = start;
@@ -223,12 +206,9 @@ Point Maze::findCornerStart()
 
 Point Maze::findCornerGoal()
 {
-    for (int y = im.rows - 1; y >= 0; --y)
-    {
-        for (int x = im.cols - 1; x >= 0; --x)
-        {
-            if (isFree(x, y))
-            {
+    for (int y = im.rows - 1; y >= 0; --y) {
+        for (int x = im.cols - 1; x >= 0; --x) {
+            if (isFree(x, y)) {
                 Point goal(x, y);
                 std::cout << "Corner Goal: (" << goal.x << ", " << goal.y << ")\n";
                 goal_ = goal;
@@ -246,10 +226,36 @@ void Maze::setGoal(const Point& goal) { goal_ = goal; }
 void Maze::setElasticBandPath(const std::vector<Point>& elasticBandPath)
 {
     path_eb.clear();
-    for (const auto& pos : elasticBandPath)
-    {
+    for (const auto& pos : elasticBandPath) {
         path_eb.emplace_back(pos.x, pos.y);
     }
 }
+
+void Maze::renderObstacle(const Obstacle& obstacle)
+{
+    for (int y = obstacle.getY() - obstacle.getHeight() / 2; y < obstacle.getY() + obstacle.getHeight() / 2; ++y) {
+        for (int x = obstacle.getX() - obstacle.getWidth() / 2; x < obstacle.getX() + obstacle.getWidth() / 2; ++x) {
+            // Check if the position is within the bounds of the image
+            if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
+                if (obstacle.isActive()) {
+                    // Render the obstacle with its color
+                    im.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
+                } else {
+                    // If the obstacle is not active, reset the area to white
+                    im.at<cv::Vec3b>(y, x) = cv::Vec3b(255, 255, 255);
+                }
+            }
+        }
+    }
+}
+
+void Maze::updateObstacles(const std::vector<Obstacle>& obstacles)
+
+{
+    for (const auto& obstacle : obstacles) {
+        renderObstacle(obstacle);
+    }
+}
+
 
 } // namespace ecn

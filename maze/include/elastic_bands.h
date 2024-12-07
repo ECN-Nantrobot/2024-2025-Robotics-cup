@@ -26,8 +26,7 @@ public:
 
     void savePathToFile(const std::string& filename) const;
 
-    // Optimize the path using elastic band algorithm
-    void optimize(int sparsity);
+    void optimize(); // Optimize the path using elastic band algorithm
 
     void fillGaps(int maxGap);
 
@@ -35,23 +34,16 @@ public:
 
     float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
-    // Retrieve the optimized path
+    void adjustPath(float minDistance, float maxDistance);
+
     const std::vector<Point>& getPath() const;
 
 private:
-    std::vector<Point> path; // Path to be optimized
-    const Maze& maze;        // Reference to the maze
+    std::vector<Point> path;
+    const Maze& maze;  
 
-    std::vector<Point> downsamplePath(int sparsity = 1) const;
-
-    // Compute the internal spring force (gluing force)
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
-
-    // Compute the repulsive force to avoid obstacles
     Point computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const;
-
-    // Check if a point is within free space
-    bool isPointFree(const Point& pos) const;
 };
 
 } // namespace ecn

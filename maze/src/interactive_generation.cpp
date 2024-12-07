@@ -3,6 +3,9 @@
 #include <maze.h>
 #include <vector>
 
+namespace Generation
+{
+
 
 struct Obstacle
 {
@@ -326,9 +329,12 @@ class MazeEditor
     sf::Vector2i first_click; // Position of the first click (starting point for the rectangle)
 };
 
+}
+
+
 int main(int argc, char* argv[])
 {
-    MazeEditor editor;
+    Generation::MazeEditor editor;
 
     if (argc > 1 && std::string(argv[1]) == "load")
     {
