@@ -44,6 +44,14 @@ public:
         }
     }
 
+    void remove()
+    {
+        if (type_ == TEMPORARY)
+        {
+            active_ = false;
+        }
+    }
+
     bool isActive() const { return active_; }
     int getX() const { return x_; }
     int getY() const { return y_; }

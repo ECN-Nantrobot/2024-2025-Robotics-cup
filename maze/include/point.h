@@ -16,7 +16,7 @@ class Maze;
 class Point
 {
 public:
-    Point(float _x = 0, float _y = 0) : x(_x), y(_y) {}
+    Point(float _x = 0, float _y = 0, float _radius = 0) : x(_x), y(_y), radius(_radius) {}
 
     void operator=(const Point& p)
     {
@@ -24,9 +24,11 @@ public:
         y = p.y;
     }
 
-    Point toInt() const { return Point(static_cast<int>(x), static_cast<int>(y)); }
-    Point toFloat() const { return Point(static_cast<float>(x), static_cast<float>(y)); }
+    Point toInt() const { return Point(static_cast<int>(x), static_cast<int>(y), radius); }
+    Point toFloat() const { return Point(static_cast<float>(x), static_cast<float>(y), radius); }
 
+    float getRadius() const { return radius; }
+    void setRadius(float r) { radius = r; }
 
     void start();
 
@@ -61,6 +63,7 @@ public:
     }
 
     float x, y;
+    float radius;
     static Maze maze;
     // static Maze *maze;
 };

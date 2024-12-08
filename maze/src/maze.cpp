@@ -26,7 +26,8 @@ void Maze::load(std::string _filename)
         cv::cvtColor(im, im, cv::COLOR_GRAY2BGR);
         std::cout << "Converted grayscale image to BGR format ... ";
     }
-    out = im.clone();
+    original_im = im.clone();
+    out        = im.clone();
 
     std::cout << " ok" << std::endl;
 }
@@ -87,15 +88,16 @@ void Maze::save()
     display("Maze", "im");
 }
 
-void Maze::saveSolution(std::string suffix)
+void Maze::saveSolution(std::string suffix, const std::vector<Point>& astar_path)
 {
     out = im.clone();
 
     cv::Vec3b colour_astar(255, 0, 0); // Color for A* path
     cv::Vec3b colour_eb(0, 255, 0);    // Color for Elastic Band path
 
-    for (const auto& point : path) {
-        out.at<cv::Vec3b>(point) = colour_astar;
+
+    for (const auto& point : astar_path) {
+        out.at<cv::Vec3b>(point.x, point.y) = colour_astar;
     }
 
     for (const auto& point : path_eb) {
@@ -241,8 +243,8 @@ void Maze::renderObstacle(const Obstacle& obstacle)
                     // Render the obstacle with its color
                     im.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
                 } else {
-                    // If the obstacle is not active, reset the area to white
-                    im.at<cv::Vec3b>(y, x) = cv::Vec3b(255, 255, 255);
+                    // If the obstacle is not active, reset the pixels to original
+                    im.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y, x);
                 }
             }
         }

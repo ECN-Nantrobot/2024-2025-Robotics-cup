@@ -3,12 +3,13 @@
 
 #include "point.h" // Include point.h to get the full definition of Point
 #include <iostream>
+#include <obstacle.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
-#include <obstacle.h>
+
 
 namespace ecn
 {
@@ -36,7 +37,7 @@ public:
     void write(int x, int y, int r = 0, int g = 0, int b = 0, bool show = true);
 
     void save();
-    void saveSolution(std::string suffix);
+    void saveSolution(std::string suffix, const std::vector<Point>& astar_path);
 
     Point getStart() const;
     Point getGoal() const;
@@ -59,15 +60,15 @@ public:
     void renderObstacle(const Obstacle& obstacle);
     void updateObstacles(const std::vector<Obstacle>& obstacles);
 
-    protected : cv::Mat im,
-                out;
-    std::string filename;
-    std::vector<cv::Point> path;
-    std::vector<cv::Point> path_eb;
-    std::vector<std::string> windows;
+    protected :
+        cv::Mat im, original_im, out;
+        std::string filename;
+        std::vector<cv::Point> path;
+        std::vector<cv::Point> path_eb;
+        std::vector<std::string> windows;
 
-    Point start_;
-    Point goal_;
+        Point start_;
+        Point goal_;
 };
 
 } // namespace ecn

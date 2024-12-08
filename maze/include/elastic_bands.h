@@ -30,7 +30,7 @@ public:
 
     void fillGaps(int maxGap);
 
-    void showPath(int pause_inbetween, const std::vector<float>& radii) const;
+    void showPath(int pause_inbetween) const;
 
     float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
@@ -38,12 +38,15 @@ public:
 
     const std::vector<Point>& getPath() const;
 
+    void repelFromObstacle(Point& point, float rep_strength);
+
 private:
     std::vector<Point> path;
     const Maze& maze;  
 
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
-    Point computeRepulsiveForce(size_t idx, const float rep_radius, const float rep_strength) const;
+    Point computeRepulsiveForce(size_t idx, const float rep_strength) const;
+    
 };
 
 } // namespace ecn
