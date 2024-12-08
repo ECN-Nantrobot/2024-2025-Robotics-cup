@@ -27,7 +27,7 @@ void Maze::load(std::string _filename)
         std::cout << "Converted grayscale image to BGR format ... ";
     }
     original_im = im.clone();
-    out        = im.clone();
+    out         = im.clone();
 
     std::cout << " ok" << std::endl;
 }
@@ -235,6 +235,18 @@ void Maze::setElasticBandPath(const std::vector<Point>& elasticBandPath)
 
 void Maze::renderObstacle(const Obstacle& obstacle)
 {
+    if (obstacle.getType() == Obstacle::MOVABLE) {
+        // Remove the old position of the obstacle
+        for (int y = obstacle.getYPrev() - obstacle.getHeight() / 2; y < obstacle.getYPrev() + obstacle.getHeight() / 2; ++y) {
+            for (int x = obstacle.getXPrev() - obstacle.getWidth() / 2; x < obstacle.getXPrev() + obstacle.getWidth() / 2; ++x) {
+                // Check if the position is within the bounds of the image
+                if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
+                    im.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y, x);
+                }
+            }
+        }
+    }
+
     for (int y = obstacle.getY() - obstacle.getHeight() / 2; y < obstacle.getY() + obstacle.getHeight() / 2; ++y) {
         for (int x = obstacle.getX() - obstacle.getWidth() / 2; x < obstacle.getX() + obstacle.getWidth() / 2; ++x) {
             // Check if the position is within the bounds of the image
@@ -252,7 +264,6 @@ void Maze::renderObstacle(const Obstacle& obstacle)
 }
 
 void Maze::updateObstacles(const std::vector<Obstacle>& obstacles)
-
 {
     for (const auto& obstacle : obstacles) {
         renderObstacle(obstacle);

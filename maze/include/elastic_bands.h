@@ -32,17 +32,16 @@ public:
 
     void showPath(int pause_inbetween) const;
 
-    float distanceToClosestObstacle(const Point& point, int search_radius) const;
-
-    bool adjustPath(float minDistance, float maxDistance);
-
     const std::vector<Point>& getPath() const;
 
-    void repelFromObstacle(Point& point, float rep_strength);
+    void repelFromObstacle(size_t idx, float rep_strength);
 
 private:
     std::vector<Point> path;
-    const Maze& maze;  
+    const Maze& maze;
+
+    bool adjustPath(float minDistance, float maxDistance);
+    float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
     Point computeRepulsiveForce(size_t idx, const float rep_strength) const;

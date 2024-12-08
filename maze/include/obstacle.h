@@ -18,7 +18,7 @@ public:
     };
 
     Obstacle(int x, int y, int width, int height, Type type, const std::string& colorName, int duration = 0)
-    : x_(x), y_(y), width_(width), height_(height), type_(type), duration_(duration), active_(true)
+    : x_(x), y_(y), x_prev(x), y_prev(y), width_(width), height_(height), type_(type), duration_(duration), active_(true)
     {
         color_ = getColorFromName(colorName);
     }
@@ -39,6 +39,8 @@ public:
     {
         if (type_ == MOVABLE)
         {
+            x_prev = x_;
+            y_prev = y_;
             x_ = newX;
             y_ = newY;
         }
@@ -55,6 +57,8 @@ public:
     bool isActive() const { return active_; }
     int getX() const { return x_; }
     int getY() const { return y_; }
+    int getXPrev() const { return x_prev; }
+    int getYPrev() const { return y_prev; }
     int getWidth() const { return width_; }
     int getHeight() const { return height_; }
     cv::Scalar getColor() const { return color_; }
@@ -62,6 +66,8 @@ public:
 
 private:
     int x_, y_;          // Position of the obstacle
+    int x_prev, y_prev;    // Previous position
+
     int width_, height_; // Dimensions of the obstacle
     Type type_;          // Type of the obstacle
     int duration_;       // Duration for TEMPORARY obstacles
