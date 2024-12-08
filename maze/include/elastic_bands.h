@@ -26,7 +26,7 @@ public:
 
     void savePathToFile(const std::string& filename) const;
 
-    void optimize(); // Optimize the path using elastic band algorithm
+    bool optimize(); // Optimize the path using elastic band algorithm
 
     void fillGaps(int maxGap);
 
@@ -34,7 +34,7 @@ public:
 
     float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
-    void adjustPath(float minDistance, float maxDistance);
+    bool adjustPath(float minDistance, float maxDistance);
 
     const std::vector<Point>& getPath() const;
 
@@ -46,7 +46,7 @@ private:
 
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
     Point computeRepulsiveForce(size_t idx, const float rep_strength) const;
-    
+    int checkAndAjustInCorridor(size_t idx, int radius) const;
 };
 
 } // namespace ecn

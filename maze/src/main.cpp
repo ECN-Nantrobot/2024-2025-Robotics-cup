@@ -73,7 +73,7 @@ int main(int argc, char** argv)
         std::cout << "" << std::endl;
         std::cout << "TIME: " << t << std::endl;
 
-        for (int j = 0; j < 3; ++j) {
+        for (int j = 0; j < 1; ++j) {
             int x      = rand() % Point::maze.width();
             int y      = rand() % Point::maze.height();
             int width  = 10 + rand() % 41; // Random width between 10 and 50
@@ -87,7 +87,8 @@ int main(int argc, char** argv)
         }
         Point::maze.updateObstacles(obstacles);
 
-        elastic_band.optimize();
+        elastic_band.optimize()
+
 
         if (obstacles[2].getType() == Obstacle::MOVABLE && obstacles[2].isActive()) {
             obstacles[2].moveTo(obstacles[2].getX() + 5, obstacles[2].getY());

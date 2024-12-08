@@ -16,7 +16,7 @@ class Maze;
 class Point
 {
 public:
-    Point(float _x = 0, float _y = 0, float _radius = 0) : x(_x), y(_y), radius(_radius) {}
+    Point(float _x = 0, float _y = 0, float _radius = 6, cv::Scalar _colour = cv::Scalar(0, 0, 255)) : x(_x), y(_y), radius(_radius), colour(_colour) {}
 
     void operator=(const Point& p)
     {
@@ -27,8 +27,6 @@ public:
     Point toInt() const { return Point(static_cast<int>(x), static_cast<int>(y), radius); }
     Point toFloat() const { return Point(static_cast<float>(x), static_cast<float>(y), radius); }
 
-    float getRadius() const { return radius; }
-    void setRadius(float r) { radius = r; }
 
     void start();
 
@@ -37,33 +35,23 @@ public:
     // prints the grid with all positions from parent
     virtual void print(const Point& parent) const; // Declaration only
 
-    // void drawCircle(cv::Mat &image, const cv::Scalar &color, int radius = 5) const;
-
     friend std::ostream& operator<<(std::ostream& out, const Point& p)
     {
         out << "(" << p.x << ", " << p.y << ")";
         return out;
     }
 
-    // 2 positions are equal if they have the same x and y
     bool operator==(const Point& other) const { return std::round(x) == std::round(other.x) && std::round(y) == std::round(other.y); }
-
     bool operator!=(const Point& other) const { return std::round(x) != std::round(other.x) || std::round(y) != std::round(other.y); }
 
-    double heuristic(const Point& goal, bool use_manhattan) const
+    double heuristic(const Point& goal) const
     {
-        if (use_manhattan)
-        {
-            return std::abs(goal.x - x) + std::abs(goal.y - y);
-        }
-        else
-        {
-            return std::sqrt(std::pow(goal.x - x, 2) + std::pow(goal.y - y, 2)); // Euclidean distance
-        }
+        return std::sqrt(std::pow(goal.x - x, 2) + std::pow(goal.y - y, 2)); // Euclidean distance
     }
 
     float x, y;
     float radius;
+    cv::Scalar colour;
     static Maze maze;
     // static Maze *maze;
 };

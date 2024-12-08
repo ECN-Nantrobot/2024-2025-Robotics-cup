@@ -192,7 +192,7 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
     tree.insert(std::move(start), 0);
 
     astar_impl::Queue<Node> queue(tree);
-    queue.push({ 0, start.heuristic(goal, use_manhattan), 0 });
+    queue.push({ 0, start.heuristic(goal), 0 });
     if (show)
         start.start();
 
@@ -236,7 +236,7 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
             {
                 const auto idx{ tree.insert(std::move(child), best.node) };
                 const auto child_in_tree{ tree(idx) };
-                queue.push({ idx, child_in_tree.heuristic(goal, use_manhattan) + child_g, child_g });
+                queue.push({ idx, child_in_tree.heuristic(goal) + child_g, child_g });
                 evaluated++;
                 if (show)
                     child.show(false, tree(best.node));
