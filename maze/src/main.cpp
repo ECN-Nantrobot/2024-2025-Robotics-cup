@@ -140,26 +140,37 @@ int main(int argc, char** argv)
         //     obstacles.push_back(obstacle);
         // }
 
-        for (auto& obstacle : obstacles) {
-            obstacle.update();
-        }
-        Point::maze.updateObstacles(obstacles);
-
-        elastic_band.optimize();
-
-
         if (obstacles[0].getType() == Obstacle::MOVABLE && obstacles[0].isActive()) {
             obstacles[0].moveTo(obstacles[0].getX() + 20, obstacles[0].getY());
         }
 
-        int key = cv::waitKey(1);
-        if (key == 27) { // Press 'ESC' to exit
-            break;
+        for (auto& obstacle : obstacles) {
+            obstacle.update();
         }
+        Point::maze.renderObstacles(obstacles, Point::maze.im);
+
+        int action = elastic_band.optimize(); //elastic band function
+
+        if (action == 27) { break; }
+        else if (action == 0 || action == 100) { continue; }
+
         t++;
     }
 
     const std::vector<Point>& optimizedPath = elastic_band.getPath();
+
+    std::cout << "Optimized Path:" << std::endl;
+    for (const auto& point : optimizedPath) {
+        std::cout << "(" << point.x << ", " << point.y << ")" << std::endl;
+    }
+
+    elastic_band.generateSmoothedPath(optimizedPath, 0.8f, 22, 1.2f); //max. gap, window size, sigma
+
+    std::cout << "Smoothed Path:" << std::endl;
+    const std::vector<Point>& smoothedPath = elastic_band.getSmoothedPath();
+    for (const auto& point : smoothedPath) {
+        std::cout << "(" << point.x << ", " << point.y << ")" << std::endl;
+    }
 
     elastic_band.savePathToFile(filename_eb_path);
 
@@ -172,7 +183,7 @@ int main(int argc, char** argv)
     }
 
     std::cout << "Search completed. Saving solution..." << std::endl;
-    Point::maze.saveSolution("solved", astar_path_point);
+    Point::maze.saveSolution("solved", astar_path_point, elastic_band.getSmoothedPath(), obstacles);
 
     cv::waitKey(0);
     return 0;

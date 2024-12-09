@@ -26,7 +26,7 @@ public:
 
     void savePathToFile(const std::string& filename) const;
 
-    bool optimize(); // Optimize the path using elastic band algorithm
+    int optimize(); // Optimize the path using elastic band algorithm
 
     void fillGaps(int maxGap);
 
@@ -36,8 +36,14 @@ public:
 
     void repelFromObstacle(size_t idx, float rep_strength);
 
+    std::vector<Point> gaussianSmoothing(const std::vector<Point>& path, int windowSize, float sigma);
+    void generateSmoothedPath(const std::vector<Point>& path, float maxGap, int windowSize, float sigma);
+
+    const std::vector<Point>& getSmoothedPath() { return smoothed_path; }
+
 private:
     std::vector<Point> path;
+    std::vector<Point> smoothed_path;
     const Maze& maze;
 
     bool adjustPath(float minDistance, float maxDistance);

@@ -37,7 +37,7 @@ public:
     void write(int x, int y, int r = 0, int g = 0, int b = 0, bool show = true);
 
     void save();
-    void saveSolution(std::string suffix, const std::vector<Point>& astar_path);
+    void saveSolution(std::string suffix, const std::vector<Point>& astar_path, const std::vector<Point>& eb_path, const std::vector<Obstacle>& obstacles);
 
     Point getStart() const;
     Point getGoal() const;
@@ -57,18 +57,20 @@ public:
     void setIm(const cv::Mat& image) { im = image; }
     void setOut(const cv::Mat& output) { out = output; }
 
-    void renderObstacle(const Obstacle& obstacle);
-    void updateObstacles(const std::vector<Obstacle>& obstacles);
+    void renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale = 1);
 
-    protected :
-        cv::Mat im, original_im, out;
-        std::string filename;
-        std::vector<cv::Point> path;
-        std::vector<cv::Point> path_eb;
-        std::vector<std::string> windows;
+    cv::Mat im;
+    cv::Mat out;
 
-        Point start_;
-        Point goal_;
+protected:
+    cv::Mat original_im;
+    std::string filename;
+    std::vector<cv::Point> path;
+    std::vector<cv::Point> path_eb;
+    std::vector<std::string> windows;
+
+    Point start_;
+    Point goal_;
 };
 
 } // namespace ecn

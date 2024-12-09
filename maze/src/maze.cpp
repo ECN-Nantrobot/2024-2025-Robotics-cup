@@ -1,5 +1,6 @@
 #include "maze.h"
 #include "point.h"
+#include <cmath>
 
 namespace ecn
 {
@@ -88,59 +89,61 @@ void Maze::save()
     display("Maze", "im");
 }
 
-void Maze::saveSolution(std::string suffix, const std::vector<Point>& astar_path)
+
+void Maze::saveSolution(std::string suffix, const std::vector<Point>& astar_path, const std::vector<Point>& eb_path_smoothed, const std::vector<Obstacle>& obstacles)
 {
     out = im.clone();
 
-    cv::Vec3b colour_astar(255, 0, 0); // Color for A* path
-    cv::Vec3b colour_eb(0, 255, 0);    // Color for Elastic Band path
+    cv::Vec3b colour_astar(255, 50, 50);
+    cv::Vec3b colour_astar_points(80, 0, 0);
 
+    cv::Vec3b colour_eb(50, 50, 255);
+    cv::Vec3b colour_eb_points(0, 0, 80);
 
-    for (const auto& point : astar_path) {
-        out.at<cv::Vec3b>(point.x, point.y) = colour_astar;
+    cv::Vec3b colour_eb_smoothed(200, 200, 0);
+    cv::Vec3b colour_eb_smoothed_points(80, 80, 0);
+
+    const int scale              = 30; // Scale factor: Each grid cell becomes 'scale' x 'scale' pixels
+    const int lineThickness      = 20;
+    const int circleThickness    = lineThickness + 2;
+    const int rectangleThickness = lineThickness + 2;
+
+    cv::Mat highResOut;
+    cv::resize(out, highResOut, cv::Size(im.cols * scale, im.rows * scale), 0, 0, cv::INTER_NEAREST);
+
+    renderObstacles(obstacles, highResOut, scale);
+
+    auto drawLine      = [&](const cv::Point& p1, const cv::Point& p2, const cv::Vec3b& color) { cv::line(highResOut, p1, p2, color, lineThickness); };
+    auto drawPoint     = [&](const cv::Point& p, const cv::Vec3b& color) { cv::circle(highResOut, p, circleThickness / 2, color, cv::FILLED); };
+    auto drawRectangle = [&](const cv::Point& p1, const cv::Vec3b& color) {
+        cv::rectangle(highResOut, cv::Point(p1.x - rectangleThickness / 2, p1.y - rectangleThickness / 2),
+                                  cv::Point(p1.x + rectangleThickness / 2, p1.y + rectangleThickness / 2), color, cv::FILLED);
+    };
+
+    for (size_t i = 0; i < astar_path.size() - 1; ++i) {
+        cv::Point p1(std::round(astar_path[i].x * scale), std::round(astar_path[i].y * scale));
+        cv::Point p2(std::round(astar_path[i + 1].x * scale), std::round(astar_path[i + 1].y * scale));
+        drawLine(p1, p2, colour_astar);
+        drawPoint(p1, colour_astar_points);
     }
 
-    for (const auto& point : path_eb) {
-        out.at<cv::Vec3b>(point) = colour_eb;
+    for (size_t i = 0; i < path_eb.size() - 1; ++i) {
+        cv::Point p1(std::round(path_eb[i].x * scale), std::round(path_eb[i].y * scale));
+        cv::Point p2(std::round(path_eb[i + 1].x * scale), std::round(path_eb[i + 1].y * scale));
+        drawLine(p1, p2, colour_eb);
+        drawPoint(p1, colour_eb_points);
     }
 
-    // int scaleFactor_im = 10;
-    // int scaleFactor = 4;
-    // cv::Mat highResOut;
-    // cv::resize(out, highResOut, cv::Size(im.cols * scaleFactor_im, im.rows * scaleFactor_im), 0, 0, cv::INTER_NEAREST);
-
-    // for (const auto &point : path)
-    // {
-    //     cv::rectangle(highResOut,
-    //                   cv::Point(point.x * scaleFactor - scaleFactor / 2, point.y * scaleFactor - scaleFactor / 2),
-    //                   cv::Point(point.x * scaleFactor + scaleFactor / 2, point.y * scaleFactor + scaleFactor / 2),
-    //                   colour_astar,
-    //                   cv::FILLED);
-    // }
-
-    // // Draw the Elastic Band path on the upscaled image
-    // for (const auto &point : path_eb)
-    // {
-    //     cv::rectangle(highResOut,
-    //                   cv::Point(point.x * scaleFactor - scaleFactor / 2, point.y * scaleFactor - scaleFactor / 2),
-    //                   cv::Point(point.x * scaleFactor + scaleFactor / 2, point.y * scaleFactor + scaleFactor / 2),
-    //                   colour_eb,
-    //                   cv::FILLED);
-    // }
-
-    // Ensure obstacles remain correctly represented
-    for (int x = 0; x < im.cols; ++x) {
-        for (int y = 0; y < im.rows; ++y) {
-            if (!isFree(x, y)) {
-                write(x, y, 0, 0, 0, false); // Set obstacles to black
-            }
-        }
+    for (size_t i = 0; i < eb_path_smoothed.size() - 1; ++i) {
+        cv::Point p1(std::round(eb_path_smoothed[i].x * scale), std::round(eb_path_smoothed[i].y * scale));
+        cv::Point p2(std::round(eb_path_smoothed[i + 1].x * scale), std::round(eb_path_smoothed[i + 1].y * scale));
+        drawLine(p1, p2, colour_eb_smoothed);
+        drawPoint(p1, colour_eb_smoothed_points);
     }
 
     int dot          = filename.find(".");
     std::string name = filename.substr(0, dot) + "_" + suffix + ".png";
-    cv::imwrite(name, out);
-    if (!cv::imwrite(name, out)) {
+    if (!cv::imwrite(name, highResOut)) {
         std::cerr << "Error: Failed to save image to " << name << std::endl;
     } else {
         std::cout << "Saved solution to " << name << std::endl;
@@ -148,7 +151,7 @@ void Maze::saveSolution(std::string suffix, const std::vector<Point>& astar_path
     cv::namedWindow("Solution", cv::WINDOW_NORMAL);
     cv::resizeWindow("Solution", 1500, 1200);
     cv::moveWindow("Solution", 100, 100);
-    cv::imshow("Solution", out);
+    cv::imshow("Solution", highResOut);
 }
 
 Point Maze::getStart() const { return start_; }
@@ -232,41 +235,39 @@ void Maze::setElasticBandPath(const std::vector<Point>& elasticBandPath)
         path_eb.emplace_back(pos.x, pos.y);
     }
 }
-
-void Maze::renderObstacle(const Obstacle& obstacle)
+void Maze::renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale)
 {
-    if (obstacle.getType() == Obstacle::MOVABLE) {
-        // Remove the old position of the obstacle
-        for (int y = obstacle.getYPrev() - obstacle.getHeight() / 2; y < obstacle.getYPrev() + obstacle.getHeight() / 2; ++y) {
-            for (int x = obstacle.getXPrev() - obstacle.getWidth() / 2; x < obstacle.getXPrev() + obstacle.getWidth() / 2; ++x) {
-                // Check if the position is within the bounds of the image
-                if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
-                    im.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y, x);
-                }
-            }
-        }
-    }
-
-    for (int y = obstacle.getY() - obstacle.getHeight() / 2; y < obstacle.getY() + obstacle.getHeight() / 2; ++y) {
-        for (int x = obstacle.getX() - obstacle.getWidth() / 2; x < obstacle.getX() + obstacle.getWidth() / 2; ++x) {
-            // Check if the position is within the bounds of the image
-            if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
-                if (obstacle.isActive()) {
-                    // Render the obstacle with its color
-                    im.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
-                } else {
-                    // If the obstacle is not active, reset the pixels to original
-                    im.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y, x);
-                }
-            }
-        }
-    }
-}
-
-void Maze::updateObstacles(const std::vector<Obstacle>& obstacles)
-{
+    // Iterate over each obstacle
     for (const auto& obstacle : obstacles) {
-        renderObstacle(obstacle);
+        // If the obstacle is movable, we should first remove its previous position
+        if (obstacle.getType() == Obstacle::MOVABLE) {
+            // Reset the previous position of the obstacle
+            for (int y = (obstacle.getYPrev() - obstacle.getHeight() / 2) * scale; y < (obstacle.getYPrev() + obstacle.getHeight() / 2) * scale; ++y) {
+                for (int x = (obstacle.getXPrev() - obstacle.getWidth() / 2) * scale; x < (obstacle.getXPrev() + obstacle.getWidth() / 2) * scale; ++x) {
+                    // Ensure the coordinates are within bounds of the image
+                    if (y >= 0 && y < image.rows && x >= 0 && x < image.cols) {
+                        // Restore the pixel from the original image (background)
+                        image.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y / scale, x / scale);
+                    }
+                }
+            }
+        }
+
+        // Render the obstacle at its current position (scaled)
+        for (int y = (obstacle.getY() - obstacle.getHeight() / 2) * scale; y < (obstacle.getY() + obstacle.getHeight() / 2) * scale; ++y) {
+            for (int x = (obstacle.getX() - obstacle.getWidth() / 2) * scale; x < (obstacle.getX() + obstacle.getWidth() / 2) * scale; ++x) {
+                // Ensure the coordinates are within bounds of the image
+                if (y >= 0 && y < image.rows && x >= 0 && x < image.cols) {
+                    if (obstacle.isActive()) {
+                        // Render the obstacle with its color if it's active (scaled)
+                        image.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
+                    } else {
+                        // If the obstacle is not active, reset the pixel to the original image (background)
+                        image.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y / scale, x / scale);
+                    }
+                }
+            }
+        }
     }
 }
 

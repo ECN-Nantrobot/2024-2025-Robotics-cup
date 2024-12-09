@@ -21,7 +21,7 @@ void ElasticBand::savePathToFile(const std::string& filename) const
         throw std::runtime_error("Could not open file for saving: " + filename);
     }
 
-    for (const auto& pos : path) {
+    for (const auto& pos : smoothed_path) {
         outFile << pos.x << " " << pos.y << "\n";
     }
     std::cout << "Path saved successfully to " << filename << std::endl;
@@ -61,7 +61,74 @@ void ElasticBand::fillGaps(int max_gap)
     path = filledPath;
 }
 
-void ecn::ElasticBand::showPath(int pause_inbetween) const
+std::vector<Point> ElasticBand::gaussianSmoothing(const std::vector<Point>& path, int windowSize, float sigma)
+{
+    std::vector<Point> smoothedPath;
+    int halfWindow = windowSize / 2;
+    std::vector<float> kernel(windowSize);
+
+    // Generate Gaussian Kernel
+    float sum = 0.0f;
+    for (int i = -halfWindow; i <= halfWindow; ++i) {
+        kernel[i + halfWindow] = std::exp(-(i * i) / (2 * sigma * sigma));
+        sum += kernel[i + halfWindow];
+    }
+
+    // Normalize the kernel
+    for (auto& value : kernel) {
+        value /= sum;
+    }
+
+    // Apply Gaussian smoothing
+    for (size_t i = 0; i < path.size(); ++i) {
+        float sumX = 0.0f, sumY = 0.0f;
+
+        // Apply the kernel to the neighbors in the window
+        for (int j = -halfWindow; j <= halfWindow; ++j) {
+            int idx = i + j;
+            if (idx >= 0 && idx < path.size()) {
+                sumX += path[idx].x * kernel[j + halfWindow];
+                sumY += path[idx].y * kernel[j + halfWindow];
+            }
+        }
+
+        smoothedPath.push_back(Point{ sumX, sumY });
+    }
+
+    return smoothedPath;
+}
+
+// Function to generate a path by filling gaps and smoothing it
+void ElasticBand::generateSmoothedPath(const std::vector<Point>& path, float maxGap, int windowSize, float sigma)
+{
+    std::vector<Point> filledPath;
+
+    // Fill gaps first
+    for (size_t i = 0; i < path.size() - 1; ++i) {
+        Point current = path[i];
+        Point next    = path[i + 1];
+
+        filledPath.push_back(current);
+
+        float distance = std::hypot(next.x - current.x, next.y - current.y);
+
+        if (distance > maxGap) {
+            int numOfIntermPoints = static_cast<int>(std::ceil(distance / maxGap)) - 1;
+            for (int j = 1; j <= numOfIntermPoints; ++j) {
+                Point intermediate = { current.x + (float)j * (next.x - current.x) / (numOfIntermPoints + 1), current.y + (float)j * (next.y - current.y) / (numOfIntermPoints + 1) };
+                filledPath.push_back(intermediate);
+            }
+        }
+    }
+
+    // Add the last point
+    filledPath.push_back(path.back());
+
+    smoothed_path = gaussianSmoothing(filledPath, windowSize, sigma);
+}
+
+
+void ElasticBand::showPath(int pause_inbetween) const
 {
     const int scale     = 15; // Scale factor: Each grid cell becomes ...x... pixels
     const int grid_size = 1;  // Grid line thickness
@@ -90,10 +157,9 @@ void ecn::ElasticBand::showPath(int pause_inbetween) const
     cv::imshow(window_name, visualization);
     for (int i = 0; i < pause_inbetween; i++) {
         if (cv::waitKey(1) == 2) {
-            break;
+break;
         }
     }
-    // std::this_thread::sleep_for(std::chrono::milliseconds(pause_inbetween)); // Pause for 100ms
 }
 
 float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radius) const
@@ -209,7 +275,7 @@ bool ElasticBand::adjustPath(float min_dist, float max_dist)
 }
 
 
-bool ElasticBand::optimize()
+int ElasticBand::optimize()
 {
     static int show_time = 40;
 
@@ -240,7 +306,7 @@ bool ElasticBand::optimize()
 
         if (!adjustPath(min_distance, max_distance)) {
             std::cerr << "Optimization exited early: adjustPath too long" << std::endl;
-            return false;
+            return 100;
         }
 
 
@@ -313,6 +379,10 @@ bool ElasticBand::optimize()
                 while (true) {
                     showPath(show_time);
                     int inner_key = cv::waitKey(1);
+                    if(inner_key == 27) { // Press 'ESC' to exit
+                        std ::cout << "ESC from pause" << std::endl;
+                        return inner_key;
+                    }
                     if (inner_key != -1 && inner_key != 32) { // If a key other than spacebar is pressed
                         break;
                     }
@@ -321,12 +391,13 @@ bool ElasticBand::optimize()
 
             } else {
                 std::cout << "\n Optimization interrupted by user." << std::endl;
-                return false;
+                return 0;
             }
             
         }
 
         showPath(show_time);
+
         std ::cout << ", show_time: " << show_time;
         std::cout << ", total_change: " << total_change;
         std::cout << std::endl;
@@ -343,7 +414,7 @@ bool ElasticBand::optimize()
     }
 
     // fillGaps(1); // Fill gaps after optimization (maybe not needed later in real world)
-    return true;
+    return 1;
 }
 
 int ElasticBand::checkAndAjustInCorridor(size_t idx, int range) const

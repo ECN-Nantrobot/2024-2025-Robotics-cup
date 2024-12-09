@@ -30,7 +30,7 @@ public:
             --duration_;
             if (duration_ == 0)
             {
-                active_ = false; // Deactivate when duration ends
+                active_ = false;
             }
         }
     }
