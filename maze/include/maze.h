@@ -71,6 +71,8 @@ protected:
 
     Point start_;
     Point goal_;
+
+    const int permanent_obstacle_treshold = 120;
 };
 
 } // namespace ecn

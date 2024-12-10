@@ -37,10 +37,7 @@ std::vector<Position> loadPathFromFile(const std::string& filename)
 {
     std::cout << "Loading A*path from file: " << filename << " ... ";
     std::ifstream inFile(filename);
-    if (!inFile)
-    {
-        throw std::runtime_error("Error: Could not open file " + filename);
-    }
+    if (!inFile) {throw std::runtime_error("Error: Could not open file " + filename);}
 
     // Count the number of lines to determine the size of the vector
     size_t lineCount = 0;
@@ -168,22 +165,7 @@ public:
 // templated version of A* algorithm
 template <class Node> std::vector<Node> Astar(Node start, Node goal)
 {
-    //  // check if we should display during A*
-    //  std::ifstream config("../config.txt", std::ios::in);
-    //  std::string keyword;
-    bool show = false, use_manhattan = false;
-    //  while(config >> keyword)
-    //  {
-    //    if(keyword == "show")
-    //      config >> show;
-    //    else if(keyword == "use_manhattan")
-    //      config >> use_manhattan;
-    //    else
-    //    {
-    //      std::string dummy;
-    //      config >> dummy;
-    //    }
-    //  }
+    bool show = false; // if we should display during A*
 
     auto t0 = std::chrono::system_clock::now();
 
@@ -219,10 +201,17 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
                 tree(best.node).show(true, tree(parent));
         }
 
-        auto children{ tree(best.node).children() };
+        //CHANGED CHANGED CHANGED
+        // auto children{ tree(best.node).children() };
+
+        auto children = tree(best.node).children(tree(tree.parent(best.node)));
         created += children.size();
 
-        // to avoid equal costs leading to favorite directions
+
+        // // Sort children by heuristic: not useful
+        // std::sort(children.begin(), children.end(), [&](const Position& a, const Position& b) { return a.heuristic(goal) < b.heuristic(goal); });
+
+        // // to avoid equal costs leading to favorite directions
         // std::random_shuffle(children.begin(), children.end());
 
         for (auto&& child : children)

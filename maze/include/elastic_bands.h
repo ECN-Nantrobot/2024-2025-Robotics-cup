@@ -41,12 +41,21 @@ public:
 
     const std::vector<Point>& getSmoothedPath() { return smoothed_path; }
 
+    void updatePath(const std::vector<Position>& newPath)
+    {
+        path.resize(newPath.size());
+        for (size_t i = 0; i < newPath.size(); ++i) {
+            path[i] = Point(newPath[i].x, newPath[i].y);
+        }
+    }
+
+
 private:
     std::vector<Point> path;
     std::vector<Point> smoothed_path;
     const Maze& maze;
 
-    bool adjustPath(float minDistance, float maxDistance);
+    bool resizePath(float minDistance, float maxDistance);
     float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;

@@ -157,7 +157,7 @@ void ElasticBand::showPath(int pause_inbetween) const
     cv::imshow(window_name, visualization);
     for (int i = 0; i < pause_inbetween; i++) {
         if (cv::waitKey(1) == 2) {
-break;
+            break;
         }
     }
 }
@@ -188,12 +188,12 @@ float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radi
     return min_distance == std::numeric_limits<float>::max() ? -1.0f : min_distance; // Return -1 if no obstacle found
 }
 
-bool ElasticBand::adjustPath(float min_dist, float max_dist)
+bool ElasticBand::resizePath(float min_dist, float max_dist)
 {
-    std::vector<Point> adjustedPath(path.size() * 6); // Allow space for potential splits
+    int max_path_size = 1000;
+    std::vector<Point> adjustedPath(max_path_size * 1.4);
     size_t i_adjusted = 0;
     int n             = 0;
-
 
     adjustedPath[i_adjusted++] = path.front();
 
@@ -267,7 +267,7 @@ bool ElasticBand::adjustPath(float min_dist, float max_dist)
 
     adjustedPath.resize(i_adjusted);
     path = adjustedPath;
-    if (path.size() > 1500) {
+    if (path.size() > max_path_size) {
         return false;
     }
     std ::cout << " -> " << path.size();
@@ -277,10 +277,10 @@ bool ElasticBand::adjustPath(float min_dist, float max_dist)
 
 int ElasticBand::optimize()
 {
-    static int show_time = 40;
+    static int show_time = 30;
 
     const float alpha                  = 0.077; // Step size (scaling of the total force)
-    const int max_iterations           = 60;
+    const int max_iterations           = 40;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
 
@@ -293,10 +293,13 @@ int ElasticBand::optimize()
     const int min_rep_radius       = 5;
     const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
-    const int repel_raduis         = 30;
+    const int repel_raduis         = 24;
+    const float repel_variation    = 0.3; // +- 40%
 
-    float min_distance = 3.0;
-    float max_distance = 4.0;
+    const int small_gap_radius = 5;
+
+    float min_distance = 2.0;
+    float max_distance = 3.3;
 
 
     for (int iter = 0; iter < max_iterations; ++iter) {
@@ -304,8 +307,8 @@ int ElasticBand::optimize()
         std::cout << "Iter: " << iter << ": ";
         total_change = 0;
 
-        if (!adjustPath(min_distance, max_distance)) {
-            std::cerr << "Optimization exited early: adjustPath too long" << std::endl;
+        if (!resizePath(min_distance, max_distance)) {
+            std::cerr << "Optimization exited early: resizePath too long" << std::endl;
             return 100;
         }
 
@@ -327,7 +330,7 @@ int ElasticBand::optimize()
 
             // Reduce forces if in a corridor
             bool is_corridor       = false;
-            int corridor_neigbours = checkAndAjustInCorridor(i, /*search radius=*/4);
+            int corridor_neigbours = checkAndAjustInCorridor(i, small_gap_radius);
             if (corridor_neigbours > 3) {
                 is_corridor = true;
                 springForce.x *= 0.8;
@@ -347,11 +350,10 @@ int ElasticBand::optimize()
                 total_change = std::max(total_change, std::hypot(newPos.x - path[i].x, newPos.y - path[i].y));
                 path[i]      = newPos; // Update the path point to the new position
             } else {
-                    // Choose random values between -40% and +40% of repel_radius
-                    float random_factor = 0.6f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1.4f - 0.6f)));
-                    path[i].radius = repel_raduis * random_factor;
-                    repelFromObstacle(i, /*rep_strength=*/0.35);
-
+                // Choose random values between -repel_variation% and +repel_variation% of repel_radius
+                float random_factor = 1.0 - repel_variation + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (2 * repel_variation)));
+                path[i].radius      = repel_raduis * random_factor;
+                repelFromObstacle(i, /*rep_strength=*/0.35);
             }
         }
 
@@ -379,7 +381,7 @@ int ElasticBand::optimize()
                 while (true) {
                     showPath(show_time);
                     int inner_key = cv::waitKey(1);
-                    if(inner_key == 27) { // Press 'ESC' to exit
+                    if (inner_key == 27) { // Press 'ESC' to exit
                         std ::cout << "ESC from pause" << std::endl;
                         return inner_key;
                     }
@@ -393,7 +395,6 @@ int ElasticBand::optimize()
                 std::cout << "\n Optimization interrupted by user." << std::endl;
                 return 0;
             }
-            
         }
 
         showPath(show_time);

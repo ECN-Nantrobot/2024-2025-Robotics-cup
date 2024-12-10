@@ -73,6 +73,7 @@ class MazeEditor
 
             window.clear();
             drawGrid();           // Draw the grid based on maze dimensions
+            window.draw(backgroundSprite);
             drawBorder();         // Draw the border around the maze
             drawObstacles(false); // Draw obstacles on the grid
             drawRectangle();      // Draw the rectangle if two clicks are made
@@ -82,58 +83,26 @@ class MazeEditor
 
     std::string getFilenameMaze() const { return filename_maze; }
 
-    bool loadMaze(const std::string& filename)
+    bool loadFile(const std::string& filename)
     {
-        sf::Image image;
-
-        if (!image.loadFromFile(filename))
-        {
+        if (!backgroundTexture.loadFromFile(filename)) {
             std::cerr << "Error: Could not load maze image from file: " << filename << std::endl;
             return false;
         }
 
-        // Resize the render texture to match the loaded maze
-        sf::Vector2u size = image.getSize();
-        maze_width        = size.x;
-        maze_height       = size.y;
+        // Set the texture to the sprite for displaying the background
+        backgroundSprite_initialscale.setTexture(backgroundTexture);
+        backgroundSprite.setTexture(backgroundTexture);
 
-        renderTexture.create(maze_width, maze_height);
+        // Scale the sprite to fit the window dimensions
+        sf::Vector2u textureSize = backgroundTexture.getSize();
+        sf::Vector2u windowSize(maze_width * grid_size, maze_height * grid_size);
+        backgroundSprite.setScale(static_cast<float>(windowSize.x) / textureSize.x, static_cast<float>(windowSize.y) / textureSize.y);
 
-        // Reset and populate the obstacles vector based on the loaded maze
-        obstacles.clear();
-        obstacles_print.clear(); // Clear render obstacles to avoid duplication
-        for (unsigned int x = 0; x < maze_width; ++x)
-        {
-            for (unsigned int y = 0; y < maze_height; ++y)
-            {
-                sf::Color pixelColor = image.getPixel(x, y);
-
-                // Check for obstacle color
-                if (pixelColor == obstacle_color)
-                {
-                    Obstacle newObstacle;
-                    newObstacle.x      = x;
-                    newObstacle.y      = y;
-                    newObstacle.width  = 1;
-                    newObstacle.height = 1;
-
-                    newObstacle.shape.setSize(sf::Vector2f(grid_size, grid_size));
-                    newObstacle.shape.setPosition(x * grid_size, y * grid_size);
-                    newObstacle.shape.setFillColor(obstacle_color);
-
-                    obstacles.push_back(newObstacle);
-
-                    // Add to render obstacles
-                    newObstacle.shape.setSize(sf::Vector2f(1, 1));
-                    newObstacle.shape.setPosition(x, y);
-                    obstacles_print.push_back(newObstacle);
-                }
-            }
-        }
-
-        std::cout << "Maze loaded successfully from: " << filename << std::endl;
+        std::cout << "Maze background loaded successfully from: " << filename << std::endl;
         return true;
     }
+
 
     private:
     void drawGrid()
@@ -302,13 +271,15 @@ class MazeEditor
     {
 
         renderTexture.clear(sf::Color::White);
+        renderTexture.draw(backgroundSprite_initialscale);
 
         drawObstacles(true);
 
         renderTexture.display();
 
         sf::Texture texture = renderTexture.getTexture(); // Get texture from render texture
-        texture.copyToImage().saveToFile(filename);
+        std::string interact_filename = filename.substr(0, filename.find_last_of('.')) + "_interact.png";
+        texture.copyToImage().saveToFile(interact_filename);
     }
 
     Obstacle start, end, start_print, end_print;
@@ -323,8 +294,14 @@ class MazeEditor
     int border_size;
     std::vector<Obstacle> obstacles;
     std::vector<Obstacle> obstacles_print;
-    std::string filename_maze = ecn::Maze::mazeFile("maze_gen_interac.png");
+    // std::string filename_maze = ecn::Maze::mazeFile("maze_gen_interac.png");
+    std::string filename_maze = ecn::Maze::mazeFile("Eurobot_map_real_bw_10_p.png");
     bool start_placed         = false;
+
+    sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
+    sf::Sprite backgroundSprite_initialscale;
+
 
     sf::Vector2i first_click; // Position of the first click (starting point for the rectangle)
 };
@@ -344,7 +321,7 @@ int main(int argc, char* argv[])
             filename = argv[2]; // Allow specifying a custom filename
         }
 
-        if (!editor.loadMaze(filename))
+        if (!editor.loadFile(filename))
         {
             std::cerr << "Failed to load the maze file: " << filename << std::endl;
             return 1;

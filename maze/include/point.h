@@ -46,7 +46,13 @@ public:
 
     double heuristic(const Point& goal) const
     {
-        return std::sqrt(std::pow(goal.x - x, 2) + std::pow(goal.y - y, 2)); // Euclidean distance
+        // return std::abs(goal.x - x) + std::abs(goal.y - y); // Manhattan distance
+        // return std::sqrt(std::pow(goal.x - x, 2) + std::pow(goal.y - y, 2)); // Euclidean distance
+
+        double dx = std::abs(goal.x - x);
+        double dy = std::abs(goal.y - y);
+        // added weight to prioritize moving closer to the goal over considering the actual cost of the path, resulting in a faster but potentially less optimal pathfinding process.
+        return 10 * std::sqrt(dx * dx + dy * dy) * (1.0 + 1e-5); //bias so if some paths are equal, the one with the smallest g value is chosen
     }
 
     float x, y;
