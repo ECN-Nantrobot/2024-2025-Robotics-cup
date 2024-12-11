@@ -277,10 +277,10 @@ bool ElasticBand::resizePath(float min_dist, float max_dist)
 
 int ElasticBand::optimize()
 {
-    static int show_time = 30;
+    static int show_time = 0;
 
     const float alpha                  = 0.077; // Step size (scaling of the total force)
-    const int max_iterations           = 40;
+    const int max_iterations           = 30;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
 

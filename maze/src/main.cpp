@@ -110,11 +110,10 @@ int main(int argc, char** argv)
     if (filename_maze.empty()) {
         std::cerr << "No suitable maze file found!" << std::endl;
         filename_maze = Maze::mazeFile("maze_gen_interac.png");
-    }
-    else{
+    } else {
         std::cout << "Using the latest maze file: " << filename_maze << std::endl;
     }
-    
+
 
     Point::maze.load(filename_maze);
 
@@ -137,21 +136,21 @@ int main(int argc, char** argv)
     // }
     // else
     // {
-        if (filename_maze.find("interac") != std::string::npos) {
-            start = Point::maze.findStart();
-            goal  = Point::maze.findGoal();
-        } else {
-            start = Point::maze.findCornerStart();
-            goal  = Point::maze.findCornerGoal();
-        }
+    if (filename_maze.find("interac") != std::string::npos) {
+        start = Point::maze.findStart();
+        goal  = Point::maze.findGoal();
+    } else {
+        start = Point::maze.findCornerStart();
+        goal  = Point::maze.findCornerGoal();
+    }
 
-        start_p = start;
-        goal_p  = goal;
+    start_p = start;
+    goal_p  = goal;
 
-        std::cout << "Searching with A* ..." << std::endl;
-        astar_path = Astar(start_p, goal_p);
+    std::cout << "Searching with A* ..." << std::endl;
+    astar_path = Astar(start_p, goal_p);
 
-        saveAstarPathToFile(filename_astar_path, astar_path);
+    saveAstarPathToFile(filename_astar_path, astar_path);
     // }
 
 
@@ -165,11 +164,10 @@ int main(int argc, char** argv)
     // interactiveMaze = &Point::maze; // Zeiger auf das aktuelle Maze setzen
 
 
-
     // Create a list of obstacles
     std::vector<Obstacle> obstacles = {
-        Obstacle(65, 70, 30, 20, Obstacle::MOVABLE, "green"), 
-        // Obstacle(150, 55, 40, 30, Obstacle::FIXED, "green"),
+        Obstacle(0, 100, 25, 10, Obstacle::MOVABLE, "green", 0, 4, 0),
+        Obstacle(0, 0, 20, 15, Obstacle::MOVABLE, "green", 0, 5, 5),
     };
 
     ElasticBand elastic_band(astar_path, Point::maze);
@@ -179,55 +177,46 @@ int main(int argc, char** argv)
         std::cout << "" << std::endl;
         std::cout << "TIME: " << t << std::endl;
 
-        if(t%2 == 0 || force_recalculate){
-            astar_path = Astar(start_p, goal_p);
-            saveAstarPathToFile(filename_astar_path, astar_path);
-            elastic_band.updatePath(astar_path); // Update the existing elastic band with the new path
-            force_recalculate = false;
+        if (t % 5 == 0) {
+            for (int j = 0; j < 1; ++j) {
+                // int x      = rand() % Point::maze.width();
+                // int y      = rand() % Point::maze.height();
+                int x      = 50 + rand() % 201; // Random x between 50 and 250
+                int y      = 50 + rand() % 101; // Random y between 50 and 150
+                int width  = 8 + rand() % 10;   // Random width between 10 and 50
+                int height = 10 + rand() % 10;  // Random height between 10 and 50
+                obstacles.push_back(Obstacle(x, y, width, height, Obstacle::TEMPORARY, "green", 2));
+            }
         }
-
-        for (int j = 0; j < 4; ++j) {
-            // int x      = rand() % Point::maze.width();
-            // int y      = rand() % Point::maze.height();
-            int x = 50 + rand() % 201; // Random x between 50 and 250
-            int y = 50 + rand() % 101; // Random y between 50 and 150
-            int width  = 8 + rand() % 10; // Random width between 10 and 50
-            int height = 10 + rand() % 10; // Random height between 10 and 50
-            obstacles.push_back(Obstacle(x, y, width, height, Obstacle::TEMPORARY, "green", 2));
-        }
-        if(t == 1){
-            obstacles.push_back(Obstacle(180, 100, 70, 60, Obstacle::TEMPORARY, "green", 2));
-        }
-
-        for (int j = 0; j < 1; ++j) {
-            int x      = rand() % Point::maze.width();
-            int y      = rand() % Point::maze.height();
-            int width  = 10 + rand() % 30; // Random width between 10 and 50
-            int height = 10 + rand() % 30; // Random height between 10 and 50
-            obstacles.push_back(Obstacle(x, y, width, height, Obstacle::TEMPORARY, "green", 2));
-        }
-
 
         // for (auto& obstacle : userDefinedObstacles) {
         //     obstacles.push_back(obstacle);
         // }
-
-        if (obstacles[0].getType() == Obstacle::MOVABLE && obstacles[0].isActive()) {
-            obstacles[0].moveTo(obstacles[0].getX() + 20, obstacles[0].getY());
-        }
 
         for (auto& obstacle : obstacles) {
             obstacle.update();
         }
         Point::maze.renderObstacles(obstacles, Point::maze.im);
 
-        int action = elastic_band.optimize(); //elastic band function
 
-        if (action == 27) { break; }
-        else if (action == 0) { continue;} 
-        else if (action == 100) { force_recalculate = true;}
+        if (t % 6 == 0 || force_recalculate) {
+            astar_path = Astar(start_p, goal_p);
+            saveAstarPathToFile(filename_astar_path, astar_path);
+            elastic_band.updatePath(astar_path); // Update the existing elastic band with the new path
+            force_recalculate = false;
+        }
 
-            t++;
+        int action = elastic_band.optimize(); // elastic band function
+
+        if (action == 27) {
+            break;
+        } else if (action == 0) {
+            continue;
+        } else if (action == 100) {
+            force_recalculate = true;
+        }
+
+        t++;
     }
 
     const std::vector<Point>& optimizedPath = elastic_band.getPath();
@@ -237,7 +226,7 @@ int main(int argc, char** argv)
         std::cout << "(" << point.x << ", " << point.y << ")" << std::endl;
     }
 
-    elastic_band.generateSmoothedPath(optimizedPath, 0.8f, 22, 1.2f); //max. gap, window size, sigma
+    elastic_band.generateSmoothedPath(optimizedPath, 0.8f, 22, 1.2f); // max. gap, window size, sigma
 
     std::cout << "Smoothed Path:" << std::endl;
     const std::vector<Point>& smoothedPath = elastic_band.getSmoothedPath();
