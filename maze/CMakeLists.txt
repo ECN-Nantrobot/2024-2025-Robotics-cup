@@ -25,11 +25,13 @@ add_library(maze SHARED
         include/elastic_bands.h 
         include/point.h 
         include/position.h
-        include/obstacle.h
+        include/obstacle.h#
+        include/robot.h
         src/maze.cpp
         src/point.cpp
         src/maze.cpp
-        src/elastic_bands.cpp)
+        src/elastic_bands.cpp
+        src/robot.cpp)
 target_link_libraries(maze ${OpenCV_LIBS})
 
 
