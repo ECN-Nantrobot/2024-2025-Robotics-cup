@@ -26,7 +26,7 @@ public:
 
     void savePathToFile(const std::string& filename) const;
 
-    int optimize(); // Optimize the path using elastic band algorithm
+    int optimize(const Point& start, const Point& goal); // Optimize the path using elastic band algorithm
 
     void fillGaps(int maxGap);
 

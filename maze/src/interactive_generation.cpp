@@ -295,7 +295,8 @@ class MazeEditor
     std::vector<Obstacle> obstacles;
     std::vector<Obstacle> obstacles_print;
     // std::string filename_maze = ecn::Maze::mazeFile("maze_gen_interac.png");
-    std::string filename_maze = ecn::Maze::mazeFile("Eurobot_map_real_bw_10_p.png");
+    // std::string filename_maze = ecn::Maze::mazeFile("Eurobot_map_real_bw_10_p.png");
+    std::string filename_maze = ecn::Maze::mazeFile("Eurobot_map_real_w_20_p.png");
     bool start_placed         = false;
 
     sf::Texture backgroundTexture;

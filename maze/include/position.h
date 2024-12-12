@@ -38,35 +38,15 @@ public:
         int x = Point::x;
         int y = Point::y;
 
-        // Old horizontal and vertical
-        // if (Point::maze.isFree(x + 1, y))
-        //     generated[i++] = Position(x + 1, y, 1);
-        // if (Point::maze.isFree(x, y + 1))
-        //     generated[i++] = Position(x, y + 1, 1);
-        // if (Point::maze.isFree(x, y - 1))
-        //     generated[i++] = Position(x, y - 1, 1);
-        // if (Point::maze.isFree(x - 1, y))
-        //     generated[i++] = Position(x - 1, y, 1);
-
         // doesnt generate nodes/children that are/lead back to the parent
-        if (Point::maze.isFree(x + 1, y) && !(parent.x == x + 1 && parent.y == y)) 
+        if (Point::maze.isFree(x + 1, y, true) && !(parent.x == x + 1 && parent.y == y)) 
             generated[i++] = Position(x + 1, y, 1);
-        if (Point::maze.isFree(x, y + 1) && !(parent.x == x && parent.y == y + 1))
+        if (Point::maze.isFree(x, y + 1, true) && !(parent.x == x && parent.y == y + 1))
             generated[i++] = Position(x, y + 1, 1);
-        if (Point::maze.isFree(x, y - 1) && !(parent.x == x && parent.y == y - 1))
+        if (Point::maze.isFree(x, y - 1, true) && !(parent.x == x && parent.y == y - 1))
             generated[i++] = Position(x, y - 1, 1);
-        if (Point::maze.isFree(x - 1, y) && !(parent.x == x - 1 && parent.y == y))
+        if (Point::maze.isFree(x - 1, y, true) && !(parent.x == x - 1 && parent.y == y))
             generated[i++] = Position(x - 1, y, 1);
-
-        //Diagonal
-        // if (Point::maze.isFree(x + 1, y + 1))
-        //     generated[i++] = Position(x + 1, y + 1, std::sqrt(2));
-        // if (Point::maze.isFree(x - 1, y + 1))
-        //     generated[i++] = Position(x - 1, y + 1, std::sqrt(2));
-        // if (Point::maze.isFree(x + 1, y - 1))
-        //     generated[i++] = Position(x + 1, y - 1, std::sqrt(2));
-        // if (Point::maze.isFree(x - 1, y - 1))
-        //     generated[i++] = Position(x - 1, y - 1, std::sqrt(2));
 
         auto goal = Point::maze.getGoal();
 

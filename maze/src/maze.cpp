@@ -29,10 +29,9 @@ void Maze::load(std::string _filename)
     }
 
 
-
     // Add a 5-pixel border around obstacles
-    const int border_size     = 5;
-    cv::Mat obstacle_mask     = cv::Mat::zeros(im.size(), CV_8UC1);
+    const int border_size = 5;
+    cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
 
     // Create a mask for all pixels below the threshold
     for (int y = 0; y < im.rows; ++y) {
@@ -59,7 +58,7 @@ void Maze::load(std::string _filename)
     for (int y = 0; y < im.rows; ++y) {
         for (int x = 0; x < im.cols; ++x) {
             if (border_mask.at<uchar>(y, x) == 255) {
-                im.at<cv::Vec3b>(y, x) = cv::Vec3b(40, 40, 40); 
+                im.at<cv::Vec3b>(y, x) = cv::Vec3b(40, 40, 40);
             }
         }
     }
@@ -68,19 +67,56 @@ void Maze::load(std::string _filename)
     original_im = im.clone();
     out         = im.clone();
 
+    cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
+    std::cout << "Downsized the image for A* by "
+              << resize_for_astar << " ... ";
+
+    // Save the low-resolution image
+    // std::string lowres_filename = filename.substr(0, filename.find_last_of('.')) + "_lowres.png";
+    // if (!cv::imwrite(lowres_filename, im_lowres)) {
+    //     std::cerr << "Error: Failed to save low-resolution image to " << lowres_filename << std::endl;
+    // } else {
+    //     std::cout << "Saved low-resolution image to " << lowres_filename << std::endl;
+    // }
+
+    std::cout << " ok"
+              << std::endl;
+}
+
+void Maze::loadLowRes(std::string _filename)
+{
+    std::cout << "Loading LOWRES " << _filename << " ... ";
+    filename = _filename;
+
+    im_lowres = cv::imread(filename, cv::IMREAD_UNCHANGED);
+
+    if (im_lowres.empty()) {
+        throw std::runtime_error("Failed to load the image at: " + filename);
+    }
+
+    if (im_lowres.channels() == 4) {
+        cv::cvtColor(im_lowres, im_lowres, cv::COLOR_RGBA2BGR);
+        std::cout << "Converted RGBA image to BGR format ... ";
+    } else if (im_lowres.channels() == 1) {
+        cv::cvtColor(im_lowres, im_lowres, cv::COLOR_GRAY2BGR);
+        std::cout << "Converted grayscale image to BGR format ... ";
+    }
+
     std::cout << " ok" << std::endl;
 }
 
-bool Maze::isFree(float fx, float fy) const
+bool Maze::isFree(float fx, float fy, bool lowres) const
 {
     int x = static_cast<int>(std::round(fx));
     int y = static_cast<int>(std::round(fy));
 
-    if (x < 0 || y < 0 || x >= im.cols || y >= im.rows) {
+    const cv::Mat& selected_im = lowres ? im_lowres : im;
+
+    if (x < 0 || y < 0 || x >= selected_im.cols || y >= selected_im.rows) {
         return false;
     }
 
-    cv::Vec3b color = im.at<cv::Vec3b>(y, x);
+    cv::Vec3b color = selected_im.at<cv::Vec3b>(y, x);
 
     if (color[0] == color[1] && color[1] == color[2]) // if the color is gray and darker than 120
     {
@@ -95,7 +131,8 @@ bool Maze::isFree(float fx, float fy) const
     return true;
 }
 
-bool Maze::isFree(const Point& p) const { return isFree(p.x, p.y); }
+
+bool Maze::isFree(const Point& p, bool lowres) const { return isFree(p.x, p.y); }
 
 void Maze::passThrough(int x, int y) { path.push_back(cv::Point(x, y)); }
 
@@ -155,7 +192,7 @@ void Maze::saveSolution(std::string suffix, const std::vector<Point>& astar_path
     auto drawPoint     = [&](const cv::Point& p, const cv::Vec3b& color) { cv::circle(highResOut, p, circleThickness / 2, color, cv::FILLED); };
     auto drawRectangle = [&](const cv::Point& p1, const cv::Vec3b& color) {
         cv::rectangle(highResOut, cv::Point(p1.x - rectangleThickness / 2, p1.y - rectangleThickness / 2),
-                                  cv::Point(p1.x + rectangleThickness / 2, p1.y + rectangleThickness / 2), color, cv::FILLED);
+                      cv::Point(p1.x + rectangleThickness / 2, p1.y + rectangleThickness / 2), color, cv::FILLED);
     };
 
     for (size_t i = 0; i < astar_path.size() - 1; ++i) {
@@ -230,36 +267,6 @@ Point Maze::findGoal()
         }
     }
     throw std::runtime_error("Failed to find the goal point in the maze");
-}
-
-Point Maze::findCornerStart()
-{
-    for (int y = 0; y < im.rows; ++y) {
-        for (int x = 0; x < im.cols; ++x) {
-            if (isFree(x, y)) {
-                Point start(x, y);
-                std::cout << "Corner Start: (" << start.x << ", " << start.y << ")\n";
-                start_ = start;
-                return start;
-            }
-        }
-    }
-    throw std::runtime_error("Failed to find a corner start in the maze");
-}
-
-Point Maze::findCornerGoal()
-{
-    for (int y = im.rows - 1; y >= 0; --y) {
-        for (int x = im.cols - 1; x >= 0; --x) {
-            if (isFree(x, y)) {
-                Point goal(x, y);
-                std::cout << "Corner Goal: (" << goal.x << ", " << goal.y << ")\n";
-                goal_ = goal;
-                return goal;
-            }
-        }
-    }
-    throw std::runtime_error("Failed to find a corner goal in the maze");
 }
 
 void Maze::setStart(const Point& start) { start_ = start; }

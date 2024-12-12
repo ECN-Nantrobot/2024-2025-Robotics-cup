@@ -25,11 +25,16 @@ public:
 
     Maze();
     void load(std::string _filename);
+    void loadLowRes(std::string _filename);
 
-    bool isFree(float fx, float fy) const;
-    bool isFree(const Point& p) const;
 
-    inline int height() const { return im.rows; }
+    bool isFree(float fx, float fy, bool lowres = false) const;
+    bool isFree(const Point& p, bool lowres = false) const;
+
+    inline int height() const
+    {
+        return im.rows;
+    }
     inline int width() const { return im.cols; }
 
     void passThrough(int x, int y);
@@ -44,8 +49,6 @@ public:
 
     Point findStart();
     Point findGoal();
-    Point findCornerStart();
-    Point findCornerGoal();
 
     void setStart(const Point& start);
     void setGoal(const Point& goal);
@@ -59,8 +62,14 @@ public:
 
     void renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale = 1);
 
+
+
     cv::Mat im;
     cv::Mat out;
+    cv::Mat im_lowres;
+
+    float resize_for_astar = 0.5;
+
 
 protected:
     cv::Mat original_im;
@@ -68,6 +77,7 @@ protected:
     std::vector<cv::Point> path;
     std::vector<cv::Point> path_eb;
     std::vector<std::string> windows;
+
 
     Point start_;
     Point goal_;

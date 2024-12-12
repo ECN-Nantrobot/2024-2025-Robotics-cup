@@ -106,16 +106,19 @@ int main(int argc, char** argv)
     // filename_maze = Maze::mazeFile("maze_generated.png");
     // filename_maze = Maze::mazeFile("maze_gen_interac.png");
 
-    filename_maze = findLatestInteractFile();
-    if (filename_maze.empty()) {
-        std::cerr << "No suitable maze file found!" << std::endl;
-        filename_maze = Maze::mazeFile("maze_gen_interac.png");
-    } else {
-        std::cout << "Using the latest maze file: " << filename_maze << std::endl;
-    }
+    // filename_maze = findLatestInteractFile();
+    // if (filename_maze.empty()) {
+    // std::cerr << "No suitable maze file found!" << std::endl;
+    filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png");
+    // } else {
+    // std::cout << "Using the latest maze file: " << filename_maze << std::endl;
+    // }
 
+    std::string filename_maze_lowres = Maze::mazeFile("Eurobot_map_real_w_20_p_interact.png");
 
     Point::maze.load(filename_maze);
+    // Point::maze.loadLowRes(filename_maze_lowres);
+
 
     std::string filename_astar_path = Maze::mazeFile("gen_astar_path.txt");
     std::string filename_eb_path    = Maze::mazeFile("gen_eb_path.txt");
@@ -126,32 +129,34 @@ int main(int argc, char** argv)
     Position start_p;
     Position goal_p;
 
-    // Load or calculate the A* path
-    // if (force_recalculate == false && std::filesystem::exists(filename_astar_path) &&
-    //     (std::filesystem::last_write_time(filename_astar_path) >= std::filesystem::last_write_time(filename_maze)))
-    // {
-    //     astar_path = loadPathFromFile(filename_astar_path);
-    //     start      = astar_path.front();
-    //     goal       = astar_path.back();
-    // }
-    // else
-    // {
-    if (filename_maze.find("interac") != std::string::npos) {
-        start = Point::maze.findStart();
-        goal  = Point::maze.findGoal();
-    } else {
-        start = Point::maze.findCornerStart();
-        goal  = Point::maze.findCornerGoal();
-    }
+    Point::maze.resize_for_astar = 0.5;
 
-    start_p = start;
-    goal_p  = goal;
+
+    start = Point::maze.findStart();
+    goal  = Point::maze.findGoal();
+
+    start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
+    goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+
+    std::cout << "Start: (" << start_p.x << ", " << start_p.y << ")" << std::endl;
+    std::cout << "Goal: (" << start_p.x << ", " << start_p.y << ")" << std::endl;
 
     std::cout << "Searching with A* ..." << std::endl;
     astar_path = Astar(start_p, goal_p);
 
+    std ::cout << "A* Path size: " << astar_path.size() << std::endl;
+
+
+    for (auto& position : astar_path) {
+        position           = position * (1 / Point::maze.resize_for_astar);
+        astar_path.front() = Position(start);
+        astar_path.back()  = Position(goal);
+    }
+
+
+    std ::cout << "A* Path size: " << astar_path.size() << std::endl;
+
     saveAstarPathToFile(filename_astar_path, astar_path);
-    // }
 
 
     // const int scale = 5; // Skalierungsfaktor
@@ -172,10 +177,14 @@ int main(int argc, char** argv)
 
     ElasticBand elastic_band(astar_path, Point::maze);
 
+
     int t = 0;
     while (true) {
         std::cout << "" << std::endl;
         std::cout << "TIME: " << t << std::endl;
+
+        // start.x -= 2;
+        // start.y -= 4;
 
         if (t % 5 == 0) {
             for (int j = 0; j < 1; ++j) {
@@ -200,13 +209,23 @@ int main(int argc, char** argv)
 
 
         if (t % 6 == 0 || force_recalculate) {
+            cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+            std::cout << "Downsized the image for A* by " << Point::maze.resize_for_astar << std::endl;
+
+            start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
+            goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
             astar_path = Astar(start_p, goal_p);
+            for (auto& position : astar_path) {
+                position           = position * (1 / Point::maze.resize_for_astar);
+                astar_path.front() = Position(start);
+                astar_path.back()  = Position(goal);
+            }
             saveAstarPathToFile(filename_astar_path, astar_path);
             elastic_band.updatePath(astar_path); // Update the existing elastic band with the new path
             force_recalculate = false;
         }
 
-        int action = elastic_band.optimize(); // elastic band function
+        int action = elastic_band.optimize(start, goal); // elastic band function
 
         if (action == 27) {
             break;
@@ -221,18 +240,7 @@ int main(int argc, char** argv)
 
     const std::vector<Point>& optimizedPath = elastic_band.getPath();
 
-    std::cout << "Optimized Path:" << std::endl;
-    for (const auto& point : optimizedPath) {
-        std::cout << "(" << point.x << ", " << point.y << ")" << std::endl;
-    }
-
     elastic_band.generateSmoothedPath(optimizedPath, 0.8f, 22, 1.2f); // max. gap, window size, sigma
-
-    std::cout << "Smoothed Path:" << std::endl;
-    const std::vector<Point>& smoothedPath = elastic_band.getSmoothedPath();
-    for (const auto& point : smoothedPath) {
-        std::cout << "(" << point.x << ", " << point.y << ")" << std::endl;
-    }
 
     elastic_band.savePathToFile(filename_eb_path);
 
