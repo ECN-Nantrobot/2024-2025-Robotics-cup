@@ -28,8 +28,6 @@ public:
 
     int optimize(const Point& start, const Point& goal); // Optimize the path using elastic band algorithm
 
-    void fillGaps(int maxGap);
-
     void showPath(int pause_inbetween) const;
 
     const std::vector<Point>& getPath() const;
@@ -37,7 +35,7 @@ public:
     void repelFromObstacle(size_t idx, float rep_strength);
 
     std::vector<Point> gaussianSmoothing(const std::vector<Point>& path, int windowSize, float sigma);
-    void generateSmoothedPath(const std::vector<Point>& path, float maxGap, int windowSize, float sigma);
+    void generateSmoothedPath(float maxGap, int windowSize, float sigma);
 
     const std::vector<Point>& getSmoothedPath() { return smoothed_path; }
 
@@ -47,6 +45,7 @@ public:
         for (size_t i = 0; i < newPath.size(); ++i) {
             path[i] = Point(newPath[i].x, newPath[i].y);
         }
+        showPath(200);
     }
 
 

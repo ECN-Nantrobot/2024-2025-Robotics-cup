@@ -27,42 +27,14 @@ void ElasticBand::savePathToFile(const std::string& filename) const
     std::cout << "Path saved successfully to " << filename << std::endl;
 }
 
-void ElasticBand::fillGaps(int max_gap)
-{
-    std::vector<Point> filledPath;
-
-    for (size_t i = 0; i < path.size() - 1; ++i) {
-        Point current = path[i];
-        Point next    = path[i + 1];
-
-        filledPath.push_back(current); // Keep the current point
-
-        // Compute the distance to the next point
-        float distance = std::hypot(next.x - current.x, next.y - current.y);
-
-        // Add intermediate points if the gap is too large
-        if (distance > max_gap) {
-            int num_of_interm_points = static_cast<int>(std::ceil(distance / max_gap)) - 1;
-            for (int j = 1; j <= num_of_interm_points; ++j) {
-                Point intermediate = { current.x + (float)j * (next.x - current.x) / (num_of_interm_points + 1), current.y + (float)j * (next.y - current.y) / (num_of_interm_points + 1) };
-
-                // Only add the point if it's free
-                if (maze.isFree(intermediate)) {
-                    filledPath.push_back(intermediate);
-                }
-            }
-        }
-    }
-
-    // Add the last point
-    filledPath.push_back(path.back());
-
-    // Replace the original path with the filled path
-    path = filledPath;
-}
 
 std::vector<Point> ElasticBand::gaussianSmoothing(const std::vector<Point>& path, int windowSize, float sigma)
 {
+    if (windowSize % 2 == 0) {
+        std::cerr << "Window size must be odd. Adjusting to " << windowSize + 1 << "." << std::endl;
+        ++windowSize;
+    }
+
     std::vector<Point> smoothedPath;
     int halfWindow = windowSize / 2;
     std::vector<float> kernel(windowSize);
@@ -100,7 +72,7 @@ std::vector<Point> ElasticBand::gaussianSmoothing(const std::vector<Point>& path
 }
 
 // Function to generate a path by filling gaps and smoothing it
-void ElasticBand::generateSmoothedPath(const std::vector<Point>& path, float maxGap, int windowSize, float sigma)
+void ElasticBand::generateSmoothedPath(float maxGap, int windowSize, float sigma)
 {
     std::vector<Point> filledPath;
 
@@ -128,7 +100,6 @@ void ElasticBand::generateSmoothedPath(const std::vector<Point>& path, float max
     smoothed_path = gaussianSmoothing(filledPath, windowSize, sigma);
 }
 
-
 void ElasticBand::showPath(int pause_inbetween) const
 {
     const int scale     = 15; // Scale factor: Each grid cell becomes ...x... pixels
@@ -143,6 +114,13 @@ void ElasticBand::showPath(int pause_inbetween) const
         cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale - grid_size, (point.y + 1) * scale - grid_size), point.colour, cv::FILLED);
     }
 
+    // Draw the first point bigger
+    const auto& first_point = path.front();
+    cv::circle(visualization, cv::Point(first_point.x * scale + scale / 2, first_point.y * scale + scale / 2),
+               3 * scale, // Adjust radius based on scale and extra_scale
+               first_point.colour,
+               cv::FILLED); // Filled circle
+
     // Draw Circles aroung the points
     for (const auto& point : path) {
         cv::circle(visualization, cv::Point(point.x * scale + scale / 2, point.y * scale + scale / 2),
@@ -153,7 +131,7 @@ void ElasticBand::showPath(int pause_inbetween) const
 
     std::string window_name = "Elastic Band Optimization, resolution " + std::to_string(scale) + ":1";
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::resizeWindow(window_name, 1500, 1200);
+    cv::resizeWindow(window_name, 1800, 1400);
     cv::moveWindow(window_name, 50, 50);
     cv::imshow(window_name, visualization);
     for (int i = 0; i < pause_inbetween; i++) {
@@ -191,73 +169,54 @@ float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radi
 
 bool ElasticBand::resizePath(float min_dist, float max_dist)
 {
-    int max_path_size = 1000;
+    int max_path_size = std::min(1000, static_cast<int>(path.size()) * 2);
     std::vector<Point> adjustedPath(max_path_size * 1.4);
-    size_t i_adjusted = 0;
-    int n             = 0;
+    size_t i_adjusted  = 0;
+    size_t num_of_skip = 0;
 
     adjustedPath[i_adjusted++] = path.front();
 
-    for (size_t i = 1; i < path.size(); ++i) {
-        Point previous = path[i - 1];
-        Point current  = path[i + n];
+    std ::cout << "Path.size: " << path.size();
+    size_t i = 0;
+    while (i + num_of_skip < path.size() - 1) {
+        Point current = path[i];
+        Point next    = path[i + 1 + num_of_skip];
 
-        float distance = std::hypot(current.x - previous.x, current.y - previous.y);
-        // std::cout << "Distance from " << i -1 << " to " << i+n << " = " << distance << " ";
+        float distance = std::hypot(next.x - current.x, next.y - current.y);
 
-
-        // if (i < 3 || i > path.size() - 2) {
-        //     adjustedPath[i_adjusted++] = current; // increment after assignement
-        //     continue;
-        // } else {
 
         if (distance >= min_dist && distance <= max_dist) {
-            adjustedPath[i_adjusted++] = current; // increment after assignement
-
-            // std::cout << "added: " <<  i + n << " to " << i_adjusted -1 << std::endl;
-
-            if (i + n < path.size() - 1)
-                i = i + n;
-            else
-                break;
-            n = 0;
+            adjustedPath[i_adjusted++] = next; // increment after assignement
+            i++;
+            i           = i + num_of_skip;
+            num_of_skip = 0;
         }
 
         else if (distance > max_dist) {
             int num_of_interm_points = std::min(static_cast<int>(std::ceil(distance / max_dist)) - 1, 5);
-            // std ::cout << "num_of_interm_points: " << num_of_interm_points << std::endl;
 
             for (int j = 1; j <= num_of_interm_points; ++j) {
-                Point intermediate         = { previous.x + (float)j * (current.x - previous.x) / (num_of_interm_points + 1),
-                                               previous.y + (float)j * (current.y - previous.y) / (num_of_interm_points + 1) };
+                Point intermediate = { current.x + (float)j * (next.x - current.x) / (num_of_interm_points + 1), current.y + (float)j * (next.y - current.y) / (num_of_interm_points + 1) };
                 adjustedPath[i_adjusted++] = intermediate;
-                // std::cout << "added intermdiate: " << i_adjusted -1 << std::endl;
             }
-            n = 0;
+            adjustedPath[i_adjusted++] = next;
+            i++;
+            i           = i + num_of_skip;
+            num_of_skip = 0;
         } else {
-            i--;
-            if (i + n + 1 < path.size() - 1)
-                n++;
-            else
-                break;
+            num_of_skip++;
         }
-        // }
-        // std::cout << "i: " << i << ", " << n << std::endl;
-        // std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-        // std::cout << "adjusted index: " << i_adjusted << std::endl;
     }
 
-
     adjustedPath[i_adjusted++] = path.back();
-    std ::cout << "Path.size: " << path.size();
+    // std ::cout << "Path.size: " << path.size();
 
     adjustedPath.resize(i_adjusted);
     path = adjustedPath;
     if (path.size() > max_path_size) {
         return false;
     }
-    std ::cout << " -> " << path.size();
+    // std ::cout << " -> " << path.size();
     return true;
 }
 
@@ -267,7 +226,7 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
     static int show_time = 0;
 
     const float alpha                  = 0.077; // Step size (scaling of the total force)
-    const int max_iterations           = 30;
+    const int max_iterations           = 40;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
 
@@ -277,13 +236,13 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
     float rep_to_spring_radius_factor = 0.4;
 
     const float repulsive_strength = 6.0;
-    const int min_rep_radius       = 5;
+    const int min_rep_radius       = 6;
     const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
     const int repel_raduis         = 24;
     const float repel_variation    = 0.3; // +- 40%
 
-    const int small_gap_radius = 5;
+    const int small_gap_radius = 6;
 
     float min_distance = 3.0;
     float max_distance = 4.0;
@@ -294,24 +253,23 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
 
     for (int iter = 0; iter < max_iterations; ++iter) {
 
-        std::cout << "Iter: " << iter << ": ";
+        // if (iter % 5 == 0) {std::cout << "Iter: " << iter << ": ";}
         total_change = 0;
 
-        // if (iter == 0) {
+        if (iter % 10 == 0) {
             if (!resizePath(min_distance, max_distance)) {
                 std::cerr << "Optimization exited early: resizePath too long" << std::endl;
                 return 100;
             }
-        // }
+        }
 
         // Iterate over all points except start and end
         for (size_t i = 1; i < path.size() - 2; ++i) {
 
             float dynamic_spring_weight = spring_weight_default;
-            if(i > 1){
-            path[i].radius = std::max(static_cast<float>(min_rep_radius), std::min(static_cast<float>(max_rep_radius), distanceToClosestObstacle(path[i], max_rep_radius)));
-            }
-            else {
+            if (i > 1) {
+                path[i].radius = std::max(static_cast<float>(min_rep_radius), std::min(static_cast<float>(max_rep_radius), distanceToClosestObstacle(path[i], max_rep_radius)));
+            } else {
                 path[i].radius = min_rep_radius;
             }
 
@@ -324,20 +282,20 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
             Point repulsiveForce = computeRepulsiveForce(i, repulsive_strength);
 
             // Reduce forces if in a corridor
-            if(i > 1){
-            bool is_corridor       = false;
-            int corridor_neigbours = checkAndAjustInCorridor(i, small_gap_radius);
-            if (corridor_neigbours > 3) {
-                is_corridor = true;
-                springForce.x *= 0.8;
-                springForce.y *= 0.8;
-                float corridor_scaling_factor = std::max(1.0f / static_cast<float>(corridor_neigbours), 0.2f); // Minimum scale = 0.1
-                repulsiveForce.x *= corridor_scaling_factor;
-                repulsiveForce.y *= corridor_scaling_factor;
-                path[i].colour = cv::Scalar(255, 0, 0); // blue
-            } else {
-                path[i].colour = cv::Scalar(0, 0, 200); // red
-            }
+            if (i > 1) {
+                bool is_corridor       = false;
+                int corridor_neigbours = checkAndAjustInCorridor(i, small_gap_radius);
+                if (corridor_neigbours > 3) {
+                    is_corridor = true;
+                    springForce.x *= 0.8;
+                    springForce.y *= 0.8;
+                    float corridor_scaling_factor = std::max(1.0f / static_cast<float>(corridor_neigbours), 0.2f); // Minimum scale = 0.1
+                    repulsiveForce.x *= corridor_scaling_factor;
+                    repulsiveForce.y *= corridor_scaling_factor;
+                    path[i].colour = cv::Scalar(255, 0, 0); // blue
+                } else {
+                    path[i].colour = cv::Scalar(0, 0, 200); // red
+                }
             }
             Point displacement = { alpha * (springForce.x + repulsiveForce.x), alpha * (springForce.y + repulsiveForce.y) };
             Point newPos       = { path[i].x + displacement.x, path[i].y + displacement.y };
@@ -393,24 +351,29 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
             }
         }
 
-        showPath(show_time);
-
-        std ::cout << ", show_time: " << show_time;
-        std::cout << ", total_change: " << total_change;
-        std::cout << std::endl;
-
-        if (total_change <= total_change_threshold) {
-            std::cout << "Optimization converged after " << iter << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
-                      << total_change_threshold << std::endl;
-            break;
+        if(iter % 10 == 0)
+        {
+            showPath(show_time);
         }
-    }
+
+
+        // if (iter % 5 == 0) {
+        //     std ::cout << ", show_time: " << show_time;
+        //     std::cout << ", total_change: " << total_change;
+        //     std::cout << std::endl;
+        // }
+
+            if (total_change <= total_change_threshold) {
+                // std::cout << "Optimization converged after " << iter << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
+                //           << total_change_threshold << std::endl;
+                break;
+            }
+        }
 
     if (total_change > total_change_threshold) {
-        std::cout << "Optimization ended because of max. iterations: " << max_iterations << std::endl;
+        // std::cout << "Optimization ended because of max. iterations: " << max_iterations << std::endl;
     }
 
-    // fillGaps(1); // Fill gaps after optimization (maybe not needed later in real world)
     return 1;
 }
 
@@ -436,88 +399,24 @@ Point ElasticBand::computeSpringForce(size_t idx, const float spr_weight, int ra
     Point force          = { 0, 0 };
     int valid_neighbors = 0; // used to calculate the number of neighbors contributing to the force: so that spring force pulls the current point toward the average Point of its neighbors
 
-    // Special handling for the first and last movable points (second and second last)
-    // if (idx == 1) {
-    //     force.x += (path[0].x - path[idx].x) * spr_weight; // Pull towards start
-    //     force.y += (path[0].y - path[idx].y) * spr_weight;
-    // } else if (idx == path.size() - 2) {
-    //     force.x += (path.back().x - path[idx].x) * spr_weight; // Pull towards end
-    //     force.y += (path.back().y - path[idx].y) * spr_weight;
+    // Iterate over the points within the radius
+    for (int i = -radius; i <= radius; ++i) {
+        if (i == 0)
+            continue; // Skip the current point
 
-    // float weight_of_ends = 0.5;
-    // float weight_of_ends_max = 0.9;
-
-    // float scaling_factor = 1.0;
-
-    // if (idx <= radius)
-    // {
-    //     // Average over the next `radius` points
-    //     for (int i = 1; i <= radius; ++i) {
-    //         if (idx + i < path.size()) {
-    //             force.x += path[idx + i].x;
-    //             force.y += path[idx + i].y;
-    //             valid_neighbors++;
-    //         }
-    //     }
-    //     std ::cout << "idx: " << idx << std::endl;
-    //     weight_of_ends = weight_of_ends_max * (1 - std::pow((float)idx / radius, 2));
-    //     force.x = force.x / valid_neighbors * (1.0 - weight_of_ends) + path[0].x * weight_of_ends;
-    //     force.y = force.y / valid_neighbors * (1.0 - weight_of_ends) + path[0].y * weight_of_ends;
-
-    //     // float scaling_factor = scaling_factor = std::max(0.0f, 1.0f - (float)idx / radius);
-    //     std ::cout << "(float)idx / radius: " << (float)idx / radius << std::endl;
-    //     std ::cout << "scaling_factor: " << scaling_factor << std::endl;
-
-
-    //     force.x = (force.x - current.x) * spr_weight * scaling_factor;
-    //     force.y = (force.y - current.y) * spr_weight * scaling_factor;
-    // }
-    // else if (idx >= path.size() - radius)
-    // {
-
-    //     std ::cout << "idx: " << idx << std::endl;
-
-    //     for (int i = 1; i <= radius; ++i) {
-    //         if (idx + i < path.size()) {
-    //             force.x += path[idx + i].x;
-    //             force.y += path[idx + i].y;
-    //             valid_neighbors++;
-    //         }
-    //     }
-
-    //     force.x = force.x / valid_neighbors * (1.0 - weight_of_ends) + path.back().x * weight_of_ends;
-    //     force.y = force.y / valid_neighbors * (1.0 - weight_of_ends) + path.back().y * weight_of_ends;
-
-    //     // float scaling_factor = std::max(0.0f, 1.0f - (float)(path.size() - idx) / radius);
-    //     std ::cout << "(float)(path.size() - idx): " << 1.0f - (float)(path.size() - idx) / radius << std::endl;
-    //     std ::cout << "scaling_factor: " << scaling_factor << std::endl;
-
-
-    //     force.x = (force.x - current.x) * spr_weight * scaling_factor;
-    //     force.y = (force.y - current.y) * spr_weight * scaling_factor;
-    // }
-    // else
-    // {
-
-        // Iterate over the points within the radius
-        for (int i = -radius; i <= radius; ++i) {
-            if (i == 0)
-                continue; // Skip the current point
-
-            int neighbor_idx = idx + i;
-            if (neighbor_idx >= 0 && neighbor_idx < path.size()) {
-                Point neighbor = path[neighbor_idx];
-                force.x += neighbor.x;
-                force.y += neighbor.y;
-                valid_neighbors++;
-            }
+        int neighbor_idx = idx + i;
+        if (neighbor_idx >= 0 && neighbor_idx < path.size()) {
+            Point neighbor = path[neighbor_idx];
+            force.x += neighbor.x;
+            force.y += neighbor.y;
+            valid_neighbors++;
         }
+    }
 
-        if (valid_neighbors > 0) {
-            force.x = (force.x / valid_neighbors - current.x) * spr_weight; //(average position of neighbors - current position) * spring weight
-            force.y = (force.y / valid_neighbors - current.y) * spr_weight;
-        }
-    // }
+    if (valid_neighbors > 0) {
+        force.x = (force.x / valid_neighbors - current.x) * spr_weight; //(average position of neighbors - current position) * spring weight
+        force.y = (force.y / valid_neighbors - current.y) * spr_weight;
+    }
 
     return force;
 }
