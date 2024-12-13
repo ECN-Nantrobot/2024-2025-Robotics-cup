@@ -17,7 +17,7 @@ public:
         MOVABLE    // Movable obstacle, can be repositioned
     };
 
-    Obstacle(int x, int y, int width, int height, Type type, const std::string& colorName, int duration = 0, int dx = 0, int dy = 0)
+    Obstacle(float x, float y, int width, int height, Type type, const std::string& colorName, int duration = 0, float dx = 0, float dy = 0)
     : x_(x), y_(y), x_prev(x), y_prev(y), width_(width), height_(height), type_(type), duration_(duration), active_(true), dx_(dx), dy_(dy)
     {
         color_ = getColorFromName(colorName);
@@ -72,9 +72,9 @@ public:
     Type getType() const { return type_; }
 
 private:
-    int x_, y_;          // Position of the obstacle
-    int x_prev, y_prev;    // Previous position
-    int dx_, dy_;          // Movement increments for MOVABLE obstacles
+    float x_, y_;          // Position of the obstacle
+    float x_prev, y_prev;  // Previous position
+    float dx_, dy_;        // Movement increments for MOVABLE obstacles
 
 
     int width_, height_; // Dimensions of the obstacle
