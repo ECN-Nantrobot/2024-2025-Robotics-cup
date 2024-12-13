@@ -36,6 +36,7 @@ int main()
     std::vector<Obstacle> obstacles = {
         Obstacle(30, 100, 30, 25, Obstacle::MOVABLE, "green", 0, 8, 0),
         Obstacle(0, 0, 25, 15, Obstacle::MOVABLE, "green", 0, 8, 8),
+        Obstacle(299, 25, 25, 15, Obstacle::MOVABLE, "green", 0, -8, 1)
     };
 
     std::vector<Position> astar_path;
@@ -45,16 +46,18 @@ int main()
 
     // Simulation parameters
     const int scale        = 20; // size up visualization for better quality
-    const int display_res  = 1200;
+    const int display_res  = 1150;
     const float dt         = 0.05;
     const int speed_up_vis = 1; // Speed up visualization by a factor of x
     cv::Mat simulation;
 
+    int counter_set_eb_path = 0;
+    
     float K_P = 10;
     float K_I = 0.01;
     float K_D = 0.5;
 
-    Robot robot(start.x, start.y, 0, 15, 6, K_P, K_I, K_D); // Initial position (x, y, theta), wheelbase 1.5, speed in cm/s, PID constants
+    Robot robot(start.x, start.y, 0, 15, 7, K_P, K_I, K_D); // Initial position (x, y, theta), wheelbase 1.5, speed in cm/s, PID constants
 
     std ::cout << "Start Position: (" << start.x << ", " << start.y << ")" << std::endl;
     std ::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
@@ -63,7 +66,7 @@ int main()
     std::string window_name = ("Robot Simulation");
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
     cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
-    cv::moveWindow(window_name, 50, 50);
+    cv::moveWindow(window_name, 1, 1);
 
     auto startTimeRealtime = std::chrono::steady_clock::now();
 
@@ -120,7 +123,7 @@ int main()
             elastic_band.runFullOptimization(start, goal);
         }
 
-        // Elastic Band: every 2s
+        // Elastic Band
         if (!elastic_band.isOptimizationComplete()) { // t % (int)(0.5 / dt) == 0 ||
             auto startTime = std::chrono::steady_clock::now();
 
@@ -129,11 +132,19 @@ int main()
             }
 
             if (elastic_band.isOptimizationComplete()) {
-                elastic_band.generateSmoothedPath(0.8f, 21, 1.2f);
                 std::cout << "Elastic Band optimization completed" << std::endl;
+                counter_set_eb_path++;
                 elastic_band.resetOptimization();
             }
+
+            if(counter_set_eb_path == 3){
+                elastic_band.generateSmoothedPath(0.8f, 21, 1.2f);
+                counter_set_eb_path = 0;
+            }
             
+
+            elastic_band.generateSmoothedPath(0.8f, 21, 1.2f);
+
             auto endTime                                 = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsedSeconds = endTime - startTime;
             // std::cout << "Elastic Band completed in: " << static_cast<int>(elapsedSeconds.count() * 1000) << " ms" << std::endl;

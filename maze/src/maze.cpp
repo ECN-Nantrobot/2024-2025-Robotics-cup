@@ -71,6 +71,8 @@ void Maze::load(std::string _filename)
     std::cout << "Downsized the image for A* by "
               << resize_for_astar << " ... ";
 
+    out_lowres = im_lowres.clone();
+
     // Save the low-resolution image
     // std::string lowres_filename = filename.substr(0, filename.find_last_of('.')) + "_lowres.png";
     // if (!cv::imwrite(lowres_filename, im_lowres)) {
@@ -123,7 +125,7 @@ bool Maze::isFree(float fx, float fy, bool lowres) const
         if (color[0] < permanent_obstacle_treshold) {
             return false;
         }
-    } else if (color[0] == 0 && color[1] > 0 && color[2] == 0) // if the color is green
+    } else if (color[0] < 100 && color[1] > 0 && color[2] < 100) // if the color is green intensity higher than
     {
         return false;
     }
@@ -138,7 +140,7 @@ void Maze::passThrough(int x, int y) { path.push_back(cv::Point(x, y)); }
 
 void Maze::display(const std::string& name, const std::string& type)
 {
-    cv::Mat& imageToShow = (type == "im") ? im : (type == "out") ? out : im; // Default to `im` if invalid input
+    cv::Mat& imageToShow = (type == "im") ? im : (type == "out") ? out : (type == "out_lowres") ? out_lowres : im; // Default to `im` if invalid input
 
     if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
         windows.push_back(name);
@@ -149,12 +151,17 @@ void Maze::display(const std::string& name, const std::string& type)
 }
 
 
+void Maze::clear()
+{
+    out_lowres = im_lowres.clone();
+}
+
 void Maze::write(int x, int y, int r, int g, int b, bool show)
 {
-    out.at<cv::Vec3b>(y, x) = cv::Vec3b(b, g, r);
+    out_lowres.at<cv::Vec3b>(y, x) = cv::Vec3b(b, g, r);
     if (show) {
-        display("Maze", "out");
-        cv::waitKey(1);
+        display("A* Visualization", "out_lowres");
+        // cv::waitKey(1);          /////////////////// COMMENT BACK IN TO SEE EACH STEP OF A*
     }
 }
 

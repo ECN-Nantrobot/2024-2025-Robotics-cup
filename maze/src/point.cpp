@@ -33,7 +33,10 @@ void Point::print(const Point& parent) const
 }
 
 
-void Point::start() { maze.write(x, y); }
+void Point::start() { 
+    maze.clear();
+    maze.write(x, y); 
+}
 
 // online print, color depends on closed / open set
 void Point::show(bool closed, const Point& parent)

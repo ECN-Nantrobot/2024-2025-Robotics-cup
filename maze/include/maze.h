@@ -40,6 +40,7 @@ public:
     void passThrough(int x, int y);
     void display(const std::string& name, const std::string& type);
     void write(int x, int y, int r = 0, int g = 0, int b = 0, bool show = true);
+    void clear();
 
     void save();
     void saveSolution(std::string suffix, const std::vector<Point>& astar_path, const std::vector<Point>& eb_path, const std::vector<Obstacle>& obstacles);
@@ -67,9 +68,10 @@ public:
     cv::Mat im;
     cv::Mat out;
     cv::Mat im_lowres;
+    cv::Mat out_lowres;
 
 
-    float resize_for_astar = 0.5;
+    float resize_for_astar = 0.3;
 
 
 protected:
