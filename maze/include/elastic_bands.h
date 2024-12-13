@@ -45,7 +45,7 @@ public:
         for (size_t i = 0; i < newPath.size(); ++i) {
             path[i] = Point(newPath[i].x, newPath[i].y);
         }
-        showPath(200);
+        // showPath(200);
     }
 
 

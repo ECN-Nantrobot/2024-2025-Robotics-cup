@@ -6,8 +6,8 @@
 namespace ecn
 {
 
-Robot::Robot(float x, float y, float theta, float wheelBase, float kp, float ki, float kd)
-: x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
+Robot::Robot(float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd)
+: x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
 {
 }
 
@@ -83,9 +83,8 @@ void Robot::followPath(const std::vector<Point>& path, float dt)
         float controlSignal = computePID(targetAngle, dt);
 
         // Adjust baseSpeed for smoother movement
-        float baseSpeed = 5.0; // Speed in cm/s
-        leftSpeed_      = baseSpeed - controlSignal;
-        rightSpeed_     = baseSpeed + controlSignal;
+        leftSpeed_      = speed_ - controlSignal;
+        rightSpeed_     = speed_ + controlSignal;
     }
 
     // Store the target index for visualization

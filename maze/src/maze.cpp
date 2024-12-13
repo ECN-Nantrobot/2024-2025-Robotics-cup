@@ -239,10 +239,10 @@ Point Maze::findStart()
     for (int y = 0; y < im.rows; ++y) {
         for (int x = 0; x < im.cols; ++x) {
             cv::Vec3b color = im.at<cv::Vec3b>(y, x);
-            if (color[0] == 0 && color[1] == 0 && color[2] == 255) // red
-            {                                                      // Red color
+            if (color[0] == 0 && color[1] == 0 && color[2] == 255) // blue
+            {                                                      
                 start = Point(x, y);
-                std::cout << "Start: (" << start.x << ", " << start.y << ")\n";
+                std::cout << "Start found (blue): (" << start.x << ", " << start.y << ")\n";
                 start_ = start;
                 return start;
             }
@@ -257,10 +257,10 @@ Point Maze::findGoal()
     for (int y = 0; y < im.rows; ++y) {
         for (int x = 0; x < im.cols; ++x) {
             cv::Vec3b color = im.at<cv::Vec3b>(y, x);
-            if (color[0] == 255 && color[1] == 0 && color[2] == 0) // blue
-            {                                                      // Blue color
+            if (color[0] == 255 && color[1] == 0 && color[2] == 0) // red
+            {                                                      
                 goal = Point(x, y);
-                std::cout << "Goal: (" << goal.x << ", " << goal.y << ")\n";
+                std::cout << "Goal found (red): (" << goal.x << ", " << goal.y << ")\n";
                 goal_ = goal;
                 return goal;
             }

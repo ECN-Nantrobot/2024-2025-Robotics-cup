@@ -176,7 +176,7 @@ bool ElasticBand::resizePath(float min_dist, float max_dist)
 
     adjustedPath[i_adjusted++] = path.front();
 
-    std ::cout << "Path.size: " << path.size();
+    // std ::cout << "Path.size: " << path.size();
     size_t i = 0;
     while (i + num_of_skip < path.size() - 1) {
         Point current = path[i];
@@ -333,7 +333,7 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
             } else if (key == 32) {
                 std::cout << "\nSpacebar was pressed, Pause..." << std::endl;
                 while (true) {
-                    showPath(show_time);
+                    // showPath(show_time);
                     int inner_key = cv::waitKey(1);
                     if (inner_key == 27) { // Press 'ESC' to exit
                         std ::cout << "ESC from pause" << std::endl;
@@ -351,10 +351,10 @@ int ElasticBand::optimize(const Point& start, const Point& goal)
             }
         }
 
-        if(iter % 10 == 0)
-        {
-            showPath(show_time);
-        }
+        // if(iter % 10 == 0)
+        // {
+        //     showPath(show_time);
+        // }
 
 
         // if (iter % 5 == 0) {

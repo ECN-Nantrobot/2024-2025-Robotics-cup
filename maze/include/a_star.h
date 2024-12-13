@@ -122,7 +122,7 @@ public:
         for (size_t i = 1; i < path.size(); ++i)
             path[i - 1].print(path[i]);
 
-        std::cout << "solved in " << path.size() - 1 << " steps, distance is " << dist << std::endl;
+        // std::cout << "solved in " << path.size() - 1 << " steps, distance is " << dist << std::endl;
 
         return path;
     }
@@ -186,8 +186,8 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
 
         if (tree(best.node) == goal)
         {
-            std::cout << created << " nodes created, " << evaluated << " evaluated, " << shortcut << " shortcuts found" << std::endl;
-            std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t0).count() << " ms" << std::endl;
+            // std::cout << created << " nodes created, " << evaluated << " evaluated, " << shortcut << " shortcuts found" << std::endl;
+            // std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t0).count() << " ms" << std::endl;
 
             return tree.fullPathTo(best.node, best.g);
         }

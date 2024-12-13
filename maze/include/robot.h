@@ -11,7 +11,7 @@ namespace ecn
 class Robot
 {
 public:
-    Robot(float x, float y, float theta, float wheelBase, float kp, float ki, float kd);
+    Robot(float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd);
 
     // Update the robot's position using PID control
     void followPath(const std::vector<Point>& path, float dt);
@@ -34,6 +34,8 @@ private:
 
     float leftSpeed_;  // Speed of the left wheel
     float rightSpeed_; // Speed of the right wheel
+
+    float speed_; // Speed of the robot
 
     size_t targetIdx_; // Index of the target point
 

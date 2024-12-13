@@ -68,6 +68,7 @@ public:
     cv::Mat out;
     cv::Mat im_lowres;
 
+
     float resize_for_astar = 0.5;
 
 
@@ -78,7 +79,7 @@ protected:
     std::vector<cv::Point> path_eb;
     std::vector<std::string> windows;
 
-
+    
     Point start_;
     Point goal_;
 
