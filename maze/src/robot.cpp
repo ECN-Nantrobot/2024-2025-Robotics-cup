@@ -95,7 +95,7 @@ void Robot::followPath(const std::vector<Point>& path, float dt)
 }
 
 
-void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale) const
+void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path) const
 {
     for (size_t i = 0; i < path.size(); ++i) {
         cv::Scalar color = (i == targetIdx_) ? cv::Scalar(0, 0, 255) // Red for the target point
@@ -103,6 +103,24 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale) cons
                                                cv::Scalar(0, 160, 0); // Green for other points
 
         cv::circle(image, cv::Point(static_cast<int>(path[i].x * scale), static_cast<int>(path[i].y * scale)), scale * 0.3, color, -1);
+    }
+
+
+    // draw A* path
+    cv::Vec3b colour_astar(255, 50, 50);
+    cv::Vec3b colour_astar_points(80, 0, 0);
+    const int lineThickness      = 15;
+    const int circleThickness    = lineThickness + 2;
+    const int rectangleThickness = lineThickness + 2;
+
+    auto drawLine      = [&](const cv::Point& p1, const cv::Point& p2, const cv::Vec3b& color) { cv::line(image, p1, p2, color, lineThickness); };
+    auto drawPoint     = [&](const cv::Point& p, const cv::Vec3b& color) { cv::circle(image, p, circleThickness / 2, color, cv::FILLED); };
+
+    for (size_t i = 0; i < astar_path.size() - 1; ++i) {
+        cv::Point p1(std::round(astar_path[i].x * scale), std::round(astar_path[i].y * scale));
+        cv::Point p2(std::round(astar_path[i + 1].x * scale), std::round(astar_path[i + 1].y * scale));
+        drawLine(p1, p2, colour_astar);
+        drawPoint(p1, colour_astar_points);
     }
 
 

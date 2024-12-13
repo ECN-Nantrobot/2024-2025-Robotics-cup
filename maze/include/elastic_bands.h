@@ -22,11 +22,12 @@ public:
         {
             path[i] = Point(initialPath[i].x, initialPath[i].y);
         }
+        initial_path = path;
     }
 
     void savePathToFile(const std::string& filename) const;
 
-    int optimize(const Point& start, const Point& goal); // Optimize the path using elastic band algorithm
+    bool optimize(const Point& start, const Point& goal); // Optimize the path using elastic band algorithm
 
     void showPath(int pause_inbetween) const;
 
@@ -38,6 +39,7 @@ public:
     void generateSmoothedPath(float maxGap, int windowSize, float sigma);
 
     const std::vector<Point>& getSmoothedPath() { return smoothed_path; }
+    const std::vector<Point>& getInitialPath() { return initial_path; }
 
     void updatePath(const std::vector<Position>& newPath)
     {
@@ -45,14 +47,46 @@ public:
         for (size_t i = 0; i < newPath.size(); ++i) {
             path[i] = Point(newPath[i].x, newPath[i].y);
         }
+        initial_path = path;
         // showPath(200);
     }
 
 
+    void resetOptimization()
+    {
+        current_iteration     = 0;
+        optimization_complete = false;
+        total_change          = 0;
+    }
+
+    bool isOptimizationComplete() const { return optimization_complete; }
+
+    void runFullOptimization(const Point& start, const Point& goal)
+    {
+        resetOptimization(); // Setzt den Zustand zurück
+
+        while (!optimization_complete) {
+            optimize(start, goal); // Führt eine Iteration durch
+        }
+
+        generateSmoothedPath(0.8f, 21, 1.2f);
+
+        std::cout << "Elastic Band initial optimization completed after " << current_iteration << " iterations." << std::endl;
+
+
+        resetOptimization(); // Setzt den Zustand zurück
+    }
+
+
 private:
+    std::vector<Point> initial_path;
     std::vector<Point> path;
     std::vector<Point> smoothed_path;
     const Maze& maze;
+
+    int current_iteration      = 0;
+    bool optimization_complete = false;
+    float total_change         = 0;
 
     bool resizePath(float minDistance, float maxDistance);
     float distanceToClosestObstacle(const Point& point, int search_radius) const;

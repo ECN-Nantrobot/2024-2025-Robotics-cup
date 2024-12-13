@@ -16,7 +16,7 @@ public:
     // Update the robot's position using PID control
     void followPath(const std::vector<Point>& path, float dt);
 
-    void draw(cv::Mat& image, const std::vector<Point>& path, int scale) const;
+    void draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path) const;
 
     // Update the robot's position based on wheel speeds
     void updatePosition(float dt);
