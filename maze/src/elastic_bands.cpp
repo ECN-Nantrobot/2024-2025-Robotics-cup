@@ -231,7 +231,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     static int show_time = 0;
 
-    const float alpha                  = 0.08; // Step size (scaling of the total force)
+    const float alpha                  = 0.082; // Step size (scaling of the total force)
     const int max_iterations           = 12;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
@@ -250,8 +250,8 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     const int small_gap_radius = 6;
 
-    float min_distance = 3.0;
-    float max_distance = 4.0;
+    float min_distance = 3.2;
+    float max_distance = 4.2;
 
     path.front() = start;
     path.back()  = goal;

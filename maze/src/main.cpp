@@ -69,13 +69,17 @@ int main()
     cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
     cv::moveWindow(window_name, 1, 1);
 
+
+    std::chrono::duration<double> elapsedSecondsAstar;
+    std::chrono::duration<double> elapsedSecondsEb;
     auto startTimeRealtime = std::chrono::steady_clock::now();
+
 
     int t = 0;
     while (true) {
         auto startTimeLoop = std::chrono::steady_clock::now();
 
-        if (t % (int)(0.1 / dt) == 0) {
+        if (t % (int)(0.15 / dt) == 0) {
             std::cout << "Time: " << t * dt << std::endl;
         }
 
@@ -86,7 +90,7 @@ int main()
 
             double distance = sqrt(pow(start.x - goal.x, 2) + pow(start.y - goal.y, 2));
             if (distance < 6.0) {
-                std::cout << "Robot is within the radius of the goal!.\n" << std::endl;
+                std::cout << "Robot is within the radius of the goal!\n" << std::endl;
                 break;
             }
         }
@@ -113,27 +117,30 @@ int main()
 
             // Check the difference in the A* path
             double path_difference = 0.0;
+            int limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
             if (astar_path_previous.size() != 0) {
-                for (size_t i = 0; i < astar_path.size(); ++i) {
+                for (size_t i = 1 + (astar_path.size() - limit); i < astar_path.size(); ++i) {
                     double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
                     double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
                     path_difference += sqrt(dx * dx + dy * dy);
+                    // std ::cout << astar_path_previous[astar_path_previous.size() - i].x << " " << astar_path[astar_path.size() - i].x << std::endl;
+                    //  std::cout << "dx: " << dx << " dy: " << dy << " path_difference: " << path_difference << std::endl;
                 }
                 path_difference /= astar_path.size();
-                std ::cout << "Path difference: " << path_difference << std::endl;
+                std ::cout << "Path difference %: " << path_difference << "  A* Path size: " << astar_path.size() << std::endl;
             }
             if (path_difference > 3.5 || astar_path_previous.size() == 0) {
                 astar_path_previous = astar_path;
                 elastic_band.updatePath(astar_path); // Update the existing elastic band with the new path
+                counter_set_eb_path = 0;
             }
 
 
             force_recalculate   = false;
-            counter_set_eb_path = 0;
             elastic_band.resetOptimization();
 
             auto endTimeAstar                                 = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsedSecondsAstar = endTimeAstar - startTimeAstar;
+            elapsedSecondsAstar = endTimeAstar - startTimeAstar;
             std::cout << "A* completed in: " << (elapsedSecondsAstar.count() * 1000) << " ms" << std::endl;
         }
 
@@ -144,7 +151,7 @@ int main()
 
         // Elastic Band
         if (!elastic_band.isOptimizationComplete()) { // t % (int)(0.5 / dt) == 0 ||
-            auto startTime = std::chrono::steady_clock::now();
+            auto startTimeEb = std::chrono::steady_clock::now();
 
             for (int i = 0; i < 2; i++) {
                 elastic_band.optimize(start, goal);
@@ -156,13 +163,13 @@ int main()
                 elastic_band.resetOptimization();
             }
 
-            if (counter_set_eb_path >= 0) {
+            if (counter_set_eb_path >= 2) {
                 elastic_band.generateSmoothedPath(0.8f, 21, 1.2f);
             }
 
-            auto endTime                                 = std::chrono::steady_clock::now();
-            std::chrono::duration<double> elapsedSeconds = endTime - startTime;
-            // std::cout << "Elastic Band completed in: " << static_cast<int>(elapsedSeconds.count() * 1000) << " ms" << std::endl;
+            auto endTimeEb                                 = std::chrono::steady_clock::now();
+            elapsedSecondsEb = endTimeEb - startTimeEb;
+            // std::cout << "Elastic Band completed in: " << (elapsedSecondsEb.count() * 1000) << " ms" << std::endl;
 
             // if (action == 27) {
             //     break;
@@ -176,25 +183,31 @@ int main()
 
         robot.followPath(elastic_band.getSmoothedPath(), dt);
 
+        auto startTimeDraw = std::chrono::steady_clock::now();
 
         cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
         robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath()); // takes 1ms
         cv::imshow(window_name, simulation);
 
-        auto endTime                                 = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsedSeconds = endTime - startTimeLoop;
-        // std::cout << "Loop completed in: " << static_cast<int>(elapsedSeconds.count() * 1000) << " ms" << std::endl;
+        auto endTimeDraw                                 = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsedSecondsDraw = endTimeDraw - startTimeDraw;
+        // std::cout << "Draw completed in: " << (elapsedSecondsDraw.count() * 1000) << " ms" << std::endl;
 
-        if (elapsedSeconds.count() * 1000 < dt * 1000) {
+        auto endTimeLoop                                 = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsedSecondsLoop = endTimeLoop - startTimeLoop;
+        // std::cout << "Loop (without draw) completed in: " << (elapsedSecondsLoop.count() * 1000) << " ms = Astar: " << elapsedSecondsAstar.count() * 1000
+        //           << " + Eb: " << elapsedSecondsEb.count() * 1000 << std::endl;
+
+        if (elapsedSecondsLoop.count() * 1000 < dt * 1000) {
             // std::cout << "waiting for: " << static_cast<int>(std::ceil(dt * 1000 - elapsedSeconds.count() * 1000)) << " ms" << std::endl;
-            cv::waitKey(static_cast<int>(std::ceil(dt * 1000 - elapsedSeconds.count() * 1000)));
-        } else {
-            std ::cout << "Loop took longer than dt!!!!!!!!!!!!!!!!!!!!!!!!!: " << static_cast<int>(elapsedSeconds.count() * 1000) - dt * 1000 << " ms" << std::endl;
+            cv::waitKey(static_cast<int>(std::ceil(dt * 1000 - elapsedSecondsLoop.count() * 1000)));
+        } else if ((elapsedSecondsLoop.count() - elapsedSecondsDraw.count()) * 1000 > dt * 1000) {
+            std ::cout << "Loop took longer than dt!!!!!!!!!!!!!!!!!!!!!!!!!: " << static_cast<int>(elapsedSecondsLoop.count() * 1000) - dt * 1000 << " ms" << std::endl;
             cv::waitKey(1);
         }
 
         auto endTimeRealtime                                 = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsedSecondsRealtime = endTime - startTimeRealtime;
+        std::chrono::duration<double> elapsedSecondsRealtime = endTimeRealtime - startTimeRealtime;
         if (t % 20 == 0) {
             std::cout << "RealTime: " << std::fixed << std::setprecision(3) << elapsedSecondsRealtime.count() << " s" << std::endl;
         }
