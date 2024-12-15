@@ -2,6 +2,8 @@
 #include "point.h"
 #include <cmath>
 
+#include <opencv2/imgproc.hpp> // For distanceTransform
+
 namespace ecn
 {
 
@@ -73,39 +75,122 @@ void Maze::load(std::string _filename)
 
     out_lowres = im_lowres.clone();
 
-    // Save the low-resolution image
-    // std::string lowres_filename = filename.substr(0, filename.find_last_of('.')) + "_lowres.png";
-    // if (!cv::imwrite(lowres_filename, im_lowres)) {
-    //     std::cerr << "Error: Failed to save low-resolution image to " << lowres_filename << std::endl;
-    // } else {
-    //     std::cout << "Saved low-resolution image to " << lowres_filename << std::endl;
-    // }
-
     std::cout << " ok"
               << std::endl;
 }
 
-void Maze::loadLowRes(std::string _filename)
+// void Maze::loadLowRes(std::string _filename)
+// {
+//     std::cout << "Loading LOWRES " << _filename << " ... ";
+//     filename = _filename;
+
+//     im_lowres = cv::imread(filename, cv::IMREAD_UNCHANGED);
+
+//     if (im_lowres.empty()) {
+//         throw std::runtime_error("Failed to load the image at: " + filename);
+//     }
+
+//     if (im_lowres.channels() == 4) {
+//         cv::cvtColor(im_lowres, im_lowres, cv::COLOR_RGBA2BGR);
+//         std::cout << "Converted RGBA image to BGR format ... ";
+//     } else if (im_lowres.channels() == 1) {
+//         cv::cvtColor(im_lowres, im_lowres, cv::COLOR_GRAY2BGR);
+//         std::cout << "Converted grayscale image to BGR format ... ";
+//     }
+
+//     std::cout << " ok" << std::endl;
+// }
+
+
+
+
+
+
+void Maze::visualizeDistanceTransform() const
 {
-    std::cout << "Loading LOWRES " << _filename << " ... ";
-    filename = _filename;
+    // Normalize the distance transform to 0-255 for visualization
+    cv::Mat normalizedDistTransform;
+    cv::normalize(distanceTransformMap, normalizedDistTransform, 0, 255, cv::NORM_MINMAX);
+    normalizedDistTransform.convertTo(normalizedDistTransform, CV_8U);
+  
+    cv::resizeWindow("Distance Transform (Grayscale)", 600, 300);
+    cv::moveWindow("Distance Transform (Grayscale)", 1200, 1200);
+    cv::imshow("Distance Transform (Grayscale)", normalizedDistTransform);
 
-    im_lowres = cv::imread(filename, cv::IMREAD_UNCHANGED);
+    // show distance transform with values in each pixel
+    if (false) {
+        // Clone the normalized distance transform to add text
+        int scale = 40;
+        cv::Mat distanceDisplay;
+        cv::resize(normalizedDistTransform, distanceDisplay, cv::Size(), scale, scale, cv::INTER_LINEAR);
 
-    if (im_lowres.empty()) {
-        throw std::runtime_error("Failed to load the image at: " + filename);
+        // Add distance values to the image
+        int step = 1; // Skip pixels to avoid clutter
+        for (int i = 0; i < distanceTransformMap.rows; i += step) {
+            for (int j = 0; j < distanceTransformMap.cols; j += step) {
+                float distanceValue = distanceTransformMap.at<float>(i, j);
+                if (distanceValue > 0) {                                  // Skip zero values
+                    std::string text = cv::format("%.1f", distanceValue); // Format to one decimal place
+                    cv::putText(distanceDisplay, text, cv::Point(j * scale, i * scale), cv::FONT_HERSHEY_SIMPLEX, 0.011 * scale, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+                }
+            }
+        }
+
+        cv::namedWindow("Distance Transform with Values", cv::WINDOW_NORMAL);
+        cv::resizeWindow("Distance Transform with Values", 1800, 1200);
+        cv::moveWindow("Distance Transform with Values", 100, 100);
+        cv::imshow("Distance Transform with Values", distanceDisplay);
     }
-
-    if (im_lowres.channels() == 4) {
-        cv::cvtColor(im_lowres, im_lowres, cv::COLOR_RGBA2BGR);
-        std::cout << "Converted RGBA image to BGR format ... ";
-    } else if (im_lowres.channels() == 1) {
-        cv::cvtColor(im_lowres, im_lowres, cv::COLOR_GRAY2BGR);
-        std::cout << "Converted grayscale image to BGR format ... ";
-    }
-
-    std::cout << " ok" << std::endl;
 }
+
+
+void Maze::computeDistanceTransform()
+{
+    cv::Mat binaryMap;
+    cv::cvtColor(im, binaryMap, cv::COLOR_BGR2GRAY); // Convert to grayscale
+    cv::threshold(binaryMap, binaryMap, permanent_obstacle_treshold, 255, cv::THRESH_BINARY_INV);
+    cv::bitwise_not(binaryMap, binaryMap); // Inverts binaryMap so it is: free = white, obstacle = black
+
+    cv::distanceTransform(binaryMap, distanceTransformMap, cv::DIST_L2, 3);
+
+
+    // Resize the original binary map
+    cv::Mat resizedBinaryMap;
+    cv::resize(binaryMap, resizedBinaryMap, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_NEAREST);
+
+    // Compute the distance transform on the resized binary map
+    cv::Mat resizedDistanceTransform;
+    cv::distanceTransform(resizedBinaryMap, resizedDistanceTransform, cv::DIST_L2, 3);
+}
+
+float Maze::getDistanceToObstacle(const Point& p) const
+{
+    int x = static_cast<int>(std::round(p.x));
+    int y = static_cast<int>(std::round(p.y));
+
+    if (x >= 0 && x < distanceTransformMap.cols && y >= 0 && y < distanceTransformMap.rows) {
+        return distanceTransformMap.at<float>(y, x);
+    }
+    
+    return std::numeric_limits<float>::max(); // Return a large value if out of bounds
+}
+
+
+//uses transform or binary image but it is not faster: 34 v 30 ms
+// bool Maze::isFree(float fx, float fy, bool lowres) const
+// {
+//     int x = static_cast<int>(std::round(fx));
+//     int y = static_cast<int>(std::round(fy));
+
+//     const cv::Mat& selected_map = lowres ? binaryMapLowres : binaryMap;
+
+//     if (x < 0 || y < 0 || x >= selected_map.cols || y >= selected_map.rows) {
+//         return false;
+//     }
+
+//     return selected_map.at<uchar>(y, x) > 0; // Free space if binary map value > 0
+// }
+
 
 bool Maze::isFree(float fx, float fy, bool lowres) const
 {
@@ -120,15 +205,14 @@ bool Maze::isFree(float fx, float fy, bool lowres) const
 
     cv::Vec3b color = selected_im.at<cv::Vec3b>(y, x);
 
-    if (color[0] == color[1] && color[1] == color[2]) // if the color is gray and darker than 120
+    if (color[0] == color[1] && color[1] == color[2]   && color[0] < permanent_obstacle_treshold) // if the color is gray and darker than 120
     {
-        if (color[0] < permanent_obstacle_treshold) {
             return false;
-        }
-    } else if (color[0] < 100 && color[1] > 0 && color[2] < 100) // if the color is green intensity higher than
-    {
-        return false;
     }
+    // else if (color[0] < 100 && color[1] > 0 && color[2] < 100) // if the color is green intensity higher than
+    // {
+    //     return false;
+    // }
 
     return true;
 }
@@ -149,7 +233,6 @@ void Maze::display(const std::string& name, const std::string& type)
     }
     cv::imshow(name, imageToShow);
 }
-
 
 void Maze::clear()
 {

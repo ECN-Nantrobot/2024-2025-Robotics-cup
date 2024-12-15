@@ -28,7 +28,6 @@ void ElasticBand::savePathToFile(const std::string& filename) const
     std::cout << "Path saved successfully to " << filename << std::endl;
 }
 
-
 std::vector<Point> ElasticBand::gaussianSmoothing(const std::vector<Point>& path, int windowSize, float sigma)
 {
     if (windowSize % 2 == 0) {
@@ -72,7 +71,6 @@ std::vector<Point> ElasticBand::gaussianSmoothing(const std::vector<Point>& path
     return smoothedPath;
 }
 
-// Function to generate a path by filling gaps and smoothing it
 void ElasticBand::generateSmoothedPath(float maxGap, int windowSize, float sigma)
 {
     std::vector<Point> filledPath;
@@ -144,29 +142,35 @@ void ElasticBand::showPath(int pause_inbetween) const
 
 float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radius) const
 {
-    float min_distance = search_radius;
-
-    // Iterate over the local area around the point
-    for (int dx = -search_radius; dx <= search_radius; ++dx) {
-        for (int dy = -search_radius; dy <= search_radius; ++dy) {
-            int nx = point.x + dx;
-            int ny = point.y + dy;
-
-            if (nx < 0 || nx >= maze.width() || ny < 0 || ny >= maze.height()) {
-                continue;
-            }
-
-            if (!maze.isFree(nx, ny)) {
-                float distance = std::hypot(dx, dy);
-                if (distance < min_distance) {
-                    min_distance = distance;
-                }
-            }
-        }
-    }
-
-    return min_distance == std::numeric_limits<float>::max() ? -1.0f : min_distance; // Return -1 if no obstacle found
+    // Use the Maze's precomputed distance transform for fast lookup
+    return maze.getDistanceToObstacle(point);
 }
+
+// float ElasticBand::distanceToClosestObstacle(const Point& point, int search_radius) const
+// {
+//     float min_distance = search_radius;
+
+//     // Iterate over the local area around the point
+//     for (int dx = -search_radius; dx <= search_radius; ++dx) {
+//         for (int dy = -search_radius; dy <= search_radius; ++dy) {
+//             int nx = point.x + dx;
+//             int ny = point.y + dy;
+
+//             if (nx < 0 || nx >= maze.width() || ny < 0 || ny >= maze.height()) {
+//                 continue;
+//             }
+
+//             if (!maze.isFree(nx, ny)) {
+//                 float distance = std::hypot(dx, dy);
+//                 if (distance < min_distance) {
+//                     min_distance = distance;
+//                 }
+//             }
+//         }
+//     }
+
+//     return min_distance == std::numeric_limits<float>::max() ? -1.0f : min_distance; // Return -1 if no obstacle found
+// }
 
 bool ElasticBand::resizePath(float min_dist, float max_dist)
 {
@@ -221,7 +225,6 @@ bool ElasticBand::resizePath(float min_dist, float max_dist)
     return true;
 }
 
-
 bool ElasticBand::optimize(const Point& start, const Point& goal)
 {
 
@@ -232,7 +235,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     static int show_time = 0;
 
     const float alpha                  = 0.082; // Step size (scaling of the total force)
-    const int max_iterations           = 12;
+    const int max_iterations           = 20;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
 
@@ -241,7 +244,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     int dynamic_spring_radius         = spring_radius;
     float rep_to_spring_radius_factor = 0.4;
 
-    const float repulsive_strength = 6.0;
+    const float repulsive_strength = 6;
     const int min_rep_radius       = 6;
     const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
@@ -262,10 +265,6 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     int total_radius_time    = 0;
     int total_repulsive_time = 0;
 
-
-    // for (int iter = 0; iter < max_iterations; ++iter) {
-
-
     total_change = 0;
 
     if (current_iteration % 10 == 0) {
@@ -277,7 +276,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     for (size_t i = 1; i < path.size() - 2; ++i) {
 
-        auto start_time = std::chrono::high_resolution_clock::now();
+        // auto start_time = std::chrono::high_resolution_clock::now();
 
         float dynamic_spring_weight = spring_weight_default;
         if (i > 1) {
@@ -289,19 +288,19 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
         float smooth_factor = 0.70f + 0.6f / (1.0f + exp(-10 * (2 * (path[i].radius - min_rep_radius) / (max_rep_radius - min_rep_radius) - 1)));
         dynamic_spring_weight *= smooth_factor;
 
-        auto end_time = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-        dynamicSpringWeightTimes.push_back(duration);
+        // auto end_time = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        // dynamicSpringWeightTimes.push_back(duration);
 
         Point springForce = computeSpringForce(i, dynamic_spring_weight, dynamic_spring_radius);
 
-        start_time = std::chrono::high_resolution_clock::now();
+        // start_time = std::chrono::high_resolution_clock::now();
 
         Point repulsiveForce = computeRepulsiveForce(i, repulsive_strength);
 
-        end_time = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-        computeRepulsiveForceTimes.push_back(duration);
+        // end_time = std::chrono::high_resolution_clock::now();
+        // duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+        // computeRepulsiveForceTimes.push_back(duration);
 
         if (i > 1) {
             bool is_corridor       = false;
@@ -333,23 +332,21 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     }
 
 
-    auto average = [](const std::vector<long long>& times) { return times.size() > 0 ? std::accumulate(times.begin(), times.end(), 0LL) / times.size() : 0LL; };
+    // auto average = [](const std::vector<long long>& times) { return times.size() > 0 ? std::accumulate(times.begin(), times.end(), 0LL) / times.size() : 0LL; };
 
-    // std::cout << "Average point radius time : " << average(dynamicSpringWeightTimes) << " ys, total for " << path.size()
+    // std::cout << "Average point radius time : " << average(dynamicSpringWeightTimes) << " micro s, total for " << path.size()
     //           << " iterations: " << std::accumulate(dynamicSpringWeightTimes.begin(), dynamicSpringWeightTimes.end(), 0LL) << std::endl;
 
-    // std::cout << "Average compRepuForce time: " << average(computeRepulsiveForceTimes) << " ys, total for" << path.size()
+    // std::cout << "Average compRepuForce time: " << average(computeRepulsiveForceTimes) << " micro s, total for " << path.size()
     //           << "  iterations: " << std::accumulate(computeRepulsiveForceTimes.begin(), computeRepulsiveForceTimes.end(), 0LL) << std::endl;
 
-    total_radius_time += std::accumulate(dynamicSpringWeightTimes.begin(), dynamicSpringWeightTimes.end(), 0LL);
-    total_repulsive_time += std::accumulate(computeRepulsiveForceTimes.begin(), computeRepulsiveForceTimes.end(), 0LL);
+    // total_radius_time += std::accumulate(dynamicSpringWeightTimes.begin(), dynamicSpringWeightTimes.end(), 0LL);
+    // total_repulsive_time += std::accumulate(computeRepulsiveForceTimes.begin(), computeRepulsiveForceTimes.end(), 0LL);
 
-    dynamicSpringWeightTimes.clear();
-    computeRepulsiveForceTimes.clear();
+    // dynamicSpringWeightTimes.clear();
+    // computeRepulsiveForceTimes.clear();
 
-    // if (total_change <= total_change_threshold) {
-    //     break;
-    // }
+    // showPath(show_time);
 
 
     current_iteration++;
@@ -398,11 +395,6 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     //     }
     // }
 
-
-    // if(iter % 10 == 0)
-    // {
-    //     showPath(show_time);
-    // }
 
     // if (iter % 5 == 0) {
     //     std ::cout << ", show_time: " << show_time;
@@ -511,6 +503,45 @@ Point ElasticBand::computeRepulsiveForce(size_t idx, const float rep_strength) c
         }
     }
 
+    // // Get the distance from the current point to the nearest obstacle
+    // Point force2 = { 0, 0 };
+    // float distance = maze.getDistanceToObstacle(current);
+
+    // // Proceed only if the point is within the influence radius
+    // if (distance > 0 && distance <= current.radius) {
+    //     // Compute the gradient of the distance field using central differences
+    //     int x = static_cast<int>(std::round(current.x));
+    //     int y = static_cast<int>(std::round(current.y));
+
+    //     // Gradient computation
+    //     float dx = maze.getDistanceToObstacle(Point(x + 1, y)) - maze.getDistanceToObstacle(Point(x - 1, y));
+    //     float dy = maze.getDistanceToObstacle(Point(x, y + 1)) - maze.getDistanceToObstacle(Point(x, y - 1));
+    //     // Add diagonal components to the gradient
+    //     float ddx = (maze.getDistanceToObstacle(Point(x + 1, y + 1)) - maze.getDistanceToObstacle(Point(x - 1, y - 1))) / std::sqrt(2.0f);
+    //     float ddy = (maze.getDistanceToObstacle(Point(x + 1, y - 1)) - maze.getDistanceToObstacle(Point(x - 1, y + 1))) / std::sqrt(2.0f);
+
+    //     dx += ddx;
+    //     dy += ddy;
+
+    //     // Normalize the gradient to obtain the direction of the repulsive force
+    //     float norm = std::hypot(dx, dy);
+    //     if (norm > 0) {
+    //         dx /= norm;
+    //         dy /= norm;
+
+    //         // Scale the force by the inverse square of the distance
+    //         float epsilon = 0.01f;                       // Small value to prevent division by zero
+    //         distance      = std::max(distance, epsilon); // Avoid zero distance
+    //         float scale   = rep_strength / (distance * distance);
+
+    //         // Apply scaled gradient to compute force
+    //         force2.x = -scale * dx;
+    //         force2.y = -scale * dy;
+    //     }
+    // }
+
+
+    // std ::cout << "Force(for): " << force.x << " " << force.y << " Force2(disttransf.): " << force2.x << " " << force2.y << std::endl;
 
     return force;
 }

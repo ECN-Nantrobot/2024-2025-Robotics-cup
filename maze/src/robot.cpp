@@ -6,10 +6,8 @@
 namespace ecn
 {
 
-Robot::Robot(float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd)
-: x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
-{
-}
+Robot::Robot(const Maze& maze, float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd, float targetTheta)
+: maze_(maze), x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0), targetTheta_(targetTheta) {}
 
 float Robot::computePID(float targetAngle, float dt)
 {
@@ -41,7 +39,83 @@ void Robot::updatePosition(float dt)
         theta_ += 2 * M_PI;
 }
 
-void Robot::followPath(const std::vector<Point>& path, float dt)
+
+void Robot::turnToGoalOrientation(float dt)
+{
+    float angleError = targetTheta_ - theta_;
+
+    std :: cout << "angleError: " << angleError << std::endl;
+    std :: cout << "targetTheta_: " << targetTheta_ << std::endl;
+    std :: cout << "theta_: " << theta_ << std::endl;
+
+    // Normalize the angle to the range [-PI, PI]
+    while (angleError > M_PI)
+        angleError -= 2 * M_PI;
+    while (angleError < -M_PI)
+        angleError += 2 * M_PI;
+
+    if (std::abs(angleError) < 0.02) { // If aligned within ...
+        leftSpeed_  = 0;
+        rightSpeed_ = 0;
+        std::cout << "Robot aligned to target orientation!" << std::endl;
+    } else {
+        float turnSignal = computePID(targetTheta_, dt);
+
+        leftSpeed_  = -turnSignal ;
+        rightSpeed_ = turnSignal;
+    }
+
+    updatePosition(dt);
+}
+
+
+
+
+
+
+
+
+float calculateCurvature(const Point& p1, const Point& p2, const Point& p3)
+{
+    // Curvature formula: K = |(x2 - x1)(y3 - y2) - (y2 - y1)(x3 - x2)| / (d12 * d23 * d31)
+    float dx1 = p2.x - p1.x;
+    float dy1 = p2.y - p1.y;
+    float dx2 = p3.x - p2.x;
+    float dy2 = p3.y - p2.y;
+
+    float cross = std::abs(dx1 * dy2 - dy1 * dx2); // Area determinant
+    float d12   = std::hypot(dx1, dy1);
+    float d23   = std::hypot(dx2, dy2);
+    float d31   = std::hypot(p3.x - p1.x, p3.y - p1.y);
+
+    if (d12 * d23 * d31 == 0) // Prevent division by zero
+        return 0;
+
+    return cross / (d12 * d23 * d31);
+}
+
+float Robot::distanceToClosestObstacle(const Point& p, float searchRadius)
+{
+    // Iterate over a circular region to find the closest obstacle
+    float minDistance = searchRadius;
+    int resolution    = 10; // Number of samples around the robot
+
+    for (int i = 0; i < resolution; ++i) {
+        float angle     = 2 * M_PI * i / resolution;
+        Point testPoint = { p.x + searchRadius * std::cos(angle), p.y + searchRadius * std::sin(angle) };
+        float distance  = maze_.getDistanceToObstacle(testPoint); // Use Maze's method
+        if (distance < minDistance) {
+            minDistance = distance;
+        }
+    }
+
+    return minDistance;
+}
+
+
+
+
+void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float dt)
 {
     if (path.empty())
         return;
@@ -80,12 +154,118 @@ void Robot::followPath(const std::vector<Point>& path, float dt)
         float targetY     = path[targetIdx].y;
         float targetAngle = std::atan2(targetY - y_, targetX - x_);
 
+
+        // // Calculate target orientation
+        // float targetAngle = 0.0f;
+
+        // if (targetIdx < path.size() - 1) {
+        //     float targetX = path[targetIdx].x;
+        //     float targetY = path[targetIdx].y;
+        //     targetAngle   = std::atan2(targetY - y_, targetX - x_);
+        // } else {
+        //     // When near the goal, align to the specified target orientation
+        //     float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
+        //     if (distanceToGoal < 5.0) { // Start aligning to target orientation near the goal
+        //         targetAngle = targetTheta_;
+        //     }
+        // }
+
+
+        
+
         float controlSignal = computePID(targetAngle, dt);
 
-        // Adjust baseSpeed for smoother movement
-        leftSpeed_      = speed_ - controlSignal;
-        rightSpeed_     = speed_ + controlSignal;
+
+
+
+
+        // const float maxCurvatureThreshold = 0.04f; 
+
+        // bool shouldSlowDown = false;
+
+        // // Check curvature
+        // if (targetIdx > 0 && targetIdx < path.size() - 1) {
+        //     float curvature = calculateCurvature(path[targetIdx - 5], path[targetIdx], path[targetIdx + 5]);
+        //     // std::cout << "Curvature: " << curvature << std::endl;
+        //     if (curvature > maxCurvatureThreshold) {
+        //         shouldSlowDown = true;
+        //     }
+        // }
+
+
+        // const float safeDistanceThreshold = 1.0f;
+
+        // // Check obstacles in the forward direction
+        // float obstacleDistance = distanceToClosestObstacle(path[targetIdx], robot_diameter_ * 1.5);
+
+        // // Determine if the obstacle is in front of the robot
+        // if (obstacleDistance < safeDistanceThreshold) {
+        //     // // Calculate the angle to the obstacle
+        //     // float obstacleAngle = std::atan2(path[targetIdx].y - y_, path[targetIdx].x - x_);
+
+        //     // // Normalize angles to [-PI, PI]
+        //     // float angleDifference = obstacleAngle - theta_;
+        //     // while (angleDifference > M_PI)
+        //     //     angleDifference -= 2 * M_PI;
+        //     // while (angleDifference < -M_PI)
+        //     //     angleDifference += 2 * M_PI;
+
+        //     // // Check if the obstacle is within a forward cone (e.g., ±45°)
+        //     // const float forwardConeAngle = M_PI / 3.0; // 60 degrees
+        //     // if (std::abs(angleDifference) < forwardConeAngle) {
+        //         // shouldSlowDown = true;
+
+        //         // Adjust speed based on distance to obstacle
+        //         // speed_ = std::max(2.0f, maxSpeed_ * (obstacleDistance / safeDistanceThreshold));
+        //     // }
+        // }
+
+
+
+
+
+
+
+
+        // Calculate distance to the goal
+        float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
+
+        // Dynamically adjust speed based on distance to the goal
+        if (distanceToGoal < 15.0) { // Slow down when near the goal
+            speed_ = std::max(0.5f, distanceToGoal / 10.0f * maxSpeed_);
+        } else if (isStarting_) {  // Gradual start
+            speed_ += 0.1f;        // Increment speed gradually
+            if (speed_ >= maxSpeed_) {
+                speed_        = maxSpeed_;
+                isStarting_   = false; // End the gradual start phase
+            }
+        } else { // Normal speed
+            speed_ = maxSpeed_;
+        }
+
+
+        // if (shouldSlowDown) {
+        //     speed_ *= 0.4; 
+        // }
+
+        // Stop the robot completely if it's very close to the goal
+        if (distanceToGoal < 1.0) {
+            leftSpeed_  = 0;
+            rightSpeed_ = 0;
+        } else {
+            leftSpeed_  = speed_ - controlSignal;
+            rightSpeed_ = speed_ + controlSignal;
+        }
+
+        // float speedDifference      = std::abs(leftSpeed_ - rightSpeed_);
+        // float normalizedDifference = speedDifference / (2 * maxSpeed_); // Assuming maxSpeed_ is the max speed of each wheel
+        // leftSpeed_ *= (1.0f - normalizedDifference);                    // Reduce speed for sharp turns
+        // rightSpeed_ *= (1.0f - normalizedDifference);
+        // std::cout << "(1.0 - normalizedDifference): " << (1.0 - normalizedDifference) << std::endl;
     }
+
+
+    std::cout << "orientation " << theta_ << std::endl;
 
     // Store the target index for visualization
     targetIdx_ = targetIdx;

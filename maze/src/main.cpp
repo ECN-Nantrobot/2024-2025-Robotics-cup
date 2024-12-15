@@ -24,6 +24,10 @@ int main()
     filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
     Point::maze.load(filename_maze);
 
+    Point::maze.computeDistanceTransform(); // Precompute distance transform
+
+
+
     std::string filename_astar_path = Maze::mazeFile("gen_astar_path.txt");
     std::string filename_eb_path    = Maze::mazeFile("gen_eb_path.txt");
 
@@ -52,15 +56,17 @@ int main()
     float K_I = 0.01;
     float K_D = 0.5;
 
-    Robot robot(start.x, start.y, 0, 15, 7, K_P, K_I, K_D); // Initial position (x, y, theta), wheelbase 1.5, speed in cm/s, PID constants
+    Robot robot(Point::maze, start.x, start.y, 0, 15, 7, K_P, K_I, K_D, 60 * 2*M_PI/360); // Initial position (x, y, theta), wheelbase 1.5, speed in cm/s, PID constants
+    robot.setIsStarting(true);                              // Enable gradual start
+
 
     std ::cout << "Start Position: (" << start.x << ", " << start.y << ")" << std::endl;
     std ::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
 
-    std::vector<Obstacle> obstacles = { Obstacle(30, 100, 30, 25, Obstacle::MOVABLE, "green", 0, 8 * dt, 0), 
-    Obstacle(0, 0, 25, 15, Obstacle::MOVABLE, "green", 0, 8 * dt, 8 * dt),
-                                        Obstacle(299, 25, 25, 15, Obstacle::MOVABLE, "green", 0, -8 * dt, 2 * dt) };
+    std::vector<Obstacle> obstacles = { Obstacle(30, 100, 30, 25, Obstacle::MOVABLE, "lightgray", 0, 8 * dt, 0),
+                                        Obstacle(0, 0, 25, 15, Obstacle::MOVABLE, "lightgray", 0, 8 * dt, 8 * dt),
+                                        Obstacle(299, 25, 25, 15, Obstacle::MOVABLE, "lightgray", 0, -8 * dt, 2 * dt) };
 
 
     cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
@@ -74,26 +80,48 @@ int main()
     std::chrono::duration<double> elapsedSecondsEb;
     auto startTimeRealtime = std::chrono::steady_clock::now();
 
+    bool turntogoal = false;
 
     int t = 0;
     while (true) {
-        auto startTimeLoop = std::chrono::steady_clock::now();
-
+        auto endTimeRealtime = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsedSecondsRealtime = endTimeRealtime - startTimeRealtime;
         if (t % (int)(0.15 / dt) == 0) {
             std::cout << "Time: " << t * dt << std::endl;
         }
+        if (t % 20 == 0) {
+            std::cout << "RealTime: " << std::fixed << std::setprecision(3) << elapsedSecondsRealtime.count() << " s" << std::endl;
+        }
+        if (t == 0) {
+            startTimeRealtime = std::chrono::steady_clock::now();
+        }
+        auto startTimeLoop = std::chrono::steady_clock::now();
+
+        if (turntogoal) {
+            robot.turnToGoalOrientation(dt);
+            std ::cout << "Robot is turning to goal orientation" << std::endl;
+            cv::waitKey(0);
+            cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+            robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath()); // takes 1ms
+            cv::imshow(window_name, simulation);
+            continue;
+        }
+
 
         // every 1s
-        if (t % (int)(1 / dt) == 0) {
+        if (t % (int)(2 / dt) == 0) {
             start.x = robot.getX();
             start.y = robot.getY();
 
             double distance = sqrt(pow(start.x - goal.x, 2) + pow(start.y - goal.y, 2));
-            if (distance < 6.0) {
-                std::cout << "Robot is within the radius of the goal!\n" << std::endl;
-                break;
+            if (distance < 1.0) {
+                std::cout << "Robot has reached the goal!\n" << std::endl;
+                turntogoal = true;
+                // break;
             }
         }
+
+
 
         for (auto& obstacle : obstacles) {
             obstacle.update();
@@ -103,6 +131,8 @@ int main()
         // A*: At the start and every 3s but not when elastic band is being recalculated (0s, 3s, 9s, 15s, )
         if (t == 0 || t % (int)(1 / dt) == 0 || force_recalculate == true) { //&& t % (int)(2 / dt) != 0
             auto startTimeAstar = std::chrono::steady_clock::now();
+
+            Point::maze.computeDistanceTransform(); // Precompute distance transform
 
             cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
             start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
@@ -117,29 +147,28 @@ int main()
 
             // Check the difference in the A* path
             double path_difference = 0.0;
-            int limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
+            int limit              = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
             if (astar_path_previous.size() != 0) {
                 for (size_t i = 1 + (astar_path.size() - limit); i < astar_path.size(); ++i) {
                     double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
                     double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
                     path_difference += sqrt(dx * dx + dy * dy);
-                    // std ::cout << astar_path_previous[astar_path_previous.size() - i].x << " " << astar_path[astar_path.size() - i].x << std::endl;
-                    //  std::cout << "dx: " << dx << " dy: " << dy << " path_difference: " << path_difference << std::endl;
                 }
                 path_difference /= astar_path.size();
-                std ::cout << "Path difference %: " << path_difference << "  A* Path size: " << astar_path.size() << std::endl;
+                std ::cout << "A* Path size: " << astar_path.size() << " path diff. %: " << path_difference;
             }
             if (path_difference > 3.5 || astar_path_previous.size() == 0) {
                 astar_path_previous = astar_path;
                 elastic_band.updatePath(astar_path); // Update the existing elastic band with the new path
+                std::cout << "    -> A* Path Set" << std::endl;
                 counter_set_eb_path = 0;
+                elastic_band.resetOptimization();
             }
+            else {std ::cout << "" << std::endl;}
 
-
-            force_recalculate   = false;
-            elastic_band.resetOptimization();
-
-            auto endTimeAstar                                 = std::chrono::steady_clock::now();
+            force_recalculate = false;
+            
+            auto endTimeAstar   = std::chrono::steady_clock::now();
             elapsedSecondsAstar = endTimeAstar - startTimeAstar;
             std::cout << "A* completed in: " << (elapsedSecondsAstar.count() * 1000) << " ms" << std::endl;
         }
@@ -154,6 +183,7 @@ int main()
             auto startTimeEb = std::chrono::steady_clock::now();
 
             for (int i = 0; i < 2; i++) {
+                Point::maze.computeDistanceTransform(); // 0.5 ms
                 elastic_band.optimize(start, goal);
             }
 
@@ -163,11 +193,12 @@ int main()
                 elastic_band.resetOptimization();
             }
 
-            if (counter_set_eb_path >= 2) {
-                elastic_band.generateSmoothedPath(0.8f, 21, 1.2f);
+            if (counter_set_eb_path > 2) {
+                elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); //0.08 ms
+                std::cout << "Elastic Band Set" << std::endl;
             }
 
-            auto endTimeEb                                 = std::chrono::steady_clock::now();
+            auto endTimeEb   = std::chrono::steady_clock::now();
             elapsedSecondsEb = endTimeEb - startTimeEb;
             // std::cout << "Elastic Band completed in: " << (elapsedSecondsEb.count() * 1000) << " ms" << std::endl;
 
@@ -180,8 +211,10 @@ int main()
             // }
         }
 
+        // Point::maze.visualizeDistanceTransform();
 
-        robot.followPath(elastic_band.getSmoothedPath(), dt);
+
+        robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
 
         auto startTimeDraw = std::chrono::steady_clock::now();
 
@@ -196,7 +229,7 @@ int main()
         auto endTimeLoop                                 = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsedSecondsLoop = endTimeLoop - startTimeLoop;
         // std::cout << "Loop (without draw) completed in: " << (elapsedSecondsLoop.count() * 1000) << " ms = Astar: " << elapsedSecondsAstar.count() * 1000
-        //           << " + Eb: " << elapsedSecondsEb.count() * 1000 << std::endl;
+        //   << " + Eb: " << elapsedSecondsEb.count() * 1000 << std::endl;
 
         if (elapsedSecondsLoop.count() * 1000 < dt * 1000) {
             // std::cout << "waiting for: " << static_cast<int>(std::ceil(dt * 1000 - elapsedSeconds.count() * 1000)) << " ms" << std::endl;
@@ -206,11 +239,6 @@ int main()
             cv::waitKey(1);
         }
 
-        auto endTimeRealtime                                 = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsedSecondsRealtime = endTimeRealtime - startTimeRealtime;
-        if (t % 20 == 0) {
-            std::cout << "RealTime: " << std::fixed << std::setprecision(3) << elapsedSecondsRealtime.count() << " s" << std::endl;
-        }
 
         t++;
     }

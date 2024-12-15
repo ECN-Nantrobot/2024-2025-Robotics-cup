@@ -25,7 +25,7 @@ public:
 
     Maze();
     void load(std::string _filename);
-    void loadLowRes(std::string _filename);
+    // void loadLowRes(std::string _filename);
 
 
     bool isFree(float fx, float fy, bool lowres = false) const;
@@ -63,6 +63,9 @@ public:
 
     void renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale = 1);
 
+    void computeDistanceTransform();
+    float getDistanceToObstacle(const Point& p) const;
+    void visualizeDistanceTransform() const;
 
 
     cv::Mat im;
@@ -81,7 +84,12 @@ protected:
     std::vector<cv::Point> path_eb;
     std::vector<std::string> windows;
 
-    
+    cv::Mat distanceTransformMap; // Stores the distance transform
+    cv::Mat resizedDistanceTransform;
+    cv::Mat binaryMapLowres;
+    cv::Mat binaryMap;
+
+
     Point start_;
     Point goal_;
 

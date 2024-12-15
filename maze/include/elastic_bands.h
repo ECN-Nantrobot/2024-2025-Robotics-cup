@@ -77,8 +77,11 @@ public:
         resetOptimization(); // Setzt den Zustand zurück
     }
 
+    float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
-private:
+
+private: 
+    
     std::vector<Point> initial_path;
     std::vector<Point> path;
     std::vector<Point> smoothed_path;
@@ -89,7 +92,7 @@ private:
     float total_change         = 0;
 
     bool resizePath(float minDistance, float maxDistance);
-    float distanceToClosestObstacle(const Point& point, int search_radius) const;
+    // float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
     Point computeSpringForce(size_t idx, const float spr_weight, const int radius) const;
     Point computeRepulsiveForce(size_t idx, const float rep_strength) const;

@@ -100,9 +100,16 @@ private:
         else if (colorName == "black")
         {
             return cv::Scalar(0, 0, 0);
-        }
-        else
-        {
+
+        } else if (colorName == "lightgray") {
+
+            return cv::Scalar(98, 98, 98);
+
+        } else if (colorName == "darkgray") {
+
+            return cv::Scalar(40, 40, 40);
+
+        } else {
             throw std::invalid_argument("Unknown color: " + colorName);
         }
     }
