@@ -6,8 +6,8 @@
 namespace ecn
 {
 
-Robot::Robot(const Maze& maze, float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd, float targetTheta)
-: maze_(maze), x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0), targetTheta_(targetTheta) {}
+Robot::Robot(const Maze& maze, float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd)
+: maze_(maze), x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0) {}
 
 float Robot::computePID(float targetAngle, float dt)
 {
@@ -21,7 +21,17 @@ float Robot::computePID(float targetAngle, float dt)
     float derivative = (error - prevError_) / dt;
     prevError_       = error;
 
-    return kp_ * error + ki_ * integral_ + kd_ * derivative;
+    // Calculate PID output
+    float output = kp_ * error + ki_ * integral_ + kd_ * derivative;
+
+    // Clamp the output to a maximum turning rate
+    const float maxTurnRate = 8.0; // Limit turning rate
+    if (output > maxTurnRate)
+        output = maxTurnRate;
+    else if (output < -maxTurnRate)
+        output = -maxTurnRate;
+
+    return output;
 }
 
 void Robot::updatePosition(float dt)
@@ -40,13 +50,9 @@ void Robot::updatePosition(float dt)
 }
 
 
-void Robot::turnToGoalOrientation(float dt)
+bool Robot::turnToGoalOrientation(float dt)
 {
     float angleError = targetTheta_ - theta_;
-
-    std :: cout << "angleError: " << angleError << std::endl;
-    std :: cout << "targetTheta_: " << targetTheta_ << std::endl;
-    std :: cout << "theta_: " << theta_ << std::endl;
 
     // Normalize the angle to the range [-PI, PI]
     while (angleError > M_PI)
@@ -54,10 +60,10 @@ void Robot::turnToGoalOrientation(float dt)
     while (angleError < -M_PI)
         angleError += 2 * M_PI;
 
-    if (std::abs(angleError) < 0.02) { // If aligned within ...
+    if (std::abs(angleError) < 0.02) {
         leftSpeed_  = 0;
         rightSpeed_ = 0;
-        std::cout << "Robot aligned to target orientation!" << std::endl;
+        return true;
     } else {
         float turnSignal = computePID(targetTheta_, dt);
 
@@ -66,53 +72,47 @@ void Robot::turnToGoalOrientation(float dt)
     }
 
     updatePosition(dt);
+
+    return false;
 }
 
 
+// float calculateCurvature(const Point& p1, const Point& p2, const Point& p3)
+// {
+//     // Curvature formula: K = |(x2 - x1)(y3 - y2) - (y2 - y1)(x3 - x2)| / (d12 * d23 * d31)
+//     float dx1 = p2.x - p1.x;
+//     float dy1 = p2.y - p1.y;
+//     float dx2 = p3.x - p2.x;
+//     float dy2 = p3.y - p2.y;
 
+//     float cross = std::abs(dx1 * dy2 - dy1 * dx2); // Area determinant
+//     float d12   = std::hypot(dx1, dy1);
+//     float d23   = std::hypot(dx2, dy2);
+//     float d31   = std::hypot(p3.x - p1.x, p3.y - p1.y);
 
+//     if (d12 * d23 * d31 == 0) // Prevent division by zero
+//         return 0;
 
+//     return cross / (d12 * d23 * d31);
+// }
 
+// float Robot::distanceToClosestObstacle(const Point& p, float searchRadius)
+// {
+//     // Iterate over a circular region to find the closest obstacle
+//     float minDistance = searchRadius;
+//     int resolution    = 10; // Number of samples around the robot
 
+//     for (int i = 0; i < resolution; ++i) {
+//         float angle     = 2 * M_PI * i / resolution;
+//         Point testPoint = { p.x + searchRadius * std::cos(angle), p.y + searchRadius * std::sin(angle) };
+//         float distance  = maze_.getDistanceToObstacle(testPoint); // Use Maze's method
+//         if (distance < minDistance) {
+//             minDistance = distance;
+//         }
+//     }
 
-float calculateCurvature(const Point& p1, const Point& p2, const Point& p3)
-{
-    // Curvature formula: K = |(x2 - x1)(y3 - y2) - (y2 - y1)(x3 - x2)| / (d12 * d23 * d31)
-    float dx1 = p2.x - p1.x;
-    float dy1 = p2.y - p1.y;
-    float dx2 = p3.x - p2.x;
-    float dy2 = p3.y - p2.y;
-
-    float cross = std::abs(dx1 * dy2 - dy1 * dx2); // Area determinant
-    float d12   = std::hypot(dx1, dy1);
-    float d23   = std::hypot(dx2, dy2);
-    float d31   = std::hypot(p3.x - p1.x, p3.y - p1.y);
-
-    if (d12 * d23 * d31 == 0) // Prevent division by zero
-        return 0;
-
-    return cross / (d12 * d23 * d31);
-}
-
-float Robot::distanceToClosestObstacle(const Point& p, float searchRadius)
-{
-    // Iterate over a circular region to find the closest obstacle
-    float minDistance = searchRadius;
-    int resolution    = 10; // Number of samples around the robot
-
-    for (int i = 0; i < resolution; ++i) {
-        float angle     = 2 * M_PI * i / resolution;
-        Point testPoint = { p.x + searchRadius * std::cos(angle), p.y + searchRadius * std::sin(angle) };
-        float distance  = maze_.getDistanceToObstacle(testPoint); // Use Maze's method
-        if (distance < minDistance) {
-            minDistance = distance;
-        }
-    }
-
-    return minDistance;
-}
-
-
+//     return minDistance;
+// }
 
 
 void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float dt)
@@ -154,28 +154,7 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
         float targetY     = path[targetIdx].y;
         float targetAngle = std::atan2(targetY - y_, targetX - x_);
 
-
-        // // Calculate target orientation
-        // float targetAngle = 0.0f;
-
-        // if (targetIdx < path.size() - 1) {
-        //     float targetX = path[targetIdx].x;
-        //     float targetY = path[targetIdx].y;
-        //     targetAngle   = std::atan2(targetY - y_, targetX - x_);
-        // } else {
-        //     // When near the goal, align to the specified target orientation
-        //     float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
-        //     if (distanceToGoal < 5.0) { // Start aligning to target orientation near the goal
-        //         targetAngle = targetTheta_;
-        //     }
-        // }
-
-
-        
-
         float controlSignal = computePID(targetAngle, dt);
-
-
 
 
 
@@ -222,19 +201,14 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
 
 
 
-
-
-
-
-
-        // Calculate distance to the goal
         float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
 
         // Dynamically adjust speed based on distance to the goal
         if (distanceToGoal < 15.0) { // Slow down when near the goal
             speed_ = std::max(0.5f, distanceToGoal / 10.0f * maxSpeed_);
+
         } else if (isStarting_) {  // Gradual start
-            speed_ += 0.1f;        // Increment speed gradually
+            speed_ += 0.2f;        // Increment speed gradually
             if (speed_ >= maxSpeed_) {
                 speed_        = maxSpeed_;
                 isStarting_   = false; // End the gradual start phase
@@ -264,9 +238,6 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
         // std::cout << "(1.0 - normalizedDifference): " << (1.0 - normalizedDifference) << std::endl;
     }
 
-
-    std::cout << "orientation " << theta_ << std::endl;
-
     // Store the target index for visualization
     targetIdx_ = targetIdx;
 
@@ -275,8 +246,9 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
 }
 
 
-void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path) const
+void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path, const std::vector<Point>& goals) const
 {
+    // Draw the path
     for (size_t i = 0; i < path.size(); ++i) {
         cv::Scalar color = (i == targetIdx_) ? cv::Scalar(0, 0, 255) // Red for the target point
                                                :
@@ -355,6 +327,21 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, cons
     cv::Point line2End(center.x - crossSize * std::cos(theta_ + M_PI_2), center.y - crossSize * std::sin(theta_ + M_PI_2));
     cv::line(image, line1Start, line1End, cv::Scalar(0, 0, 0), 2);
     cv::line(image, line2Start, line2End, cv::Scalar(0, 0, 0), 2);
+
+
+    // Draw all goal points with a circle and the number of the goal
+    for (size_t i = 0; i < goals.size(); ++i) {
+        cv::Point goalPoint(static_cast<int>(goals[i].x * scale), static_cast<int>(goals[i].y * scale));
+        cv::circle(image, goalPoint, 2 * scale, cv::Scalar(0, 0, 180), 0.4 * scale);
+
+        // Calculate the size of the text to center it
+        std::string text  = std::to_string(i);
+        int baseline      = 0;
+        cv::Size textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.07 * scale, 0.3 * scale, &baseline);
+        cv::Point textOrg(goalPoint.x - textSize.width / 2 - 2, goalPoint.y + textSize.height / 2 + 2); // Added bias to the left and down
+
+        cv::putText(image, text, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.1 * scale, cv::Scalar(0, 0, 0), 0.4 * scale);
+    }
 }
 
 

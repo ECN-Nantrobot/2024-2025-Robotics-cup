@@ -229,7 +229,8 @@ void Maze::display(const std::string& name, const std::string& type)
     if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
         windows.push_back(name);
         cv::namedWindow(name, cv::WINDOW_NORMAL);
-        cv::resizeWindow(name, 1000, (1000 * imageToShow.rows) / imageToShow.cols);
+        cv::resizeWindow(name, 500, (500 * imageToShow.rows) / imageToShow.cols);
+        cv::moveWindow(name, 1, 1150);
     }
     cv::imshow(name, imageToShow);
 }
