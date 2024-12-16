@@ -41,7 +41,7 @@ void Maze::load(std::string _filename)
             cv::Vec3b pixel_color = im.at<cv::Vec3b>(y, x);
             if (pixel_color[0] == pixel_color[1] && pixel_color[1] == pixel_color[2]) // if the color is gray and darker than 120
             {
-                if (pixel_color[0] < permanent_obstacle_treshold)
+                if (pixel_color[0] < obstacle_treshold)
                     obstacle_mask.at<uchar>(y, x) = 255; // Mark obstacle in the mask
             }
         }
@@ -148,7 +148,7 @@ void Maze::computeDistanceTransform()
 {
     cv::Mat binaryMap;
     cv::cvtColor(im, binaryMap, cv::COLOR_BGR2GRAY); // Convert to grayscale
-    cv::threshold(binaryMap, binaryMap, permanent_obstacle_treshold, 255, cv::THRESH_BINARY_INV);
+    cv::threshold(binaryMap, binaryMap, obstacle_treshold, 255, cv::THRESH_BINARY_INV);
     cv::bitwise_not(binaryMap, binaryMap); // Inverts binaryMap so it is: free = white, obstacle = black
 
     cv::distanceTransform(binaryMap, distanceTransformMap, cv::DIST_L2, 3);
@@ -205,9 +205,9 @@ bool Maze::isFree(float fx, float fy, bool lowres) const
 
     cv::Vec3b color = selected_im.at<cv::Vec3b>(y, x);
 
-    if (color[0] == color[1] && color[1] == color[2]   && color[0] < permanent_obstacle_treshold) // if the color is gray and darker than 120
+    if (color[0] == color[1] && color[1] == color[2] && color[0] < obstacle_treshold) // if the color is gray and darker than 120
     {
-            return false;
+        return false;
     }
     // else if (color[0] < 100 && color[1] > 0 && color[2] < 100) // if the color is green intensity higher than
     // {
@@ -217,8 +217,26 @@ bool Maze::isFree(float fx, float fy, bool lowres) const
     return true;
 }
 
-
 bool Maze::isFree(const Point& p, bool lowres) const { return isFree(p.x, p.y); }
+
+
+bool Maze::isFreeNotPermanent(float fx, float fy) const
+{
+    int x = static_cast<int>(std::round(fx));
+    int y = static_cast<int>(std::round(fy));
+
+    cv::Vec3b color = im.at<cv::Vec3b>(y, x);
+
+    if (color[0] == color[1] && color[1] == color[2] && color[0] > permanent_obstacle_treshold && color[0] < obstacle_treshold)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool Maze::isFreeNotPermanent(const Point& p) const {return isFreeNotPermanent(p.x, p.y);}
+
 
 void Maze::passThrough(int x, int y) { path.push_back(cv::Point(x, y)); }
 

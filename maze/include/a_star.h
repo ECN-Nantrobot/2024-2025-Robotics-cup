@@ -165,7 +165,7 @@ public:
 // templated version of A* algorithm
 template <class Node> std::vector<Node> Astar(Node start, Node goal)
 {
-    bool show = true; // if we should display during A*
+    bool show = false; // if we should display during A*
 
     auto t0 = std::chrono::system_clock::now();
 

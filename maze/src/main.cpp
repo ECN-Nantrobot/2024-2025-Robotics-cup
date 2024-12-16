@@ -17,7 +17,7 @@ using namespace std;
 using namespace ecn;
 
 
-enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, GOAL_REACHED };
+enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
 
 
 int main()
@@ -35,16 +35,17 @@ int main()
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
-    std::vector<Point> goals = { Point(70, 70), Point(130, 125), Point(200, 150), Point(140, 60) }; // Example goal points
+    std::vector<Point> goals = { Point(106, 160), Point(50, 15), Point(80, 150), Point(225, 80) }; // Example goal points
     int current_goal_index   = 1;                                                                   // Keep track of which goal the robot is targeting
     start                    = goals[0];
-    std::vector<double> target_thetas(goals.size(), -M_PI / 2); // Initialize target thetas
+    std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
+    target_thetas = { -90, 0, 90, 0};
 
     int counter_set_eb_path = 0;
 
     Robot robot(Point::maze, start.x, start.y, 0, 15, 7, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);                                           // Enable gradual start
-    robot.setPose(goals[0].x, goals[0].y, 0);
+    robot.setPose(goals[0].x, goals[0].y, target_thetas[0]);
     robot.setTargetTheta(target_thetas[0]);
 
 
@@ -58,16 +59,22 @@ int main()
 
     bool recompute_astar   = false;
     float distance_to_goal = robot.distanceToGoal(goal);
+    int set_eb_path_counter_limit_default = 1;
+    int set_eb_path_counter_limit         = set_eb_path_counter_limit_default;
+    int eb_comp_inarow_default = 1;
+    int eb_comp_inarow         = eb_comp_inarow_default;
 
-    std::vector<Obstacle> obstacles = { Obstacle(30, 100, 30, 25, Obstacle::MOVABLE, "lightgray", 0, 8 * dt, 0),
-                                        Obstacle(0, 0, 25, 15, Obstacle::MOVABLE, "lightgray", 0, 8 * dt, 8 * dt),
-                                        Obstacle(299, 25, 25, 15, Obstacle::MOVABLE, "lightgray", 0, -8 * dt, 2 * dt) };
+    std::vector<Obstacle> obstacles = { Obstacle(30, 100, 35, 25, Obstacle::MOVABLE, "lightgray", 0, 5 * dt, 0),
+                                        Obstacle(0, 20, 30, 15, Obstacle::MOVABLE, "lightgray", 0, 3 * dt, 1 * dt),
+                                        Obstacle(299, 25, 30, 15, Obstacle::MOVABLE, "lightgray", 0, -3 * dt, 2 * dt),
+                                        Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt) };
 
 
     const int scale       = 20; // size up visualization for better quality
-    const int display_res = 1150;
+    const int display_res = 1300;
     cv::Mat simulation;
     cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+    cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); //to support transparency
     std::string window_name = ("Robot Simulation");
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
     cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
@@ -118,8 +125,20 @@ int main()
             elastic_band.runFullOptimization(start, goal);
             std::cout << "Elastic Band Path completed full optimization, -> Path Set" << std::endl;
 
-            state = NAVIGATION;
+            state = TURN_TO_PATH;
             [[fallthrough]];
+
+
+        case TURN_TO_PATH:
+            std::cout << "State: TURN_TO_PATH" << std::endl;
+
+            if (robot.turnToPathOrientation(dt, elastic_band.getSmoothedPath())) {
+                std::cout << "Robot is aligned to path orientation!" << std::endl;
+                robot.setIsStarting(true);
+                state = NAVIGATION;
+            }
+
+            break;
 
 
         case PATH_PLANNING:
@@ -153,7 +172,16 @@ int main()
                 path_difference /= astar_path.size();
                 std ::cout << "A* Path size: " << astar_path.size() << " path diff. %: " << path_difference;
             }
-            if (path_difference > 3.5 || astar_path_previous.size() == 0) {
+            if (path_difference >= 3.1) {
+                astar_path_previous = astar_path;
+                elastic_band.updatePath(astar_path);
+                std::cout << "    -> A* Path Set, eb directly" << std::endl;
+                elastic_band.resetOptimization();
+                counter_set_eb_path = 0;
+                set_eb_path_counter_limit = 0;
+                eb_comp_inarow            = 1;
+                elastic_band.setMaxInterations(6);
+            } else if (path_difference > 2.6 && path_difference < 3 || astar_path_previous.size() == 0) {
                 astar_path_previous = astar_path;
                 elastic_band.updatePath(astar_path);
                 std::cout << "    -> A* Path Set" << std::endl;
@@ -177,24 +205,33 @@ int main()
 
             elasticStartTime = std::chrono::steady_clock::now();
 
-            for (int i = 0; i < 2; i++) {
+        
+            for (int i = 0; i < eb_comp_inarow; i++) {
                 Point::maze.computeDistanceTransform();
                 elastic_band.optimize(start, goal);
             }
 
-            if (elastic_band.isOptimizationComplete()) {
-                std::cout << "Elastic Band optimization completed";
-                counter_set_eb_path++;
-                elastic_band.resetOptimization();
+                if (elastic_band.isOptimizationComplete()) {
+                    std::cout << "Elastic Band optimization completed";
+                    counter_set_eb_path++;
+                    elastic_band.resetOptimization();
 
-                if (counter_set_eb_path > 2) {
-                    elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
-                    std::cout << "  -> Path Set" << std::endl;
+                    if (counter_set_eb_path > set_eb_path_counter_limit) {
+                        // std ::cout << "counter_set_eb_path > set_eb_path_counter_limit: " << counter_set_eb_path << " > " << set_eb_path_counter_limit << std::endl;
+                        elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
+                        std::cout << "  -> Path Set" << std::endl;
+
+                        // counter++;
+                        // if(counter >= 2){
+                        set_eb_path_counter_limit = set_eb_path_counter_limit_default;
+                        eb_comp_inarow            = eb_comp_inarow_default;
+                    // }
+                    
                 } else {
                     std::cout << "" << std::endl;
                 }
             }
-
+            
             elasticEndTime  = std::chrono::steady_clock::now();
             elasticDuration = elasticEndTime - elasticStartTime;
             // std::cout << "Elastic Band optimization completed in: " << std::fixed << std::setprecision(3) << elasticDuration.count() * 1000 << " ms" << std::endl;
@@ -208,13 +245,16 @@ int main()
             if (distance_to_goal < 5.0) {
                 std::cout << "Distance to goal: " << distance_to_goal << std::endl;
 
-                if (distance_to_goal < 1.0) {
+                if (distance_to_goal < 0.5) {
                     std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
                     state = TURN_TO_GOAL;
                 }
 
-            } else if (t % static_cast<int>(1 / dt)){
+            } else if (t % static_cast<int>(1 / dt) == 0){
                 state = PATH_PLANNING;
+            }
+            else{
+                state = NAVIGATION;
             }
 
             break;
@@ -247,25 +287,29 @@ int main()
 
 
         cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-        robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals); // takes 1ms
+        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
+        robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath()); // takes 1ms
         cv::imshow(window_name, simulation);
+        if (cv::waitKey(1) >= 0) { //play/pause with aney key
+            cv::waitKey(0);
+        }
 
         loopEndTime  = std::chrono::steady_clock::now();
         loopDuration = loopEndTime - loopStartTime;
         if (loopDuration.count() * 1000 > dt * 1000) {
-            std::cout << "WARNING: Loop took longer than dt!!!!!!!!!! Time taken: " << loopDuration.count() * 1000 << " ms, Expected: " << dt * 1000 << " ms" << std::endl;
+            // std::cout << "WARNING: Loop took longer than dt!!!!!!!!!! Time taken: " << loopDuration.count() * 1000 << " ms, Expected: " << dt * 1000 << " ms" << std::endl;
             cv::waitKey(1);
 
         } else {
-            std::cout << "Loop running in real-time. Time taken: " << loopDuration.count() * 1000 << " ms" << std::endl;
+            // std::cout << "Loop running in real-time. Time taken: " << loopDuration.count() * 1000 << " ms" << std::endl;
             cv::waitKey(static_cast<int>(std::ceil(dt * 1000 - loopDuration.count() * 1000)));
         }
 
         t++;
-        std::cout << "Simulation time: " << std::fixed << std::setprecision(3) << t * dt << " s" << std::endl;
+        // std::cout << "Simulation time: " << std::fixed << std::setprecision(3) << t * dt << " s" << std::endl;
         realEndTime  = std::chrono::steady_clock::now();
         realDuration = realEndTime - realStartTime;
-        std::cout << "Real Time:       " << std::fixed << std::setprecision(3) << realDuration.count() << " s" << std::endl;
+        // std::cout << "Real Time:       " << std::fixed << std::setprecision(3) << realDuration.count() << " s" << std::endl;
     }
 
     return 0;

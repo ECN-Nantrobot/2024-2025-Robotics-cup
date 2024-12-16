@@ -18,8 +18,7 @@ public:
     {
         // Convert the Position path to a Point path
         path.resize(initialPath.size());
-        for (size_t i = 0; i < initialPath.size(); ++i)
-        {
+        for (size_t i = 0; i < initialPath.size(); ++i) {
             path[i] = Point(initialPath[i].x, initialPath[i].y);
         }
         initial_path = path;
@@ -51,13 +50,20 @@ public:
         // showPath(200);
     }
 
+    std::vector<Point> getPath() { return path; }
 
     void resetOptimization()
     {
         current_iteration     = 0;
         optimization_complete = false;
         total_change          = 0;
+        max_interations_      = 20;
     }
+
+    void setMaxInterations(int max_interations) { max_interations_ = max_interations; }
+
+    int getMaxInterations() { return max_interations_; }
+
 
     bool isOptimizationComplete() const { return optimization_complete; }
 
@@ -80,8 +86,7 @@ public:
     float distanceToClosestObstacle(const Point& point, int search_radius) const;
 
 
-private: 
-    
+private:
     std::vector<Point> initial_path;
     std::vector<Point> path;
     std::vector<Point> smoothed_path;
@@ -90,6 +95,8 @@ private:
     int current_iteration      = 0;
     bool optimization_complete = false;
     float total_change         = 0;
+
+    int max_interations_ = 0;
 
     bool resizePath(float minDistance, float maxDistance);
     // float distanceToClosestObstacle(const Point& point, int search_radius) const;

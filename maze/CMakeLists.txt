@@ -34,11 +34,6 @@ add_library(maze SHARED
         src/robot.cpp)
 target_link_libraries(maze ${OpenCV_LIBS})
 
-
-# Generator-Executable
-add_executable(generator src/maze_generation.cpp)
-target_link_libraries(generator maze)
-
 # main-Executable
 add_executable(solve src/main.cpp)
 target_link_libraries(solve maze)

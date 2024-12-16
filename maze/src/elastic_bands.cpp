@@ -102,7 +102,6 @@ void ElasticBand::generateSmoothedPath(float maxGap, int windowSize, float sigma
 void ElasticBand::showPath(int pause_inbetween) const
 {
     const int scale     = 15; // Scale factor: Each grid cell becomes ...x... pixels
-    const int grid_size = 1;  // Grid line thickness
 
     // Create a higher-resolution blank image
     cv::Mat visualization;
@@ -110,7 +109,7 @@ void ElasticBand::showPath(int pause_inbetween) const
 
     // Draw the points
     for (const auto& point : path) {
-        cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale - grid_size, (point.y + 1) * scale - grid_size), point.colour, cv::FILLED);
+        cv::rectangle(visualization, cv::Point(point.x * scale, point.y * scale), cv::Point((point.x + 1) * scale, (point.y + 1) * scale), point.colour, cv::FILLED);
     }
 
     // Draw the first point bigger
@@ -235,7 +234,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     static int show_time = 0;
 
     const float alpha                  = 0.082; // Step size (scaling of the total force)
-    const int max_iterations           = 20;
+    const int max_iterations           = max_interations_;
     const float total_change_threshold = 0.0003; //(total distanc of movement of points)
     float total_change                 = 0;
 

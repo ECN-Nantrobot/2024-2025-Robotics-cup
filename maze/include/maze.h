@@ -30,6 +30,9 @@ public:
 
     bool isFree(float fx, float fy, bool lowres = false) const;
     bool isFree(const Point& p, bool lowres = false) const;
+    bool isFreeNotPermanent(float fx, float fy) const;
+    bool isFreeNotPermanent(const Point& p) const;
+
 
     inline int height() const
     {
@@ -93,7 +96,8 @@ protected:
     Point start_;
     Point goal_;
 
-    const int permanent_obstacle_treshold = 120;
+    const int permanent_obstacle_treshold = 50;
+    const int obstacle_treshold = 120;
 };
 
 } // namespace ecn
