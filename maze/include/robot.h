@@ -5,6 +5,7 @@
 #include "maze.h"
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include "position.h"
 
 namespace ecn
 {
@@ -21,7 +22,13 @@ public:
     // Update the robot's position using PID control
     void followPath(const std::vector<Point>& path, const Maze& maze, float dt);
 
-    void draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path, const std::vector<Point>& goals, const std::vector<Point>& eb_path) const;
+    void draw(cv::Mat& image,
+              const std::vector<Point>& path,
+              int scale,
+              const std::vector<Point>& astar_path,
+              const std::vector<Point>& goals,
+              const std::vector<Point>& eb_path,
+              const std::vector<Position>& astar_path_new) const;
 
     // Update the robot's position based on wheel speeds
     void updatePosition(float dt);

@@ -363,8 +363,17 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
 }
 
 
-void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, const std::vector<Point>& astar_path, const std::vector<Point>& goals, const std::vector<Point>& eb_path) const
+void Robot::draw(cv::Mat& image,
+                 const std::vector<Point>& path,
+                 int scale,
+                 const std::vector<Point>& astar_path,
+                 const std::vector<Point>& goals,
+                 const std::vector<Point>& eb_path,
+                 const std::vector<Position>& astar_path_new) const
 {
+
+    cv::Point center(static_cast<int>(x_ * scale), static_cast<int>(y_ * scale));
+
     // Create a transparent overlay
     cv::Mat overlay = image.clone();
 
@@ -382,12 +391,70 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, cons
                    scale / 5); // Thickness proportional to scale
     }
 
+
+    // A* paths:
+    const int lineThickness      = 8;
+    const int circleThickness    = lineThickness + 2;
+    const int rectangleThickness = lineThickness + 2;
+
+    auto drawLine  = [&](const cv::Point& p1, const cv::Point& p2, const cv::Vec4b& color) { cv::line(overlay, p1, p2, color, lineThickness); };
+    auto drawPoint = [&](const cv::Point& p, const cv::Vec4b& color) { cv::circle(overlay, p, circleThickness / 2, color, cv::FILLED); };
+
+
+    // draw A* path new
+    std::vector<Point> astar_path_new_conv;
+    astar_path_new_conv.resize(astar_path_new.size());
+    for (size_t i = 0; i < astar_path_new.size(); ++i) {
+        astar_path_new_conv[i] = Point(astar_path_new[i].x, astar_path_new[i].y);
+    }
+
+    cv::Vec4b colour_astar_new(20, 20, 20, 255);
+    cv::Vec4b colour_astar_points_new(0, 0, 0, 255);
+
+    for (size_t i = 0; i < astar_path_new_conv.size() - 1; ++i) {
+        cv::Point p1(std::round(astar_path_new_conv[i].x * scale), std::round(astar_path_new_conv[i].y * scale));
+        cv::Point p2(std::round(astar_path_new_conv[i + 1].x * scale), std::round(astar_path_new_conv[i + 1].y * scale));
+        drawLine(p1, p2, colour_astar_new);
+        drawPoint(p1, colour_astar_points_new);
+    }
+
+
+    // draw A* path
+    cv::Vec4b colour_astar(255, 0, 0, 255);
+    cv::Vec4b colour_astar_points(0, 0, 0, 255);
+
+    for (size_t i = 0; i < astar_path.size() - 1; ++i) {
+        cv::Point p1(std::round(astar_path[i].x * scale), std::round(astar_path[i].y * scale));
+        cv::Point p2(std::round(astar_path[i + 1].x * scale), std::round(astar_path[i + 1].y * scale));
+        drawLine(p1, p2, colour_astar);
+        drawPoint(p1, colour_astar_points);
+    }
+
+
+    // Draw forward cone points using stored data
+    for (const auto& point : forwardConePoints_) {
+        cv::Point testPointScaled(static_cast<int>(point.position.x * scale), static_cast<int>(point.position.y * scale));
+        cv::Scalar color = point.isFree ? cv::Scalar(240, 240, 240) : cv::Scalar(0, 0, 255); // White for free, Red for blocked
+        cv::circle(overlay, testPointScaled, 0.3 * scale, color, -1);
+    }
+
+    // Draw cone boundaries
+    float coneangle_rad = 40 * M_PI / 180.0f;
+    float searchRadius  = robot_diameter_ * 2;
+    cv::Point leftConeEdge(static_cast<int>(std::round((x_ + (sensor_zero_offset_ + searchRadius) * std::cos(theta_ - coneangle_rad / 2)) * scale)),
+                           static_cast<int>(std::round((y_ + (sensor_zero_offset_ + searchRadius) * std::sin(theta_ - coneangle_rad / 2)) * scale)));
+    cv::Point rightConeEdge(static_cast<int>(std::round((x_ + (sensor_zero_offset_ + searchRadius) * std::cos(theta_ + coneangle_rad / 2)) * scale)),
+                            static_cast<int>(std::round((y_ + (sensor_zero_offset_ + searchRadius) * std::sin(theta_ + coneangle_rad / 2)) * scale)));
+
+    cv::line(overlay, center, leftConeEdge, cv::Scalar(180, 240, 0), 0.09 * scale);
+    cv::line(overlay, center, rightConeEdge, cv::Scalar(180, 240, 0), 0.09 * scale);
+
     // Blend the overlay with the simulation
-    float alpha_blend = 0.14; // (0.0 = fully transparent, 1.0 = fully opaque)
+    float alpha_blend = 0.18; // (0.0 = fully transparent, 1.0 = fully opaque)
     cv::addWeighted(overlay, alpha_blend, image, 1.0 - alpha_blend, 0.0, image);
 
 
-    // Draw all goal points with a circle and the number of the goal
+    // Draw all Goal points with a circle and the number of the goal
     for (size_t i = 0; i < goals.size(); ++i) {
         cv::Point goalPoint(static_cast<int>(goals[i].x * scale), static_cast<int>(goals[i].y * scale));
         cv::circle(image, goalPoint, 2 * scale, cv::Scalar(0, 0, 180), 0.4 * scale);
@@ -401,22 +468,7 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, cons
         cv::putText(image, text, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.1 * scale, cv::Scalar(0, 0, 0), 0.4 * scale);
     }
 
-    // draw A* path
-    cv::Vec3b colour_astar(255, 50, 50);
-    cv::Vec3b colour_astar_points(80, 0, 0);
-    const int lineThickness      = 8;
-    const int circleThickness    = lineThickness + 2;
-    const int rectangleThickness = lineThickness + 2;
-
-    auto drawLine  = [&](const cv::Point& p1, const cv::Point& p2, const cv::Vec3b& color) { cv::line(image, p1, p2, color, lineThickness); };
-    auto drawPoint = [&](const cv::Point& p, const cv::Vec3b& color) { cv::circle(image, p, circleThickness / 2, color, cv::FILLED); };
-
-    for (size_t i = 0; i < astar_path.size() - 1; ++i) {
-        cv::Point p1(std::round(astar_path[i].x * scale), std::round(astar_path[i].y * scale));
-        cv::Point p2(std::round(astar_path[i + 1].x * scale), std::round(astar_path[i + 1].y * scale));
-        drawLine(p1, p2, colour_astar);
-        drawPoint(p1, colour_astar_points);
-    }
+    
 
 
     // Draw the smoothed Elastic Band path
@@ -445,7 +497,6 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, cons
     };
 
     // Draw the robot body
-    cv::Point center(static_cast<int>(x_ * scale), static_cast<int>(y_ * scale));
     cv::circle(image, center, robotRadius, cv::Scalar(100, 100, 100), 1 * scale);
 
     // Draw the left wheel
@@ -482,65 +533,6 @@ void Robot::draw(cv::Mat& image, const std::vector<Point>& path, int scale, cons
 
 
 
-    // float coneangle_rad = 40 * M_PI / 180.0f;
-    // int resolution      = 40 / 10; // Number of rays for sampling
-
-    // float theta_temp = theta_;
-
-    // int searchRadius = robot_diameter_ * 2;
-    // Point closestPoint; // To store the closest obstacle point
-    // float minDistance     = searchRadius;
-    // int resolution_radial = 10; // Number of radial rays
-
-    // for (int i = 0; i <= resolution; ++i) {
-    //     // Compute the angle for this ray within the cone
-    //     float angle = theta_ - (coneangle_rad / 2) + (coneangle_rad * (static_cast<float>(i) / resolution));
-
-    //     // Compute the test point in the forward direction
-    //     for (int j = 0; j <= resolution_radial; ++j) {
-    //         float radialDistance = robot_diameter_ / 2 + searchRadius * (static_cast<float>(j) / resolution_radial);
-    //         Point testPoint      = { x_ + radialDistance * std::cos(angle), y_ + radialDistance * std::sin(angle) };
-
-    //         cv::Point testPointScaled(static_cast<int>(testPoint.x * scale), static_cast<int>(testPoint.y * scale));
-    //         cv::circle(image, testPointScaled, 5, cv::Scalar(255, 255, 255), -1); // Red for the closest obstacle
-
-    //         if (!maze_.isFree(testPoint)) {
-    //             minDistance = std::min(minDistance, radialDistance - robot_diameter_ / 2);
-    //             cv::circle(image, testPointScaled, 5, cv::Scalar(0, 0, 255), -1); // Red for the closest obstacle
-    //             if (minDistance < robot_diameter_ * 2) {
-    //                 cv::circle(image, testPointScaled, 5, cv::Scalar(0, 255, 0), -1); // Red for the closest obstacle
-    //             }
-    //         }
-    //     }
-    // }
-
-    // // draw the forward cone boundary
-    // cv::Point leftConeEdge(static_cast<int>((x_ + searchRadius * std::cos(theta_ - coneangle_rad / 2)) * scale),
-    //                        static_cast<int>((y_ + searchRadius * std::sin(theta_ - coneangle_rad / 2)) * scale));
-    // cv::Point rightConeEdge(static_cast<int>((x_ + searchRadius * std::cos(theta_ + coneangle_rad / 2)) * scale),
-    //                         static_cast<int>((y_ + searchRadius * std::sin(theta_ + coneangle_rad / 2)) * scale));
-
-    // cv::line(image, center, leftConeEdge, cv::Scalar(0, 255, 0), 1.5); 
-    // cv::line(image, center, rightConeEdge, cv::Scalar(0, 255, 0), 1.5);
-
-
-    // Draw forward cone points using stored data
-    for (const auto& point : forwardConePoints_) {
-        cv::Point testPointScaled(static_cast<int>(point.position.x * scale), static_cast<int>(point.position.y * scale));
-        cv::Scalar color = point.isFree ? cv::Scalar(240, 240, 240) : cv::Scalar(0, 0, 255); // White for free, Red for blocked
-        cv::circle(image, testPointScaled, 0.3* scale, color, -1);
-    }
-
-    // Draw cone boundaries
-    float coneangle_rad = 40 * M_PI / 180.0f;
-    float searchRadius  = robot_diameter_ * 2;
-    cv::Point leftConeEdge(static_cast<int>(std::round((x_ + (sensor_zero_offset_ + searchRadius) * std::cos(theta_ - coneangle_rad / 2)) * scale)),
-                           static_cast<int>(std::round((y_ + (sensor_zero_offset_ + searchRadius) * std::sin(theta_ - coneangle_rad / 2)) * scale)));
-    cv::Point rightConeEdge(static_cast<int>(std::round((x_ + (sensor_zero_offset_ + searchRadius) * std::cos(theta_ + coneangle_rad / 2)) * scale)),
-                            static_cast<int>(std::round((y_ + (sensor_zero_offset_ + searchRadius) * std::sin(theta_ + coneangle_rad / 2)) * scale)));
-
-    cv::line(image, center, leftConeEdge, cv::Scalar(180, 240, 0), 0.09*scale);
-    cv::line(image, center, rightConeEdge, cv::Scalar(180, 240, 0), 0.09 * scale);
 }
 
 

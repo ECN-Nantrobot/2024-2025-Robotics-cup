@@ -226,7 +226,6 @@ bool ElasticBand::resizePath(float min_dist, float max_dist)
 
 bool ElasticBand::optimize(const Point& start, const Point& goal)
 {
-
     if (optimization_complete) {
         return true; // Optimization already complete
     }
@@ -235,7 +234,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     const float alpha                  = 0.082; // Step size (scaling of the total force)
     const int max_iterations           = max_interations_;
-    const float total_change_threshold = 0.0003; //(total distanc of movement of points)
+    const float total_change_threshold = 0.03; //(total distanc of movement of points)
     float total_change                 = 0;
 
     const float spring_weight_default = 16.5;
@@ -252,8 +251,8 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     const int small_gap_radius = 6;
 
-    float min_distance = 3.2;
-    float max_distance = 4.2;
+    float min_distance = 3.8;
+    float max_distance = 4.8;
 
     path.front() = start;
     path.back()  = goal;
@@ -266,15 +265,25 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     total_change = 0;
 
-    if (current_iteration % 10 == 0) {
+    if (current_iteration == 0) {
         if (!resizePath(min_distance, max_distance)) { // 20 - 30 microseconds
             std::cerr << "Optimization exited early: resizePath too long" << std::endl;
-            return false;
+            optimization_complete = true;
+            return optimization_complete;
         }
     }
 
+    // std ::cout << "iteration: " << current_iteration << std::endl;
+
     for (size_t i = 1; i < path.size() - 2; ++i) {
 
+        // Calculate the distance to the previous point
+        float distanceToPrev = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+        if (distanceToPrev > 15) {
+            std::cout << "Distance to previous point exceeds threshold. Exiting optimization." << std::endl;
+            optimization_complete = true;
+            return optimization_complete;
+        }
         // auto start_time = std::chrono::high_resolution_clock::now();
 
         float dynamic_spring_weight = spring_weight_default;
@@ -311,9 +320,9 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
                 float corridor_scaling_factor = std::max(1.0f / static_cast<float>(corridor_neigbours), 0.2f);
                 repulsiveForce.x *= corridor_scaling_factor;
                 repulsiveForce.y *= corridor_scaling_factor;
-                path[i].colour = cv::Scalar(255, 0, 0);
+                path[i].colour = cv::Scalar(255, 50, 50);
             } else {
-                path[i].colour = cv::Scalar(0, 0, 200);
+                path[i].colour = cv::Scalar(50, 50, 200);
             }
         }
 
@@ -348,75 +357,19 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     // showPath(show_time);
 
 
+
     current_iteration++;
     if (current_iteration >= max_iterations || total_change <= total_change_threshold) {
+        std ::cout << "Optimization ended after " << current_iteration << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
+                  << total_change_threshold << std::endl;
+        current_iteration     = 6; // so that there is no error
         optimization_complete = true;
     }
-
+    // std ::cout << "Current iteration: " << current_iteration << ", optimization_complete: " << optimization_complete << std::endl;
     return optimization_complete;
 
-    // int key = cv::waitKey(2);
-    // if (key >= 0) {
-    //     if (key == 83) { // Right arrow key
-    //         if (show_time < 10)
-    //             show_time += 2;
-    //         else
-    //             show_time += static_cast<int>(2 + 0.3 * show_time);
-    //         std::cout << "\n show_time increased to: " << show_time << std::endl;
-
-    //     } else if (key == 81) { // Left arrow key
-    //         if (show_time < 10 && show_time > 0)
-    //             show_time -= 3;
-    //         else
-    //             show_time -= static_cast<int>(2 + 0.3 * show_time);
-    //         if (show_time < 0)
-    //             show_time = 0;
-    //         std::cout << "\n show_time decreased to: " << show_time << std::endl;
-
-    //     } else if (key == 32) {
-    //         std::cout << "\nSpacebar was pressed, Pause..." << std::endl;
-    //         while (true) {
-    //             // showPath(show_time);
-    //             int inner_key = cv::waitKey(1);
-    //             if (inner_key == 27) { // Press 'ESC' to exit
-    //                 std ::cout << "ESC from pause" << std::endl;
-    //                 return inner_key;
-    //             }
-    //             if (inner_key != -1 && inner_key != 32) { // If a key other than spacebar is pressed
-    //                 break;
-    //             }
-    //         }
-    //         std::cout << "Pause ended" << std::endl;
-
-    //     } else {
-    //         std::cout << "\n Optimization interrupted by user." << std::endl;
-    //         return 0;
-    //     }
-    // }
-
-
-    // if (iter % 5 == 0) {
-    //     std ::cout << ", show_time: " << show_time;
-    //     std::cout << ", total_change: " << total_change;
-    //     std::cout << std::endl;
-    // }
-
-    // if (total_change <= total_change_threshold) {
-    //     // std::cout << "Optimization converged after " << iter << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
-    //     //           << total_change_threshold << std::endl;
-    //     break;
-    // }
-    // }
-
-    std ::cout << "Total time for radius calculation: " << (float)total_radius_time / 1000 << " ms" << std::endl;
-    std ::cout << "Total time for repulsive force calculation: " << (float)total_repulsive_time / 1000 << " ms" << std::endl;
-
-    if (total_change > total_change_threshold) {
-        // std::cout << "Optimization ended because of max. iterations: " << max_iterations << std::endl;
-    }
-
-
-    return 1;
+    // std ::cout << "Total time for radius calculation: " << (float)total_radius_time / 1000 << " ms" << std::endl;
+    // std ::cout << "Total time for repulsive force calculation: " << (float)total_repulsive_time / 1000 << " ms" << std::endl;
 }
 
 int ElasticBand::checkAndAjustInCorridor(size_t idx, int range) const

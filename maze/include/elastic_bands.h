@@ -57,7 +57,7 @@ public:
         current_iteration     = 0;
         optimization_complete = false;
         total_change          = 0;
-        max_interations_      = 20;
+        max_interations_      = 6;
     }
 
     void setMaxInterations(int max_interations) { max_interations_ = max_interations; }
@@ -66,6 +66,16 @@ public:
 
 
     bool isOptimizationComplete() const { return optimization_complete; }
+
+    bool errorCheck() const
+    {
+        if (optimization_complete == true && current_iteration < max_interations_) {
+            std ::cout << "Optimization error: Optimization complete but current iteration < max iterations" << std::endl;
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     void runFullOptimization(const Point& start, const Point& goal)
     {
