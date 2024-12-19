@@ -6,9 +6,9 @@ AccelStepper motor1(motorInterfaceType, stepPin1, dirPin1);
 AccelStepper motor2(motorInterfaceType, stepPin2, dirPin2);
 
 // Given values
-const float wheelDiameter = 0.0675;   // meters
-const float trackWidth = 0.156;       // meters
-const int stepsPerRevolution = 1600;
+const float wheelDiameter = 0.0684;   // meters
+const float trackWidth = 0.185;       // meters
+const int stepsPerRevolution = 3200;
 
 // Computed values
 const float wheelCircumference = 3.14159 * wheelDiameter; 
@@ -66,11 +66,11 @@ void printState(MotionState state) {
 }
 
 void initMotor() {
-    motor1.setMaxSpeed(10000);
-    motor1.setAcceleration(3000);
+    motor1.setMaxSpeed(20000);
+    motor1.setAcceleration(5000);
 
-    motor2.setMaxSpeed(10000);
-    motor2.setAcceleration(3000);
+    motor2.setMaxSpeed(20000);
+    motor2.setAcceleration(5000);
 
     // Start the first move
     motor1.setCurrentPosition(0);
@@ -83,6 +83,7 @@ void initMotor() {
     motor1.setPinsInverted(true, false, false);
     printState(currentState);
 }
+
 
 void testMotor() {
     // Keep running motors
@@ -99,6 +100,7 @@ void testMotor() {
             motor2.moveTo(motor2.currentPosition() - stepsForTurn);
             currentState = TURN_90;
             printState(currentState);
+            Serial.print(stepsForTurn);
             break;
 
           case TURN_90:
@@ -133,6 +135,8 @@ void testMotor() {
             motor2.moveTo(motor2.currentPosition() - stepsForDistance1);
             currentState = MOVE_STRAIGHT_1_BACK;
             printState(currentState);
+                        Serial.print(stepsForDistance1);
+
             break;
 
           case MOVE_STRAIGHT_1_BACK:
