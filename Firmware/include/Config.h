@@ -1,14 +1,10 @@
-#pragma one
-#include "Arduino.h"
+#pragma once
 
-// Define the pins
-#define LED_BUILTIN 2
+// Define pins for motors
+#define stepPin1 26
+#define dirPin1 25
+#define stepPin2 33
+#define dirPin2 32
 
-// Nema driver pins
-const int dirPin1 = 25;  // Motor 1 direction pin
-const int stepPin1 = 26; // Motor 1 step pin
-const int dirPin2 = 32;  // Motor 2 direction pin
-const int stepPin2 = 33; // Motor 2 step pin
-
-// Define motor interface type
+// Define motor interface type for AccelStepper
 #define motorInterfaceType 1
