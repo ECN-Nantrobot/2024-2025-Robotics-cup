@@ -43,3 +43,25 @@ std::pair<double, double> computeWheelAngles(double target_x, double target_y, d
 }
 
 
+// MODIFY PATH STRUCTURE TO WORK WITH CLASS ECN::POINT
+void followPath(const std::pair<double, double> path[], int path_size, double r, double L, double kp, double r_l, double r_r, double e) {
+    int i = 0; // Start at the first point
+    while (i < path_size) {
+        // Get the target point
+        double target_x = path[i].first;     // MODIFY TO Point.x
+        double target_y = path[i].second;    // MODIFY TO Point.y
+
+        // Compute wheel angles (implement computeWheelAngles)
+        auto [thetaL, thetaR] = computeWheelAngles(target_x, target_y, r, L, kp);
+
+        // HERE WE WILL HAVE STEPPER.MOVETO() AND THE WHILE LOOP OF STEPPER:RUN()
+
+        // Update pose (implement updatePose)
+        updatePose(thetaL, thetaR, r_l, r_r, e);
+
+        // Move to the next point
+        i = (i + 5 < path_size) ? i + 5 : path_size - 1;
+    }
+}
+
+
