@@ -1,14 +1,19 @@
 // #include "Config.h"
 // #include <AccelStepper.h>
+# include <math.h>
 
 // // Create instances for each motor
 // AccelStepper motor1(motorInterfaceType, stepPin1, dirPin1);
 // AccelStepper motor2(motorInterfaceType, stepPin2, dirPin2);
 
 // // Given values
-// const float wheelDiameter = 0.0684;   // meters
+const float wheelDiameter = 0.0684;   // meters
 // const float trackWidth = 0.185;       // meters
-// const int stepsPerRevolution = 3200;
+const int stepsPerRevolution = 3200;
+
+const double oneStepAngle = 2.0*M_PI / stepsPerRevolution; // [rad]
+const double metersPerStep = oneStepAngle * wheelDiameter/2; // [m]
+// １m/s = 1 / metersPerStep [steps/s]
 
 // // Computed values
 // const float wheelCircumference = 3.14159 * wheelDiameter; 
@@ -60,12 +65,20 @@ void initMotor()
 
 void setMotorSpeeds(float leftSpeed, float rightSpeed)
 {
+  // speed conversion from [m/s] to [steps/s]
+  leftSpeed = leftSpeed / metersPerStep;   
+  rightSpeed = rightSpeed / metersPerStep;
+  Serial.println(leftSpeed);
+  
   // Set speeds in steps per second
   motor1.setSpeed(leftSpeed);
   motor2.setSpeed(rightSpeed);
 
   // Run motors at these speeds.
   // Note: runSpeed() needs to be called frequently (e.g. in loop)
-  motor1.runSpeed();
-  motor2.runSpeed();
+  while(1){
+    motor1.runSpeed();
+    motor2.runSpeed();
+  }
+  
 }
