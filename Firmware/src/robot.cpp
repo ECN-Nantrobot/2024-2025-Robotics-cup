@@ -1,7 +1,7 @@
 #include "robot.h"
 #include <cmath>
 #include <iostream>
-#include "motorHandler.h" // Include to call setMotorSpeeds
+#include "motorHandler.h" 
 
 namespace ecn
 {
