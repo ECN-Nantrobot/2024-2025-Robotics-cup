@@ -25,6 +25,12 @@ namespace ecn
         float getX() const { return x_; }
         float getY() const { return y_; }
 
+        void setPosition(float x, float y)
+        {
+            x_ = x;
+            y_ = y;
+        }
+
         float getLeftSpeed() const { return leftSpeed_; }
         float getRightSpeed() const { return rightSpeed_; }
 
@@ -48,8 +54,10 @@ namespace ecn
         float prevError_;
         float integral_;
 
-        float computePID(float targetAngle, float dt);
-        void updatePosition(float dt);
+        // float computePID(float targetAngle, float dt);
+        float computePID(float x_, float y_, float targetX, float targetY, float dt);
+
+        // void updatePosition(float dt);
     };
 
 } // namespace ecn

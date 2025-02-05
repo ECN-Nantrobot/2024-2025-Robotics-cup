@@ -12,8 +12,20 @@ Robot::Robot(float x, float y, float theta, float wheelBase, float speed, float 
 {
 }
 
-float Robot::computePID(float targetAngle, float dt)
+float Robot::computePID(float current_x, float current_y, float target_x, float target_y, float dt)
 {
+    // Serial.print("Target x: ");
+    // Serial.print(target_x);
+    // Serial.print(", Target y: ");
+    // Serial.println(target_y);
+    // Serial.print("Current x: ");
+    // Serial.print(current_x);
+    // Serial.print(", Current y: ");
+    // Serial.println(current_y);
+
+    float targetAngle = std::atan2(target_y - current_y, target_x - current_x);
+    // float distance = sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
+
     float error = targetAngle - theta_;
     while (error > M_PI) error -= 2 * M_PI;
     while (error < -M_PI) error += 2 * M_PI;
@@ -24,27 +36,43 @@ float Robot::computePID(float targetAngle, float dt)
 
     float output = kp_ * error + ki_ * integral_ + kd_ * derivative;
 
-    const float maxTurnRate = 8.0;
+    // Serial.print("Controlsignal: ");
+    // Serial.println(output);
+
+    Serial.print("error: ");
+    Serial.println(error);
+
+    const float r = 0.0684/2; // meters
+
+    // double thetaL = (kp / r) * distance + (kp * L / r) * angle_error;
+    // double thetaR = (kp / r) * distance - (kp * L / r) * angle_error;
+
+
+
+        const float maxTurnRate = 8.0;
     if (output > maxTurnRate)
         output = maxTurnRate;
     else if (output < -maxTurnRate)
         output = -maxTurnRate;
 
+    // setMotorSpeeds(thetaL, thetaR);
+
     return output;
 }
 
-void Robot::updatePosition(float dt)
-{
-    float v = (leftSpeed_ + rightSpeed_) / 2.0f;
-    float omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+// void Robot::updatePosition(float dt)
+// {
 
-    x_ += v * std::cos(theta_) * dt;
-    y_ += v * std::sin(theta_) * dt;
-    theta_ += omega * dt;
+//     float v = (leftSpeed_ + rightSpeed_) / 2.0f;
+//     float omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
 
-    while (theta_ > M_PI) theta_ -= 2 * M_PI;
-    while (theta_ < -M_PI) theta_ += 2 * M_PI;
-}
+//     x_ += v * std::cos(theta_) * dt;
+//     y_ += v * std::sin(theta_) * dt;
+//     theta_ += omega * dt;
+
+//     while (theta_ > M_PI) theta_ -= 2 * M_PI;
+//     while (theta_ < -M_PI) theta_ += 2 * M_PI;
+// }
 
 bool Robot::turnToGoalOrientation(float dt)
 {
@@ -56,14 +84,14 @@ bool Robot::turnToGoalOrientation(float dt)
         leftSpeed_ = 0;
         rightSpeed_ = 0;
     } else {
-        float turnSignal = computePID(targetTheta_, dt);
+        float turnSignal = computePID(x_, y_, targetX, targetY, dt);
         leftSpeed_ = -turnSignal;
         rightSpeed_ = turnSignal;
     }
 
     // Set motor speeds here:
     setMotorSpeeds(leftSpeed_, rightSpeed_);
-    updatePosition(dt);
+    // updatePosition(dt);
     return (std::abs(angleError) < 0.02);
 }
 
@@ -93,6 +121,8 @@ bool Robot::turnToPathOrientation(float dt, const std::vector<Point> &path)
         }
     }
 
+
+
     if (targetIdx == closestIdx && closestIdx < path.size() - 1)
         targetIdx = path.size() - 1;
 
@@ -104,18 +134,18 @@ bool Robot::turnToPathOrientation(float dt, const std::vector<Point> &path)
     while (angleError > M_PI) angleError -= 2 * M_PI;
     while (angleError < -M_PI) angleError += 2 * M_PI;
 
-    if (std::abs(angleError) < 0.02) {
-        leftSpeed_ = 0;
-        rightSpeed_ = 0;
-    } else {
-        float turnSignal = computePID(targetTheta_, dt);
-        leftSpeed_ = -turnSignal;
-        rightSpeed_ = turnSignal;
-    }
+    // if (std::abs(angleError) < 0.02) {
+    //     leftSpeed_ = 0;
+    //     rightSpeed_ = 0;
+    // } else {
+    //     float turnSignal = computePID(targetTheta_, dt);
+    //     leftSpeed_ = -turnSignal;
+    //     rightSpeed_ = turnSignal;
+    // }
 
     // Set motor speeds directly:
     setMotorSpeeds(leftSpeed_, rightSpeed_);
-    updatePosition(dt);
+    // updatePosition(dt);
     return (std::abs(angleError) < 0.02);
 }
 
@@ -145,14 +175,17 @@ void Robot::followPath(const std::vector<Point> &path, float dt)
         }
     }
 
+    Serial.print("Target index: ");
+    Serial.println(targetIdx);
+
     if (targetIdx == closestIdx && closestIdx < path.size() - 1)
         targetIdx = path.size() - 1;
 
     if (targetIdx < path.size()) {
         float targetX = path[targetIdx].x;
         float targetY = path[targetIdx].y;
-        float targetAngle = std::atan2(targetY - y_, targetX - x_);
-        float controlSignal = computePID(targetAngle, dt);
+        // float targetAngle = std::atan2(targetY - y_, targetX - x_);
+        float controlSignal = computePID(x_, y_, targetX, targetY, dt);
 
         float speed_closetobstacle = maxSpeed_;
         float speed_closetogoal = maxSpeed_;
@@ -178,11 +211,26 @@ void Robot::followPath(const std::vector<Point> &path, float dt)
         } else {
             leftSpeed_ = speed_ - controlSignal;
             rightSpeed_ = speed_ + controlSignal;
+
+
+
+            float v = (leftSpeed_ + rightSpeed_) / 2.0f;
+            float omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+
+            x_ += v * std::cos(theta_) * dt;
+            y_ += v * std::sin(theta_) * dt;
+            theta_ += omega * dt;
+
+            while (theta_ > M_PI)
+                theta_ -= 2 * M_PI;
+            while (theta_ < -M_PI)
+                theta_ += 2 * M_PI;
         }
 
         // Directly command the motors here:
         setMotorSpeeds(leftSpeed_, rightSpeed_);
-        updatePosition(dt);
+        // Serial.print("updating speed");
+        // updatePosition(dt);
     }
 }
 

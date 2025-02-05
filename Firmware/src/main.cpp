@@ -25,7 +25,7 @@ bool loadPathFromFile(const char *filename)
   }
 
   int lineCount = 0;
-  while (file.available() && lineCount < 30)
+  while (file.available())
   {
     String line = file.readStringUntil('\n');
     line.trim();
@@ -37,15 +37,17 @@ bool loadPathFromFile(const char *filename)
     if (count == 2)
     {
       // Convert from cm to m
-      x /= 100.0;
-      y /= 100.0;
+      // x /= 100.0;
+      // y /= 100.0;
       loadedPath.push_back(Point(x, y));
-      Serial.print("Line ");
-      Serial.print(lineCount + 1);
-      Serial.print(": ");
-      Serial.print(x);
-      Serial.print(", ");
-      Serial.println(y);
+
+
+      // Serial.print("Line ");
+      // Serial.print(lineCount + 1);
+      // Serial.print(": ");
+      // Serial.print(x);
+      // Serial.print(", ");
+      // Serial.println(y);
       lineCount++;
     }
   }
@@ -62,7 +64,10 @@ void setup()
     return;
   }
 
-  loadPathFromFile("/eb_path_fortest.txt");
+  loadPathFromFile("/newtestpath_2.txt");
+
+    robot.setPosition(loadedPath[0].x, loadedPath[0].y);
+
 
   initMotor();
 }
@@ -73,6 +78,10 @@ void loop()
 
   runMotors();
 
+
+
+  
+
   unsigned long now = millis();
   if (now - lastUpdateTime >= (unsigned long)(dt * 1000))
   {
@@ -80,6 +89,13 @@ void loop()
 
     // Robot internally sets motor speeds.
     robot.followPath(loadedPath, dt);
+
+
+
+
+
+
+
 
     // Check if close to end of path
     float distanceToGoal = hypot(loadedPath.back().x - robot.getX(), loadedPath.back().y - robot.getY());
