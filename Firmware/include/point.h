@@ -6,8 +6,7 @@
 #include <iostream>
 #include <math.h>
 // #include <maze.h>
-
-namespace ecn
+    namespace ecn
 {
 
 class Point

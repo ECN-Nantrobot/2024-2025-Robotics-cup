@@ -30,10 +30,6 @@ void setMotorSpeeds(float leftSpeed, float rightSpeed)
 
   motor_left.spin(leftSpeed);
   motor_right.spin(rightSpeed);
-  // Serial.print("motor left speed: ");
-  // Serial.println(leftSpeed);
-  // Serial.print("motor right speed: ");
-  // Serial.println(rightSpeed);
 }
 
 void runMotors()

@@ -10,10 +10,9 @@
 using namespace ecn;
 
 std::vector<Point> loadedPath;
-Robot robot(0, 0, 0, 15, 7, 10, 0.01, 0.5); // x, y, theta, wheelBase, speed, kp, ki, kd
+Robot robot(0, 0, 0, 15, 7, 10, 0.01, 0.5, 0.05); // x, y, theta, wheelBase, speed, kp, ki, kd, dt
 
 unsigned long lastUpdateTime = 0;
-const float dt = 0.05; // 50 ms loop time
 
 bool loadPathFromFile(const char *filename)
 {
@@ -41,7 +40,6 @@ bool loadPathFromFile(const char *filename)
       // y /= 100.0;
       loadedPath.push_back(Point(x, y));
 
-
       // Serial.print("Line ");
       // Serial.print(lineCount + 1);
       // Serial.print(": ");
@@ -66,36 +64,24 @@ void setup()
 
   loadPathFromFile("/newtestpath_2.txt");
 
-    robot.setPosition(loadedPath[0].x, loadedPath[0].y);
-
+  robot.setPosition(loadedPath[0].x, loadedPath[0].y);
 
   initMotor();
 }
 
 void loop()
 {
-  // setMotorSpeeds(0.2, 0.2);
 
   runMotors();
-
-
-
   
 
+
   unsigned long now = millis();
-  if (now - lastUpdateTime >= (unsigned long)(dt * 1000))
+  if (now - lastUpdateTime >= (unsigned long)(robot.getDt() * 1000))
   {
     lastUpdateTime = now;
 
-    // Robot internally sets motor speeds.
-    robot.followPath(loadedPath, dt);
-
-
-
-
-
-
-
+    robot.followPath(loadedPath);
 
     // Check if close to end of path
     float distanceToGoal = hypot(loadedPath.back().x - robot.getX(), loadedPath.back().y - robot.getY());
