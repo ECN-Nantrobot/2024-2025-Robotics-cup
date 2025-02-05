@@ -40,8 +40,8 @@ namespace ecn
 
 
     private:
-        float x_;
-        float y_;
+        double x_;
+        double y_;
         float theta_;
         float wheelBase_;
         float robot_diameter_ = wheelBase_;

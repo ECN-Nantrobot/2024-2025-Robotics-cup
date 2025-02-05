@@ -69,12 +69,38 @@ namespace ecn
 
     void Robot::updatePosition()
     {
+        double v = (leftSpeed_ + rightSpeed_) / 2.0f;
+        double omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+
+        // Euler integration
+        //  x_ += v * std::cos(theta_) * dt_;
+        //  y_ += v * std::sin(theta_) * dt_;
+        //  theta_ += omega * dt_;
+
+        // Runge Kutta 4th order
         float v = (leftSpeed_ + rightSpeed_) / 2.0f;
         float omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
 
-        x_ += v * std::cos(theta_) * dt_;
-        y_ += v * std::sin(theta_) * dt_;
-        theta_ += omega * dt_;
+        // RK4 calculations
+        float k1_x = v * std::cos(theta_);
+        float k1_y = v * std::sin(theta_);
+        float k1_theta = omega;
+
+        float k2_x = v * std::cos(theta_ + k1_theta * dt_ / 2.0f);
+        float k2_y = v * std::sin(theta_ + k1_theta * dt_ / 2.0f);
+        float k2_theta = omega;
+
+        float k3_x = v * std::cos(theta_ + k2_theta * dt_ / 2.0f);
+        float k3_y = v * std::sin(theta_ + k2_theta * dt_ / 2.0f);
+        float k3_theta = omega;
+
+        float k4_x = v * std::cos(theta_ + k3_theta * dt_);
+        float k4_y = v * std::sin(theta_ + k3_theta * dt_);
+        float k4_theta = omega;
+
+        x_ += (dt_ / 6.0f) * (k1_x + 2.0f * k2_x + 2.0f * k3_x + k4_x);
+        y_ += (dt_ / 6.0f) * (k1_y + 2.0f * k2_y + 2.0f * k3_y + k4_y);
+        theta_ += (dt_ / 6.0f) * (k1_theta + 2.0f * k2_theta + 2.0f * k3_theta + k4_theta);
 
         while (theta_ > M_PI)
             theta_ -= 2 * M_PI;
@@ -213,7 +239,7 @@ namespace ecn
                 leftSpeed_ = 0;
                 rightSpeed_ = 0;
             }
-            //Normal speed
+            // Normal speed
             else
             {
                 leftSpeed_ = speed_ - controlSignal;
