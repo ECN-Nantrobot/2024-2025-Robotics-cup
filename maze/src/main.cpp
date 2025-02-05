@@ -35,7 +35,7 @@ int main()
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
-    std::vector<Point> goals = { Point(106, 160), Point(50, 15), Point(80, 150), Point(225, 80) }; // Example goal points
+    std::vector<Point> goals = { Point(250, 180), Point(50, 15), Point(80, 150), Point(225, 80) }; // Example goal points
     int current_goal_index   = 1;                                                                  // Keep track of which goal the robot is targeting
     start                    = goals[0];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
@@ -63,7 +63,7 @@ int main()
     int eb_comp_inarow_default            = 1;
     int eb_comp_inarow                    = eb_comp_inarow_default;
 
-    std::vector<Obstacle> obstacles = { Obstacle(30, 100, 35, 25, Obstacle::MOVABLE, "lightgray", 0, 5 * dt, 0),
+    std::vector<Obstacle> obstacles = { Obstacle(150, 100, 35, 25, Obstacle::MOVABLE, "lightgray", 0, 5 * dt, 0),
                                         Obstacle(0, 20, 30, 15, Obstacle::MOVABLE, "lightgray", 0, 3 * dt, 1 * dt),
                                         Obstacle(299, 25, 30, 15, Obstacle::MOVABLE, "lightgray", 0, -3 * dt, 2 * dt),
                                         Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt) };
@@ -255,6 +255,8 @@ int main()
                 if (counter_set_eb_path > set_eb_path_counter_limit) {
                     // std ::cout << "counter_set_eb_path > set_eb_path_counter_limit: " << counter_set_eb_path << " > " << set_eb_path_counter_limit << std::endl;
                     elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
+                    elastic_band.savePathToFile("newtestpath"); ///////////////////////////////////////
+                    std::cout << " -> Smoothed Path Set" << std::endl;  
                     std::cout << "  -> Path Set" << std::endl;
 
                     // counter++;
