@@ -1,7 +1,5 @@
-#ifndef MOTORHANDLER_H
-#define MOTORHANDLER_h
-
+#pragma one
+#include "Arduino.h"
 void initMotor();
+void testMotor();
 void setMotorSpeeds(float leftSpeed, float rightSpeed);
-
-#endif

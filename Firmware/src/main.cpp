@@ -8,6 +8,11 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
+#include <ContinuousStepper.h>
+
+ContinuousStepper<StepperDriver> stepper;
+
+
 using namespace ecn;
 
 std::vector<Point> loadedPath;
@@ -15,6 +20,7 @@ Robot robot(0, 0, 0, 15, 7, 10, 0.01, 0.5); // x, y, theta, wheelBase, speed, kp
 
 unsigned long lastUpdateTime = 0;
 const float dt = 0.05; // 50 ms loop time
+// const float dt = 1; // 1000 ms
 
 bool loadPathFromFile(const char *filename)
 {
@@ -69,30 +75,47 @@ void setup() {
   }
 
   loadPathFromFile("/eb_path_fortest.txt");
+
+  initMotor();
+
+  stepper.begin(26, 25);
+
+
+
 }
 
 
 void loop()
-{
-  unsigned long now = millis();
-  if (now - lastUpdateTime >= (unsigned long)(dt * 1000))
-  {
-    lastUpdateTime = now;
+{ 
 
-    // Robot internally sets motor speeds.
-    robot.followPath(loadedPath, dt);
+  int spinnrate = 1000;
+  stepper.spin(spinnrate); // rotate at 200 steps per seconds
+  stepper.loop(); // this function must be called as frequently as possible
 
-    // Check if close to end of path
-    float distanceToGoal = hypot(loadedPath.back().x - robot.getX(), loadedPath.back().y - robot.getY());
-    if (distanceToGoal < 1.0)
-    {
-      // Stop the robot if close enough to the goal
-      setMotorSpeeds(0, 0);
-      Serial.println("Goal reached!");
-      while (true)
-      {
-        delay(1000);
-      }
-    }
-  }
+
+  //setMotorSpeeds(1, 1);
+
+
+  
+  // unsigned long now = millis();
+  // if (now - lastUpdateTime >= (unsigned long)(dt * 1000))
+  // {
+  //   lastUpdateTime = now;
+
+  //   // Robot internally sets motor speeds.
+  //   robot.followPath(loadedPath, dt);
+
+  //   // Check if close to end of path
+  //   float distanceToGoal = hypot(loadedPath.back().x - robot.getX(), loadedPath.back().y - robot.getY());
+  //   if (distanceToGoal < 1.0)
+  //   {
+  //     // Stop the robot if close enough to the goal
+  //     setMotorSpeeds(0, 0);
+  //     Serial.println("Goal reached!");
+  //     while (true)
+  //     {
+  //       delay(1000);
+  //     }
+  //   }
+  // }
 }
