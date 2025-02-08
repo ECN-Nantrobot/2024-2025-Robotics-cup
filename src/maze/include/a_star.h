@@ -17,14 +17,12 @@ namespace ecn
 inline void saveAstarPathToFile(const std::string& filename, const std::vector<Position>& path)
 {
     std::ofstream outFile(filename);
-    if (!outFile)
-    {
+    if (!outFile) {
         std::cerr << "Error opening file for writing: " << filename << std::endl;
         return;
     }
 
-    for (const auto& pos : path)
-    {
+    for (const auto& pos : path) {
         outFile << pos.x << " " << pos.y << "\n";
     }
 
@@ -37,13 +35,14 @@ std::vector<Position> loadPathFromFile(const std::string& filename)
 {
     std::cout << "Loading A*path from file: " << filename << " ... ";
     std::ifstream inFile(filename);
-    if (!inFile) {throw std::runtime_error("Error: Could not open file " + filename);}
+    if (!inFile) {
+        throw std::runtime_error("Error: Could not open file " + filename);
+    }
 
     // Count the number of lines to determine the size of the vector
     size_t lineCount = 0;
     std::string line;
-    while (std::getline(inFile, line))
-    {
+    while (std::getline(inFile, line)) {
         ++lineCount;
     }
 
@@ -56,8 +55,7 @@ std::vector<Position> loadPathFromFile(const std::string& filename)
 
     // Read positions into the vector
     Point pos;
-    for (size_t i = 0; i < lineCount && inFile >> pos.x >> pos.y; ++i)
-    {
+    for (size_t i = 0; i < lineCount && inFile >> pos.x >> pos.y; ++i) {
         path[i] = pos;
     }
 
@@ -73,8 +71,7 @@ namespace astar_impl
 
 template <class Node> class Tree
 {
-    struct NodeWithParent
-    {
+    struct NodeWithParent {
         Node node;
         size_t parent;
 
@@ -111,8 +108,7 @@ public:
     {
         std::vector<Node> path;
         // build list from end to start
-        while (best)
-        {
+        while (best) {
             path.push_back(nodes[best].node);
             best = nodes[best].parent;
         }
@@ -129,8 +125,7 @@ public:
 };
 
 // Generic node with distance to start (g) + total cost from heuristic (f = g+h)
-template <class Node> struct NodeWithCost
-{
+template <class Node> struct NodeWithCost {
     size_t node;
     double f;
     double g;
@@ -180,12 +175,10 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
 
     int evaluated = 0, created = 0, shortcut = 0;
     evaluated++;
-    while (!queue.empty())
-    {
+    while (!queue.empty()) {
         const auto best = queue.top();
 
-        if (tree(best.node) == goal)
-        {
+        if (tree(best.node) == goal) {
             // std::cout << created << " nodes created, " << evaluated << " evaluated, " << shortcut << " shortcuts found" << std::endl;
             // std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - t0).count() << " ms" << std::endl;
 
@@ -194,15 +187,14 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
 
         tree.close(best.node);
         queue.pop();
-        if (show)
-        {
+        if (show) {
             auto parent = tree.parent(best.node);
             if (parent)
                 tree(best.node).show(true, tree(parent));
         }
 
-        //CHANGED CHANGED CHANGED
-        // auto children{ tree(best.node).children() };
+        // CHANGED CHANGED CHANGED
+        //  auto children{ tree(best.node).children() };
 
         auto children = tree(best.node).children(tree(tree.parent(best.node)));
         created += children.size();
@@ -214,24 +206,20 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
         // // to avoid equal costs leading to favorite directions
         // std::random_shuffle(children.begin(), children.end());
 
-        for (auto&& child : children)
-        {
+        for (auto&& child : children) {
             // ensure we have not been here
             if (tree.isVisited(child))
                 continue;
 
             const auto child_g = best.g + child.distToParent();
-            if (const auto& twin{ queue.find(child) }; !twin)
-            {
+            if (const auto& twin{ queue.find(child) }; !twin) {
                 const auto idx{ tree.insert(std::move(child), best.node) };
                 const auto child_in_tree{ tree(idx) };
                 queue.push({ idx, child_in_tree.heuristic(goal) + child_g, child_g });
                 evaluated++;
                 if (show)
                     child.show(false, tree(best.node));
-            }
-            else if (twin->g > child_g)
-            {
+            } else if (twin->g > child_g) {
                 tree.setParent(twin->node, best.node);
                 queue.push({ twin->node, twin->f - twin->g + child_g, child_g });
                 shortcut++;
