@@ -58,6 +58,10 @@ public:
     };
 
 
+    // For Ros
+    float getLeftSpeed() const { return leftSpeed_; }
+    float getRightSpeed() const { return rightSpeed_; }
+    float getWheelBase() const { return wheelBase_; }
 
 
 private:
