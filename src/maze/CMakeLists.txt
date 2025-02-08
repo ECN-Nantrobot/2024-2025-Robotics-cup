@@ -48,8 +48,11 @@ ament_target_dependencies(cmd_vel_node rclcpp geometry_msgs OpenCV yaml-cpp)
 # ROS 2 Installation
 install(TARGETS
     cmd_vel_node
+    DESTINATION share/${PROJECT_NAME}/launch
     DESTINATION lib/${PROJECT_NAME}
 )
+
+
 
 # Export the package
 ament_package()

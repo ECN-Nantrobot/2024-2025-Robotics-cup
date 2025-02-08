@@ -11,14 +11,22 @@ public:
     {
         publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
         timer_     = this->create_wall_timer(std::chrono::milliseconds(100), std::bind(&CmdVelPublisher::publish_velocity, this));
+
+        RCLCPP_INFO(this->get_logger(), "cmd_vel_publisher node started.");
     }
 
 private:
     void publish_velocity()
     {
-        auto msg      = geometry_msgs::msg::Twist();
+        auto msg = geometry_msgs::msg::Twist();
+
+        // 🔹 Ensure the robot is updating its path before publishing velocity
+        robot.followPath(elastic_band.getSmoothedPath(), ecn::Maze(), 0.1);
+
         msg.linear.x  = (robot.getLeftSpeed() + robot.getRightSpeed()) / 2.0;
         msg.angular.z = (robot.getRightSpeed() - robot.getLeftSpeed()) / robot.getWheelBase();
+
+        RCLCPP_INFO(this->get_logger(), "Publishing cmd_vel: linear.x=%.2f, angular.z=%.2f", msg.linear.x, msg.angular.z);
 
         publisher_->publish(msg);
     }
