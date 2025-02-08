@@ -1,8 +1,0 @@
-source;share/maze/hook/cmake_prefix_path.ps1
-source;share/maze/hook/cmake_prefix_path.dsv
-source;share/maze/hook/cmake_prefix_path.sh
-source;share/maze/local_setup.bash
-source;share/maze/local_setup.dsv
-source;share/maze/local_setup.ps1
-source;share/maze/local_setup.sh
-source;share/maze/local_setup.zsh

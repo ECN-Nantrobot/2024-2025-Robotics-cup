@@ -26,7 +26,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "robot_description",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("maze"), "urdf", "throbot.urdf"]
+                [FindPackageShare("robonav"), "urdf", "throbot.urdf"]
             ),
             description="Full path to robot URDF"
         ),

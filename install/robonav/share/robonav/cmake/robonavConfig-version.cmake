@@ -1,0 +1,1 @@
+/home/ferdinand/2024-2025-Robotics-cup/build/robonav/ament_cmake_core/robonavConfig-version.cmake
