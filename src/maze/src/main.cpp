@@ -13,6 +13,14 @@
 #include "point.h"
 #include "robot.h"
 
+#include "geometry_msgs/msg/twist.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
+
+#include "rclcpp/rclcpp.hpp"
+
+// std::cout.sync_with_stdio(true);
+// std::ios::sync_with_stdio(true);
+
 using namespace std;
 using namespace ecn;
 
@@ -20,8 +28,19 @@ using namespace ecn;
 enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
 
 
-int main()
+int main(int argc, char** argv)
 {
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("robot_planner");
+
+    auto publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+
+    rclcpp::Rate loop_rate(10); // 10 Hz
+
+
+
+
+    //-----------------------
     RobotState state = INIT;
 
     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
@@ -88,7 +107,11 @@ int main()
 
     realStartTime = std::chrono::steady_clock::now();
 
-    while (true) {
+    while (rclcpp::ok()) {
+        auto msg      = geometry_msgs::msg::Twist();
+
+
+
         loopStartTime = std::chrono::steady_clock::now();
 
 
@@ -102,6 +125,8 @@ int main()
         switch (state) {
         case INIT:
             std::cout << "State: INIT, goal: (" << goals[current_goal_index].x << ", " << goals[current_goal_index].y << ")" << std::endl;
+
+            std::cout.flush();
 
             robot.setIsStarting(true); // Enable gradual start
 
@@ -320,11 +345,17 @@ int main()
             break;
         }
 
+        msg.linear.x  = (robot.getLeftSpeed() + robot.getRightSpeed()) / 2.0;
+        msg.angular.z = (robot.getRightSpeed() - robot.getLeftSpeed()) / robot.getWheelBase();
+        publisher->publish(msg);
+        rclcpp::spin_some(node);
+        loop_rate.sleep();
 
-        cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
-        robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
-        cv::imshow(window_name, simulation);
+
+        // cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+        // cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
+        // robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
+        // cv::imshow(window_name, simulation);
         if (cv::waitKey(1) >= 0) { // play/pause with aney key
             cv::waitKey(0);
         }
@@ -346,6 +377,8 @@ int main()
         realDuration = realEndTime - realStartTime;
         // std::cout << "Real Time:       " << std::fixed << std::setprecision(3) << realDuration.count() << " s" << std::endl;
     }
+
+    rclcpp::shutdown();
 
     return 0;
 }
