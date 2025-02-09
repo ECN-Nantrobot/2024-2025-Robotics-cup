@@ -59,8 +59,8 @@ public:
 
 
     // For Ros
-    float getLeftSpeed() const { return leftSpeed_; }
-    float getRightSpeed() const { return rightSpeed_; }
+    float getLeftWheelSpeed() const { return leftSpeed_; }
+    float getRightWheelSpeed() const { return rightSpeed_; }
     float getWheelBase() const { return wheelBase_; }
 
 
@@ -77,8 +77,8 @@ private:
 
 
 
-    float leftSpeed_;  // Speed of the left wheel
-    float rightSpeed_; // Speed of the right wheel
+    float leftSpeed_ = 0;  // Speed of the left wheel
+    float rightSpeed_ = 0; // Speed of the right wheel
 
     float speed_; // Current Speed of the robot
     float maxSpeed_ = 10.0;

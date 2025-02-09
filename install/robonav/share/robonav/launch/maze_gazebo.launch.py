@@ -1,1 +1,1 @@
-/home/ferdinand/2024-2025-Robotics-cup/src/maze/launch/maze_gazebo.launch.py
+/home/ferdinand/2024-2025-Robotics-cup/src/robonav/launch/maze_gazebo.launch.py

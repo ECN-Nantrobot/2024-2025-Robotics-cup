@@ -1,1 +1,1 @@
-/home/ferdinand/2024-2025-Robotics-cup/src/maze/launch/rsp.launch.py
+/home/ferdinand/2024-2025-Robotics-cup/src/robonav/launch/rsp.launch.py
