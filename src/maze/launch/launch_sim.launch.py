@@ -39,6 +39,8 @@ def generate_launch_description():
         }.items()
     )
 
+    #
+
     # Run the spawner node
     spawn_entity = Node(
         package='gazebo_ros',
