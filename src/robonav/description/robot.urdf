@@ -133,8 +133,23 @@
     <mu1 value="0.0001"/>
     <mu2 value="0.0001"/>
   </gazebo>
+
+  <gazebo>
+    <plugin filename="libgazebo_ros_diff_drive.so" name="gazebo_ros_diff_drive">
+      <ros>
+        <namespace>/</namespace>  </ros>
+      <update_rate>100.0</update_rate>
+      <robot_base_frame>base_link</robot_base_frame>
+      <wheel_diameter>0.0684</wheel_diameter>  <wheel_separation>0.35</wheel_separation>  <left_wheel>left_wheel_joint</left_wheel>
+      <right_wheel>right_wheel_joint</right_wheel>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <publish_wheel_joint_state>true</publish_wheel_joint_state>
+    </plugin>
+  </gazebo>
   
-  <ros2_control name="DiffDriveController" type="system">
+  <!-- <ros2_control name="DiffDriveController" type="system">
     <hardware>
       <plugin>gazebo_ros2_control/GazeboSystem</plugin>
     </hardware>
@@ -148,12 +163,12 @@
       <state_interface name="position"/>
       <state_interface name="velocity"/>
     </joint>
-  </ros2_control>
+  </ros2_control> -->
 
-  <gazebo>
+  <!-- <gazebo>
     <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
       <robotSimType>gazebo_ros2_control/GazeboSystem</robotSimType>
     </plugin>
-  </gazebo>
+  </gazebo> -->
 
 </robot>

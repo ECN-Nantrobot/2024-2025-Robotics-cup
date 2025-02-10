@@ -14,14 +14,6 @@ find_package(OpenCV REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(SFML 2.5 REQUIRED graphics window system)
 
-# Fix für doppelte sensor_msgs Include-Pfade (falls nötig)
-# include_directories(${ament_INCLUDE_DIRS})
-
-# Falls dein System nur mit dem doppelten sensor_msgs-Ordner funktioniert:
-# sudo ln -s /opt/ros/humble/include/sensor_msgs/sensor_msgs /opt/ros/humble/include/sensor_msgs_fixed
-# Dann folgende Zeile aktivieren:
-# include_directories(/opt/ros/humble/include/sensor_msgs_fixed)
-
 # Add definitions
 add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAZES="${CMAKE_CURRENT_SOURCE_DIR}/mazes")
@@ -64,9 +56,9 @@ ament_target_dependencies(diff_drive_publisher
 )
 
 
-# add_executable(main src/main.cpp)
-# target_link_libraries(main maze_lib ${OpenCV_LIBS} yaml-cpp)
-# ament_target_dependencies(main rclcpp geometry_msgs OpenCV yaml-cpp)
+add_executable(main src/main.cpp)
+target_link_libraries(main maze_lib ${OpenCV_LIBS} yaml-cpp)
+ament_target_dependencies(main rclcpp geometry_msgs OpenCV yaml-cpp)
 
 # ROS 2 Installation
 install(TARGETS

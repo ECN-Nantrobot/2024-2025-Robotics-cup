@@ -1,14 +1,22 @@
-controller_manager:
-  ros__parameters:
-    update_rate: 50
-    use_sim_time: true
+# controller_manager:
+#   ros__parameters:
+#     update_rate: 50
+#     use_sim_time: true
 
-    joint_state_broadcaster:
-      type: joint_state_broadcaster/JointStateBroadcaster
+#     joint_state_broadcaster:
+#       type: joint_state_broadcaster/JointStateBroadcaster
 
-    diff_drive_controller:
-      type: diff_drive_controller/DiffDriveController
-      left_wheel_names: ["left_wheel_joint"]
-      right_wheel_names: ["right_wheel_joint"]
-      wheel_separation: 0.35
-      wheel_radius: 0.0342
+#     diff_drive_controller:
+#       type: diff_drive_controller/DiffDriveController
+#       left_wheel_names: ["left_wheel_joint"]
+#       right_wheel_names: ["right_wheel_joint"]
+#       wheel_separation: 0.35
+#       wheel_radius: 0.0342
+
+controller:
+  type: "diff_drive_controller/DiffDriveController"
+  name: "diff_drive_controller"
+  wheel_separation: 0.35  # Replace with your robot's value
+  wheel_radius: 0.0342   # Replace with your robot's value
+  left_wheel_names: ["left_wheel_joint"]
+  right_wheel_names: ["right_wheel_joint"]
