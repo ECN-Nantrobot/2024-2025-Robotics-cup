@@ -1,1 +1,0 @@
-/home/ferdinand/2024-2025-Robotics-cup/src/robonav/launch/maze_gazebo.launch.py
