@@ -1,1 +1,19 @@
-/home/ferdinand/2024-2025-Robotics-cup/src/maze/package.xml
+<?xml version="1.0"?>
+<package format="3">
+  <name>robonav</name>
+  <version>0.0.0</version>
+  <description>ROS 2 Node für cmd_vel Steuerung</description>
+  <maintainer email="your-email@example.com">Your Name</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>geometry_msgs</depend>
+  <!-- <depend>OpenCV</depend> -->
+  <!-- <depend>yaml-cpp</depend> -->
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

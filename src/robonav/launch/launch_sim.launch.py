@@ -5,13 +5,14 @@ from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import TimerAction
 
 def generate_launch_description():
 
     # Declare an argument for the custom Gazebo world
     world_file_arg = DeclareLaunchArgument(
         'world',
-        default_value='playmat.world',  # Default world file
+        default_value='empty.world',  # Default world file
         description='playmat.world'
     )
 
@@ -39,15 +40,26 @@ def generate_launch_description():
         }.items()
     )
 
-    #
-
     # Run the spawner node
-    spawn_entity = Node(
-        package='gazebo_ros',
-        executable='spawn_entity.py',
-        arguments=['-topic', 'robot_description', '-entity', 'robonav_robot'],
-        output='screen'
+    spawn_entity = TimerAction(
+        period=6.0,
+        actions=[Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            arguments=['-topic', 'robot_description', '-entity', 'robonav_robot'],
+            output='screen'
+        )]
     )
+
+    cmd_vel_publisher = TimerAction(
+        period=7.0,
+        actions=[Node(
+            package='robonav',
+            executable='cmd_vel_publisher',
+            output='screen'
+        )]
+    )
+
 
     # Launch them all!
     return LaunchDescription([
@@ -55,4 +67,5 @@ def generate_launch_description():
         rsp,
         gazebo,
         spawn_entity,
+        cmd_vel_publisher  
     ])
