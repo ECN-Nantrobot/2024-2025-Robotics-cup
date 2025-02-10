@@ -85,11 +85,11 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-add_executable(cmd_vel_publisher src/cmd_vel_publisher.cpp)
-ament_target_dependencies(cmd_vel_publisher rclcpp geometry_msgs)
+add_executable(main_node src/main.cpp)
+ament_target_dependencies(main_node rclcpp geometry_msgs)
 
 install(TARGETS
-  cmd_vel_publisher
+  main_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

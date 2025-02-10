@@ -55,7 +55,7 @@ def generate_launch_description():
         period=7.0,
         actions=[Node(
             package='robonav',
-            executable='cmd_vel_publisher',
+            executable='main_node',
             output='screen'
         )]
     )
