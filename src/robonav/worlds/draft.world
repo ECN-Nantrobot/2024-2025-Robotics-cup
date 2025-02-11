@@ -1,0 +1,131 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="bordered_world">
+    <!-- Ground Plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Light Source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Walls -->
+    <model name="wall_north">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>3.0 0.02 0.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>3.0 0.02 0.5</size>
+            </box>
+            <material>
+              <ambient>0.7 0.7 0.7 1</ambient>
+            </material>
+          </geometry>
+        </visual>
+        <pose>1.5 2 0.25 0 0 0</pose>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>3.0 0.02 0.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>3.0 0.02 0.5</size>
+            </box>
+            <material>
+              <ambient>0.7 0.7 0.7 1</ambient>
+            </material>
+          </geometry>
+        </visual>
+        <pose>1.5 0 0.25 0 0 0</pose>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.02 2.0 0.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.02 2.0 0.5</size>
+            </box>
+            <material>
+              <ambient>0.7 0.7 0.7 1</ambient>
+            </material>
+          </geometry>
+        </visual>
+        <pose>0 1 0.25 0 0 0</pose>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.02 2.0 0.5</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.02 2.0 0.5</size>
+            </box>
+            <material>
+              <ambient>0.7 0.7 0.7 1</ambient>
+            </material>
+          </geometry>
+        </visual>
+        <pose>3 1 0.25 0 0 0</pose>
+      </link>
+    </model>
+
+    <!-- Spotlight -->
+    <light name="spotlight" type="spot">
+      <pose>1.5 1.0 1.0 0 0 0</pose>
+      <diffuse>1.0 0.8 0.6 1</diffuse>
+      <specular>1.0 0.8 0.6 1</specular>
+      <attenuation>
+        <range>10.0</range>
+        <constant>0.5</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0.1</inner_angle>
+        <outer_angle>0.5</outer_angle>
+        <falloff>0.5</falloff>
+      </spot>
+    </light>
+
+  </world>
+</sdf>

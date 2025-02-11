@@ -10,8 +10,10 @@
 
   <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
-  <!-- <depend>OpenCV</depend> -->
-  <!-- <depend>yaml-cpp</depend> -->
+  <depend>OpenCV</depend>
+  <depend>yaml-cpp</depend>
+  <depend>tf2_ros</depend> 
+  <depend>nav_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

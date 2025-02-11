@@ -1,11 +1,11 @@
 #ifndef ROBOT_H
 #define ROBOT_H
 
-#include "point.h"
 #include "maze.h"
+#include "point.h"
+#include "position.h"
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include "position.h"
 
 namespace ecn
 {
@@ -39,11 +39,16 @@ public:
 
     void setSpeed(float speed) { speed_ = speed; }
     void setMaxSpeed(float maxSpeed) { maxSpeed_ = maxSpeed; }
-    void setPose(float x, float y, float theta) { x_ = x; y_ = y; theta_ = theta; }
+    void setPose(float x, float y, float theta)
+    {
+        x_     = x;
+        y_     = y;
+        theta_ = theta;
+    }
 
     void setIsStarting(bool isStarting) { isStarting_ = isStarting; }
 
-    void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta*M_PI/180.0f; }
+    void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta * M_PI / 180.0f; }
     float getTargetTheta() const { return targetTheta_; }
 
     bool turnToGoalOrientation(float dt);
@@ -52,20 +57,16 @@ public:
     float distanceToClosestObstacleInFront(float searchRadius, float coneAngle);
 
 
-    float distanceToGoal(const Point& p) const
-    {
-        return std::hypot(p.x - x_, p.y - y_);
-    };
+    float distanceToGoal(const Point& p) const { return std::hypot(p.x - x_, p.y - y_); };
 
 
     // For Ros
     float getLeftSpeed() const { return leftSpeed_; }
     float getRightSpeed() const { return rightSpeed_; }
-    float getWheelBase() const { return wheelBase_; }
-
+    float getLinearVelocity() const { return (leftSpeed_ + rightSpeed_) / 2.0; }
+    float getAngularVelocity() const { return (rightSpeed_ - leftSpeed_) / wheelBase_; }
 
 private:
-
     float x_;         // x-coordinate of the robot
     float y_;         // y-coordinate of the robot
     float theta_;     // Orientation of the robot in radians
@@ -74,7 +75,6 @@ private:
 
     std::vector<ObstaclePoint> forwardConePoints_; // Member variable to store the points
     void checkForwardObstacles(float searchRadius, float coneAngle, int resolution_radial, int resolution_angle);
-
 
 
     float leftSpeed_;  // Speed of the left wheel
@@ -86,7 +86,6 @@ private:
     float targetTheta_ = 0.0f; // Target orientation at the goal (default to 0)
 
     const float sensor_zero_offset_ = robot_diameter_ / 2 + 2;
-
 
 
     bool isStarting_ = true; // Flag to check if the robot is in the start phase

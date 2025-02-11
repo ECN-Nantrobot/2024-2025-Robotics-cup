@@ -7,7 +7,7 @@
 namespace ecn
 {
 
-std::string Maze::mazeFile(const std::string& file) { return std::string(MAZES) + "/" + file; }
+std::string Maze::mazeFile(const std::string& file) { return std::string(MAPS) + "/" + file; }
 
 Maze::Maze() {}
 
@@ -72,6 +72,11 @@ void Maze::load(std::string _filename)
     cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
     std::cout << "Downsized the image for A* by "
               << resize_for_astar << " ... ";
+
+    cv::imshow("Low Resolution Image", im_lowres);
+    cv::waitKey(1);
+
+    std::cout << "Showing the image ... ";
 
     out_lowres = im_lowres.clone();
 

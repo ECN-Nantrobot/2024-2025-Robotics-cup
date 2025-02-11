@@ -9,7 +9,7 @@
     </material>
 
     <material name="orange">
-        <color rgba="1 0.3 0.1 1"/>
+        <color rgba="1 0.25 0.1 1"/>
     </material>
 
     <material name="blue">
@@ -34,17 +34,17 @@
         <visual>
             <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
             <geometry>
-                <box size="0.3 0.3 0.15"/>
+                <box size="0.25 0.25 0.15"/>
             </geometry>
             <material name="white"/>
         </visual>
         <collision>
             <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
             <geometry>
-                <box size="0.3 0.3 0.15"/>
+                <box size="0.25 0.25 0.15"/>
             </geometry>
         </collision>
-        <xacro:inertial_box mass="1.0" x="0.3" y="0.3" z="0.15" origin_xyz="0.1 0 -0.05" origin_rpy="0 0 0"/>
+        <xacro:inertial_box mass="1.0" x="0.25" y="0.25" z="0.15" origin_xyz="0.1 0 -0.05" origin_rpy="0 0 0"/>
     </link>
 
     <gazebo reference="chassis">

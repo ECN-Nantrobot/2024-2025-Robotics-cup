@@ -2,7 +2,6 @@
 #define PRM_H
 
 #include "point.h"       // Definition of ecn::Point
-// #include "point_hash.h"  // Specialization of std::hash<ecn::Point>
 #include "maze.h"        // Definition of ecn::Maze
 #include <unordered_map>
 #include <vector>

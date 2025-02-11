@@ -1,5 +1,4 @@
 #include <point.h>
-#include "point_hash.h"
 #include <prm.h>
 #include <random>
 // #include <unordered_map>
