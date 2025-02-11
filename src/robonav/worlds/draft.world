@@ -1,6 +1,15 @@
 <?xml version="1.0" ?>
 <sdf version="1.6">
   <world name="bordered_world">
+
+
+    <physics type="ode">
+      <max_step_size>0.05</max_step_size>  <!-- Matches OpenCV dt -->
+      <real_time_update_rate>20</real_time_update_rate>  <!-- Adjust speed -->
+      <gravity>0 0 -9.81</gravity>  <!-- Ensure gravity is set -->
+    </physics>
+
+
     <!-- Ground Plane -->
     <include>
       <uri>model://ground_plane</uri>
@@ -15,102 +24,106 @@
     <model name="wall_north">
       <static>true</static>
       <link name="link">
-        <collision name="collision">
+        <!-- <collision name="collision">
           <geometry>
             <box>
-              <size>3.0 0.02 0.5</size>
+              <size>2 0.02 0.5</size>
             </box>
           </geometry>
-        </collision>
+          <collide_bitmask>0</collide_bitmask>
+        </collision> -->
         <visual name="visual">
           <geometry>
             <box>
-              <size>3.0 0.02 0.5</size>
+              <size>2 0.02 0.5</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>1.5 2 0.25 0 0 0</pose>
+        <pose>1 3 0.25 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_south">
       <static>true</static>
       <link name="link">
-        <collision name="collision">
+        <!-- <collision name="collision">
           <geometry>
             <box>
-              <size>3.0 0.02 0.5</size>
+              <size>2 0.02 0.5</size>
             </box>
           </geometry>
-        </collision>
+          <collide_bitmask>0</collide_bitmask>
+        </collision> -->
         <visual name="visual">
           <geometry>
             <box>
-              <size>3.0 0.02 0.5</size>
+              <size>2 0.02 0.5</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>1.5 0 0.25 0 0 0</pose>
+        <pose>1 0 0.25 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_east">
       <static>true</static>
       <link name="link">
-        <collision name="collision">
+        <!-- <collision name="collision">
           <geometry>
             <box>
-              <size>0.02 2.0 0.5</size>
+              <size>0.02 3 0.5</size>
             </box>
           </geometry>
-        </collision>
+          <collide_bitmask>0</collide_bitmask>
+        </collision> -->
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.02 2.0 0.5</size>
+              <size>0.02 3 0.5</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>0 1 0.25 0 0 0</pose>
+        <pose>0 1.5 0.25 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_west">
       <static>true</static>
       <link name="link">
-        <collision name="collision">
+        <!-- <collision name="collision">
           <geometry>
             <box>
-              <size>0.02 2.0 0.5</size>
+              <size>0.02 3 0.5</size>
             </box>
           </geometry>
-        </collision>
+          <collide_bitmask>0</collide_bitmask>
+        </collision> -->
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.02 2.0 0.5</size>
+              <size>0.02 3 0.5</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>3 1 0.25 0 0 0</pose>
+        <pose>2 1.5 0.25 0 0 0</pose>
       </link>
     </model>
 
     <!-- Spotlight -->
     <light name="spotlight" type="spot">
-      <pose>1.5 1.0 1.0 0 0 0</pose>
+      <pose>1.5 1.5 1.0 0 0 0</pose>
       <diffuse>1.0 0.8 0.6 1</diffuse>
       <specular>1.0 0.8 0.6 1</specular>
       <attenuation>
@@ -122,10 +135,36 @@
       <direction>0 0 -1</direction>
       <spot>
         <inner_angle>0.1</inner_angle>
-        <outer_angle>0.5</outer_angle>
+        <outer_angle>0.4</outer_angle>
         <falloff>0.5</falloff>
       </spot>
     </light>
+
+    <!-- Spotlight -->
+    <light name="spotlight2" type="spot">
+      <pose>0.5 0.5 1.0 0 0 0</pose>
+      <diffuse>1.0 0.8 0.6 1</diffuse>
+      <specular>1.0 0.8 0.6 1</specular>
+      <attenuation>
+        <range>10.0</range>
+        <constant>0.5</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>0 0 -1</direction>
+      <spot>
+        <inner_angle>0.1</inner_angle>
+        <outer_angle>0.4</outer_angle>
+        <falloff>0.5</falloff>
+      </spot>
+    </light>
+
+    <!-- <gui>
+    <camera name="top_down_camera">
+      <pose>1 1 10 0 -90 0</pose>  <!-- x, y, height, roll, pitch, yaw -->
+      <view_controller>ortho</view_controller>  <!-- Use orthographic projection -->
+    </camera>
+  </gui> -->
 
   </world>
 </sdf>

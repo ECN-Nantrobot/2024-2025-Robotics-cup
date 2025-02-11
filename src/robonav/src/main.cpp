@@ -37,7 +37,7 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
         geometry_msgs::msg::PoseStamped pose;
         pose.header.stamp       = path_msg.header.stamp;
         pose.header.frame_id    = "odom";           // Change if needed
-        pose.pose.position.x    = -point.x / 100.0;  // Convert from cm to meters if needed
+        pose.pose.position.x    = point.x / 100.0;  // Convert from cm to meters if needed
         pose.pose.position.y    = point.y / 100.0; // Negate y if needed
         pose.pose.position.z    = 0.0;
         pose.pose.orientation.w = 1.0; // Default orientation
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
 
-    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
 
@@ -71,16 +71,16 @@ int main(int argc, char** argv)
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
-    std::vector<Point> goals = { Point(180, 160), Point(15, 15)}; // goal points
+    std::vector<Point> goals = { Point(270, 150), Point(35, 50)}; // goal points
     int current_goal_index   = 1;                                                                  // Keep track of which goal the robot is targeting
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { -90, 0, 90, 0 };
+    target_thetas = { -90, 0 };
 
     int counter_set_eb_path = 0;
 
-    Robot robot(Point::maze, start.x, start.y, 0, 15, 7, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0], 35, 7, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);                                           // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0]);
     robot.setTargetTheta(target_thetas[0]);
@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
 
     const int scale       = 20; // size up visualization for better quality
-    const int display_res = 1300;
+    const int display_res = 500;
     cv::Mat simulation;
     cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
     cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
@@ -151,9 +151,6 @@ int main(int argc, char** argv)
     rclcpp::Rate loop_rate(1.0 / dt); // dt = 0.05s → 20 Hz
 
     while (rclcpp::ok()) {
-
-        RCLCPP_INFO(node->get_logger(), "Loop running at dt = %.3f seconds", dt);
-
         //     loopStartTime = std::chrono::steady_clock::now();
 
         // Updating the Map
@@ -391,7 +388,7 @@ int main(int argc, char** argv)
 
         // Example: Use your robot's computed speed and rotation
         msg.linear.x  = robot.getLinearVelocity() /100;  // Replace with your velocity computation
-        msg.angular.z = robot.getAngularVelocity(); // Replace with your rotation computation
+        msg.angular.z = - robot.getAngularVelocity(); // Replace with your rotation computation
 
         RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
 
@@ -407,6 +404,7 @@ int main(int argc, char** argv)
         cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
         robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
         cv::imshow(window_name, simulation);
+        cv::waitKey(1);
         // if (cv::waitKey(1) >= 0) { // play/pause with aney key
         //     cv::waitKey(0);
         // }

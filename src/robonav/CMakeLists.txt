@@ -12,6 +12,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(SFML REQUIRED COMPONENTS graphics window system)
 
 
 # Library für Maze-Funktionalität
@@ -42,9 +43,14 @@ ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
+add_executable(interactive_generation src/interactive_generation.cpp)
+target_link_libraries(interactive_generation maze_lib ${OpenCV_LIBS} yaml-cpp sfml-graphics sfml-window sfml-system)
+ament_target_dependencies(interactive_generation OpenCV yaml-cpp)
+
 install(TARGETS
   main_node
   maze_lib  
+  interactive_generation
   DESTINATION lib/${PROJECT_NAME}
 )
  

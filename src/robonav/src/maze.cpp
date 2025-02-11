@@ -73,11 +73,6 @@ void Maze::load(std::string _filename)
     std::cout << "Downsized the image for A* by "
               << resize_for_astar << " ... ";
 
-    cv::imshow("Low Resolution Image", im_lowres);
-    cv::waitKey(1);
-
-    std::cout << "Showing the image ... ";
-
     out_lowres = im_lowres.clone();
 
     std::cout << " ok"

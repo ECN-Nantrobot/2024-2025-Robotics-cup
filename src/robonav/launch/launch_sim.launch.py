@@ -12,8 +12,8 @@ def generate_launch_description():
     # Declare an argument for the custom Gazebo world
     world_file_arg = DeclareLaunchArgument(
         'world',
-        default_value='comp.world',  # Default world file
-        description='playmat.world'
+        default_value='draft.world',  # Default world file
+        description='empty.world'
     )
 
     package_name = 'robonav'  # <--- CHANGE ME
@@ -37,10 +37,8 @@ def generate_launch_description():
                 get_package_share_directory(package_name),
                 'worlds',
                 LaunchConfiguration('world')
-            ])
-            # 'extra_gazebo_args': '--gui-config ' + os.path.join(
-            #     get_package_share_directory(package_name), 'config', 'gazebo.ini'
-            # ) + ' --verbose'  # Add verbose for debugging
+            ]),
+            'extra_gazebo_args': '--gui-camera-pose 1 1 10 0 -90 0'
         }.items()
     )
 
@@ -62,12 +60,12 @@ def generate_launch_description():
             arguments=[
                 '-topic', 'robot_description',
                 '-entity', 'robonav_robot',
-                '-x', '-1.8',  # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE = - main_startposition
-                '-y', '1.6',   # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
+                '-x', '2.0',  # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE = - main_startposition
+                '-y', '0.5',   # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
                 '-z', '0.0',   # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
                 '-R', '0.0',   # Roll angle in radians
                 '-P', '0.0',   # Pitch angle in radians
-                '-Y', '1.5708'    # Yaw angle in radians (orientation) # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE = +180
+                '-Y', '3.1416'    # Yaw angle in radians (orientation) # -180 degrees
             ],
             output='screen'
         )]
