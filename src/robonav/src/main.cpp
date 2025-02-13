@@ -70,6 +70,7 @@ int main(int argc, char** argv)
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
 
 
+
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
 
