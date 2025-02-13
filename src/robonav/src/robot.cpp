@@ -7,7 +7,7 @@ namespace ecn
 {
 
 Robot::Robot(const Maze& maze, float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd)
-: maze_(maze), x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
+: maze_(maze), x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), max_speed_(speed), leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
 {
 }
 
@@ -49,6 +49,10 @@ void Robot::updatePosition(float dt)
         theta_ -= 2 * M_PI;
     while (theta_ < -M_PI)
         theta_ += 2 * M_PI;
+
+    std::cout << "x: " << x_ << std::endl;
+    std::cout << "y: " << y_ << std::endl;
+    std::cout << "theta: " << theta_ << std::endl;
 }
 
 
@@ -308,32 +312,32 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
         //     }
         // }
 
-        float speed_closetobstacle     = maxSpeed_;
+        float speed_closetobstacle     = max_speed_;
         float slowdown_factor_obstacle = distanceToClosestObstacleInFront(robot_diameter_ * 2, 40.0f);
 
         if (slowdown_factor_obstacle < 1.0f) {
-            speed_closetobstacle = maxSpeed_ * slowdown_factor_obstacle; // Adjust speed based on slowdown factor
+            speed_closetobstacle = max_speed_ * slowdown_factor_obstacle; // Adjust speed based on slowdown factor
             // std::cout << "Obstacle detected! Slowdown factor: " << slowdown_factor_obstacle << ", Speed: " << speed_ << std::endl;
         } else {
-            speed_closetobstacle = maxSpeed_;
+            speed_closetobstacle = max_speed_;
         }
 
 
-        float speed_closetogoal = maxSpeed_;
+        float speed_closetogoal = max_speed_;
         float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
 
         // Dynamically adjust speed based on distance to the goal
         if (distanceToGoal < 15.0) { // Slow down when near the goal
-            speed_closetogoal = std::max(0.5f, distanceToGoal / 10.0f * maxSpeed_);
+            speed_closetogoal = std::max(0.5f, distanceToGoal / 10.0f * max_speed_);
 
         } else if (isStarting_) { // Gradual start
             speed_closetogoal += 0.2f; // Increment speed gradually
-            if (speed_closetogoal >= maxSpeed_) {
-                speed_closetogoal = maxSpeed_;
+            if (speed_closetogoal >= max_speed_) {
+                speed_closetogoal = max_speed_;
                 isStarting_ = false; // End the gradual start phase
             }
         } else { // Normal speed
-            speed_closetogoal = maxSpeed_;
+            speed_closetogoal = max_speed_;
         }
 
         speed_ = std::min(speed_closetogoal, speed_closetobstacle);
@@ -349,7 +353,7 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
         }
 
         // float speedDifferenc10e      = std::abs(leftSpeed_ - rightSpeed_);
-        // float normalizedDifference = speedDifference / (2 * maxSpeed_); // Assuming maxSpeed_ is the max speed of each wheel
+        // float normalizedDifference = speedDifference / (2 * max_speed_); // Assuming max_speed_ is the max speed of each wheel
         // leftSpeed_ *= (1.0f - normalizedDifference);                    // Reduce speed for sharp turns
         // rightSpeed_ *= (1.0f - normalizedDifference);
         // std::cout << "(1.0 - normalizedDifference): " << (1.0 - normalizedDifference) << std::endl;

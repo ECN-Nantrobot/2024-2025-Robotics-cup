@@ -38,7 +38,7 @@ public:
     float getTheta() const { return theta_; }
 
     void setSpeed(float speed) { speed_ = speed; }
-    void setMaxSpeed(float maxSpeed) { maxSpeed_ = maxSpeed; }
+    void setMaxSpeed(float maxSpeed) { max_speed_ = maxSpeed; }
     void setPose(float x, float y, float theta)
     {
         x_     = x;
@@ -81,7 +81,7 @@ private:
     float rightSpeed_; // Speed of the right wheel
 
     float speed_; // Current Speed of the robot
-    float maxSpeed_ = 10.0;
+    float max_speed_;
 
     float targetTheta_ = 0.0f; // Target orientation at the goal (default to 0)
 

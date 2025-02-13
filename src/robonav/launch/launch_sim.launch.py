@@ -6,6 +6,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.actions import TimerAction
+import math
 
 def generate_launch_description():
 
@@ -26,8 +27,7 @@ def generate_launch_description():
         launch_arguments={'use_sim_time': 'true'}.items()
     )
 
-        # Include the Gazebo launch file with the custom world and GUI configuration
-
+    # Include the Gazebo launch file with the custom world and GUI configuration
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('gazebo_ros'), 'launch', 'gazebo.launch.py'
@@ -38,7 +38,7 @@ def generate_launch_description():
                 'worlds',
                 LaunchConfiguration('world')
             ]),
-            'extra_gazebo_args': '--gui-camera-pose 1 1 10 0 -90 0'
+            'gui': 'false'
         }.items()
     )
 
@@ -51,6 +51,16 @@ def generate_launch_description():
         )]
     )
 
+
+
+    x_start_cv_frame = 270 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
+    y_start_cv_frame = 150 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
+    theta_start_cv_frame = -90 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+
+    x_start = x_start_cv_frame/100
+    y_start = 2 - y_start_cv_frame/100
+    theta = math.radians(-theta_start_cv_frame)
+
     # Spawn robot at the given start position with orientation
     spawn_entity = TimerAction(
         period=4.0,
@@ -60,12 +70,12 @@ def generate_launch_description():
             arguments=[
                 '-topic', 'robot_description',
                 '-entity', 'robonav_robot',
-                '-x', '2.0',  # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE = - main_startposition
-                '-y', '0.5',   # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
-                '-z', '0.0',   # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
-                '-R', '0.0',   # Roll angle in radians
-                '-P', '0.0',   # Pitch angle in radians
-                '-Y', '3.1416'    # Yaw angle in radians (orientation) # -180 degrees
+                '-x', str(x_start),  
+                '-y', str(y_start), 
+                # '-z', '0.0', 
+                # '-R', '0.0',  
+                # '-P', '0.0',  
+                '-Y', str(theta)    # Yaw angle in radians (orientation) # -180 degrees
             ],
             output='screen'
         )]

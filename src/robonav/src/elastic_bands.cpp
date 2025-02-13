@@ -360,8 +360,8 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
     current_iteration++;
     if (current_iteration >= max_iterations || total_change <= total_change_threshold) {
-        std ::cout << "Optimization ended after " << current_iteration << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
-                  << total_change_threshold << std::endl;
+        // std ::cout << "Optimization ended after " << current_iteration << " iterations, becuase: total_change vs total_change_threshold: " << total_change << " vs "
+                //   << total_change_threshold << std::endl;
         current_iteration     = 6; // so that there is no error
         optimization_complete = true;
     }
