@@ -14,11 +14,11 @@
 #include "robot.h"
 
 #include "geometry_msgs/msg/twist.hpp"
+#include "nav_msgs/msg/odometry.hpp" 
+#include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
-#include "nav_msgs/msg/path.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
 
 
 using namespace std;
@@ -48,19 +48,47 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
     path_publisher->publish(path_msg);
 }
 
+double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
-double getDt()
+
+void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-    static auto last_time                 = std::chrono::steady_clock::now();
-    auto now                              = std::chrono::steady_clock::now();
-    std::chrono::duration<double> elapsed = now - last_time;
-    last_time                             = now;
-    // std::cout << "dt: " << elapsed.count() << " seconds" << std::endl;
-    return elapsed.count();
+    // Get `x` and `y`, convert from meters to cm
+    robot_x = msg->pose.pose.position.x * 100;
+    robot_y = 200 - msg->pose.pose.position.y * 100;
+
+    // Correctly Convert Quaternion to Yaw (Theta)
+    tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw); // Extract yaw angle
+
+    robot_theta = - yaw; // Now theta (yaw) is correct
+
+    RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
 }
 
+// ROS dt 
+rclcpp::Time last_time;
+double getDt(const rclcpp::Node::SharedPtr& node)
+{
+    static rclcpp::Time last_time = node->now();
+    rclcpp::Time now = node->now();
+    double dt = (now - last_time).seconds();
+    last_time = now;
+    return dt;
+}
 
-
+// C++ dt
+// double getDt()
+// {
+//     static auto last_time                 = std::chrono::steady_clock::now();
+//     auto now                              = std::chrono::steady_clock::now();
+//     std::chrono::duration<double> elapsed = now - last_time;
+//     last_time                             = now;
+//     // std::cout << "dt: " << elapsed.count() << " seconds" << std::endl;
+//     return elapsed.count();
+// }
 
 int main(int argc, char** argv)
 {
@@ -68,8 +96,9 @@ int main(int argc, char** argv)
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
+    auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
 
-
+    last_time = node->now();
 
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
@@ -78,15 +107,13 @@ int main(int argc, char** argv)
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
 
-    // Point start      = Point::maze.findStart();
-    // Point goal       = Point::maze.findGoal();
     Point start;
     Point goal;
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
     std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
-    int current_goal_index   = 1;                                                                  // Keep track of which goal the robot is targeting
+    int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
@@ -98,7 +125,6 @@ int main(int argc, char** argv)
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0]);
     robot.setTargetTheta(target_thetas[0]);
-
 
     std::vector<Position> astar_path;
     std::vector<Position> astar_path_previous;
@@ -163,8 +189,9 @@ int main(int argc, char** argv)
 
     realStartTime = std::chrono::steady_clock::now();
 
+    ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
-        double dt = getDt();
+        double dt = getDt(node);
         //     loopStartTime = std::chrono::steady_clock::now();
 
         // Updating the Map
@@ -409,7 +436,8 @@ int main(int argc, char** argv)
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-
+        // robot.updatePosition(dt);
+        robot.setPose(robot_x, robot_y, robot_theta);
 
         cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
         cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency

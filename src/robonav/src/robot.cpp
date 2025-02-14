@@ -50,9 +50,7 @@ void Robot::updatePosition(float dt)
     while (theta_ < -M_PI)
         theta_ += 2 * M_PI;
 
-    std::cout << "x: " << x_ << std::endl;
-    std::cout << "y: " << y_ << std::endl;
-    std::cout << "theta: " << theta_ << std::endl;
+    std::cout << "dt Position: x: " << x_ << ", y: " << y_ << ", theta: " << theta_ << std::endl;
 }
 
 
@@ -76,8 +74,6 @@ bool Robot::turnToGoalOrientation(float dt)
         leftSpeed_  = -turnSignal;
         rightSpeed_ = turnSignal;
     }
-
-    updatePosition(dt);
 
     return false;
 }
@@ -136,8 +132,6 @@ bool Robot::turnToPathOrientation(float dt, const std::vector<Point>& path)
         leftSpeed_  = -turnSignal;
         rightSpeed_ = turnSignal;
     }
-
-    updatePosition(dt);
 
     return false;
 }
@@ -362,8 +356,6 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
     // Store the target index for visualization
     targetIdx_ = targetIdx;
 
-    // Update the robot's position
-    updatePosition(dt);
 }
 
 

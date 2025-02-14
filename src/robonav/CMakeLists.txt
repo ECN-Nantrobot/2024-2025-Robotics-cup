@@ -53,13 +53,14 @@ install(TARGETS
   interactive_generation
   DESTINATION lib/${PROJECT_NAME}
 )
- 
-install(DIRECTORY launch worlds include description config
+
+install(DIRECTORY launch worlds include description config scripts
   DESTINATION share/${PROJECT_NAME}/
 )
 
-# install(DIRECTORY include/
-#   DESTINATION include/${PROJECT_NAME}/
-# )
+install(PROGRAMS
+  scripts/image_publisher.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()

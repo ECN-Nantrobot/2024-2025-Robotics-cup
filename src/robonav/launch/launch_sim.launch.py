@@ -51,8 +51,6 @@ def generate_launch_description():
         )]
     )
 
-
-
     x_start_cv_frame = 270 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
     y_start_cv_frame = 150 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
     theta_start_cv_frame = -90 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -102,20 +100,17 @@ def generate_launch_description():
     #         'yaml_filename': PathJoinSubstitution([
     #             get_package_share_directory('robonav'),
     #             'config',
-    #             'map_server_params.yaml'  # Change this to the correct map file
+    #             'map_server_params.yaml'
     #         ])
     #     }],
     #     output='screen'
     # )
 
-    # load_map = Node(
-    #     package='nav2_map_server',
-    #     executable='map_server',
-    #     name='map_server',
-    #     output='screen',
-    #     parameters=[{
-    #         'yaml_filename': '/home/ferdinand/2024-2025-Robotics-cup/src/robonav/worlds/robonav_map.yaml'
-    #     }]
+    # image_publisher = Node(
+    #     package='robonav',  # <--- Ersetze durch dein Paket
+    #     executable='image_publisher.py',  # Name der ausführbaren Datei
+    #     name='image_publisher',
+    #     output='screen'
     # )
 
     # Launch them all!
@@ -126,4 +121,6 @@ def generate_launch_description():
         spawn_entity,
         start_rviz,
         cmd_vel_publisher
+        # map_server,
+        # image_publisher  
     ])
