@@ -1,0 +1,229 @@
+(footprint "INA219 DC current sensor"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -0.5 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "f06aed3a-b85a-4fe3-a10d-e066e38c6e2c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1524)
+			)
+		)
+	)
+	(property "Value" "INA219 DC current sensor"
+		(at 0 1 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "30adc894-8877-47a6-a45d-906d4aa7738e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Footprint" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "50c5721e-665b-409c-8d8d-f7e79fbc21c0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "1cdc76f8-8f7d-487b-9dac-aa1015b22ea1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "5ce4015e-5edd-4cf0-a151-155edcc28a7f")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_rect
+		(start -12.6 -12.1)
+		(end 12.6 10.1)
+		(stroke
+			(width 0.1524)
+			(type default)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "16706872-63e9-4b38-94af-298edb220630")
+	)
+	(fp_rect
+		(start -7.62 6.35)
+		(end 7.62 8.89)
+		(stroke
+			(width 0.1524)
+			(type default)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "3bad26f2-d30d-4735-9e9c-d13a1b9e49da")
+	)
+	(fp_rect
+		(start 4.3 -12.05)
+		(end -4.3 -7.05)
+		(stroke
+			(width 0.1524)
+			(type default)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "3bc2d280-8869-4073-b0cc-0b7da48ddffe")
+	)
+	(fp_circle
+		(center -2.1 -10)
+		(end -0.435668 -10)
+		(stroke
+			(width 0.1524)
+			(type default)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "f133281c-1ea6-4719-ba67-bfd1056917cc")
+	)
+	(fp_circle
+		(center 2.172331 -10)
+		(end 3.836663 -10)
+		(stroke
+			(width 0.1524)
+			(type default)
+		)
+		(fill none)
+		(layer "F.SilkS")
+		(uuid "f0c6af83-d9e8-4cc5-afd7-86240aea2f8c")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 2.5 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "a406f442-7576-4abb-9381-dde92ab93e92")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" thru_hole rect
+		(at -6.35 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "a5f1e5a7-0c35-4176-8422-64034cf60a97")
+	)
+	(pad "2" thru_hole circle
+		(at -3.81 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "0a96da6a-9d72-48b3-b3c8-a6de3ff3bfc3")
+	)
+	(pad "3" thru_hole circle
+		(at -1.27 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "b8017f9c-d2f9-43ab-9d52-1173311eb470")
+	)
+	(pad "4" thru_hole circle
+		(at 1.27 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "068fe2ba-79c9-4548-8f50-e5f8c72b2e73")
+	)
+	(pad "5" thru_hole circle
+		(at 3.81 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "38452e9e-3cb3-43fc-9504-bd723c815d86")
+	)
+	(pad "6" thru_hole circle
+		(at 6.35 7.62)
+		(size 1.7 1.7)
+		(drill 1)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "3fe694e4-753e-4f49-b312-31e8bbe00cd7")
+	)
+	(model "${KIPRJMOD}/3D/INA219.STEP"
+		(offset
+			(xyz 0 0.889 12.7)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 90)
+		)
+	)
+	(model "${KICAD8_3DMODEL_DIR}/Connector_PinSocket_2.54mm.3dshapes/PinSocket_1x06_P2.54mm_Vertical.wrl"
+		(offset
+			(xyz 6.35 -7.62 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 90)
+		)
+	)
+	(model "${KICAD8_3DMODEL_DIR}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_1x06_P2.54mm_Vertical.step"
+		(offset
+			(xyz 6.35 -7.62 11.049)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 180 90)
+		)
+	)
+	(model "${KICAD8_3DMODEL_DIR}/TerminalBlock_Phoenix.3dshapes/TerminalBlock_Phoenix_PT-1,5-2-3.5-H_1x02_P3.50mm_Horizontal.step"
+		(offset
+			(xyz -1.905 9.525 12.7)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)
