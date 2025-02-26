@@ -117,14 +117,17 @@ int main(int argc, char** argv)
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { -90, 0 };
+    target_thetas = { 45 *M_PI/180, 0 };
 
     int counter_set_eb_path = 0;
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0], 33, 5,    10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 5, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
-    robot.setPose(goals[0].x, goals[0].y, target_thetas[0]);
+    robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
+
+    std::cout << "Robot TAAAAAQARGHETTTTTT Theta: " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
+
 
     std::vector<Position> astar_path;
     std::vector<Position> astar_path_previous;
@@ -191,6 +194,9 @@ int main(int argc, char** argv)
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
+        std::cout << "Robot Theta: " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
+
+
         double dt = getDt(node);
         //     loopStartTime = std::chrono::steady_clock::now();
 
@@ -230,6 +236,7 @@ int main(int argc, char** argv)
             publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
             
             state = TURN_TO_PATH;
+            // state = PATH_PLANNING;
             [[fallthrough]];
 
 
@@ -436,8 +443,9 @@ int main(int argc, char** argv)
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        // robot.updatePosition(dt);
-        robot.setPose(robot_x, robot_y, robot_theta);
+        robot.updatePosition(dt);
+        
+        // robot.setPose(robot_x, robot_y, robot_theta);
 
         cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
         cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
