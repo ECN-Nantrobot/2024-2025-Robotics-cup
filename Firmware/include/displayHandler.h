@@ -32,6 +32,7 @@
 #include <SPI.h>
 #include <ecn_logo.h>
 #include <displayConfig.h>
+#include <Config.h>
 
 namespace ecn
 {
@@ -70,7 +71,6 @@ namespace ecn
 
         public:
         DisplayHandler(){};
-        DisplayHandler(float version = 1.0){};
 
         // Main display variables
         int status = 1;
@@ -88,6 +88,8 @@ namespace ecn
         
         void initDisplay(bool flip = true, bool flash = false, int flashDelay = 2000)
         {
+            wireDisplay.begin(displaySDA, displaySLC); // SDA on pin 19, SCL on pin 21
+
             tft.init();
             if(flip){
                 tft.setRotation(6);
@@ -111,6 +113,21 @@ namespace ecn
             drawText(version, versionPos[0], versionPos[1], 2, TFT_WHITE, 1);
             
             updateDisplay(status, voltage, points);
+
+            /****** Automatically update the screen every 3s ******/
+
+            xTaskCreatePinnedToCore(
+                autoUpdateDisplay,   // Task function
+                "autoUpdateDisplay", // Name
+                2048,          // Stack size
+                this,          // Parameters
+                1,             // Priority
+                NULL,          // Task handle
+                0              // CPU core (0)
+            );
+
+
+
         }
 
         // Draw bitmap with top left corner at x,y with foreground only color.
@@ -129,6 +146,18 @@ namespace ecn
         }
 
         void updateStatusDisplay(int status){
+            this->status = status;
+        }
+
+        void updateBatteryDisplay(float voltage){
+            this->voltage = voltage;
+        }
+
+        void updatePointsDisplay(float points){
+            this->points = points;
+        }
+
+        void _updateStatusDisplay(int status){
             // find length of statusText array
             if( status > sizeof(statusText)/sizeof(statusText[0]) or status < 1){
                 status = 0; // TODO: implement error display instead
@@ -148,7 +177,7 @@ namespace ecn
             }
         }
 
-        void updateBatteryDisplay(float voltage)
+        void _updateBatteryDisplay(float voltage)
         {
             char voltageStr[10];
             unsigned long start = millis();
@@ -176,7 +205,7 @@ namespace ecn
             drawText(voltageStr, batteryPos[1][0], batteryPos[1][1], 2, TFT_WHITE, 2);
         }
 
-        void updatePointsDisplay(float points)
+        void _updatePointsDisplay(float points)
         {
             char pointsStr[10];
             sprintf(pointsStr, "%0.1f", points);
@@ -189,22 +218,34 @@ namespace ecn
         
         void updateDisplay(int status, float voltage, float points)
         {
-            // Draw the status section
-            updateStatusDisplay(status);
-            // Draw the battery section
-            updateBatteryDisplay(voltage);
-            // Draw the points section
-            updatePointsDisplay(points);
+            this->voltage = voltage;
+            this->status = voltage;
+            this->points = points;
         }
 
-        void updateDisplay()
+        static void autoUpdateDisplay(void *pvParameters){
+            if (pvParameters == NULL) {
+                Serial.println("Error: NULL instance passed to autoUpdateDisplay!");
+                vTaskDelete(NULL); // Terminate the task safely
+                return;
+            }
+        
+            DisplayHandler* instance = static_cast<DisplayHandler*>(pvParameters);
+            while (true) {
+                instance->_updateDisplay();
+                Serial.println("update display");
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+            }
+        }
+
+        void _updateDisplay()
         {
             // Draw the status section
-            updateStatusDisplay(status);
+            _updateStatusDisplay(status);
             // Draw the battery section
-            updateBatteryDisplay(voltage);
+            _updateBatteryDisplay(voltage);
             // Draw the points section
-            updatePointsDisplay(points);
+            _updatePointsDisplay(points);
         }
     };
 }
