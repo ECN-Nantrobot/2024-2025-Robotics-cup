@@ -60,6 +60,7 @@ install(DIRECTORY launch worlds include description config scripts
 
 install(PROGRAMS
   scripts/image_publisher.py
+  scripts/relay_scan.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -7,6 +7,7 @@ from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.actions import TimerAction
 import math
+from launch.actions import ExecuteProcess
 
 def generate_launch_description():
 
@@ -38,9 +39,10 @@ def generate_launch_description():
                 'worlds',
                 LaunchConfiguration('world')
             ]),
-            'gui': 'false'
+            'gui': 'true' ###############################
         }.items()
     )
+    
 
     cmd_vel_publisher = TimerAction(
         period=3.0,
@@ -91,6 +93,18 @@ def generate_launch_description():
         )]
     )
 
+    relay_node = ExecuteProcess(
+        cmd=[
+            'python3',
+            PathJoinSubstitution([
+                get_package_share_directory('robonav'),
+                'scripts',
+                'relay_scan.py'
+            ])
+        ],
+        output='screen'
+    )
+
     # # Start the map server
     # map_server = Node(
     #     package='nav2_map_server',
@@ -120,7 +134,8 @@ def generate_launch_description():
         gazebo,
         spawn_entity,
         start_rviz,
-        cmd_vel_publisher
+        cmd_vel_publisher,
+        relay_node    
         # map_server,
         # image_publisher  
     ])
