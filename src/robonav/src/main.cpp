@@ -20,6 +20,8 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
+#include <serial/serial.h>
+
 
 using namespace std;
 using namespace ecn;
@@ -100,6 +102,22 @@ int main(int argc, char** argv)
 
     last_time = node->now();
 
+    serial::Serial ser;
+    ser.setPort("/dev/ttyUSB0");
+    ser.setBaudrate(115200);
+    serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+    ser.setTimeout(to);
+
+    try {
+        ser.open();
+        if(ser.isOpen())
+        {
+          RCLCPP_INFO(node->get_logger(), "Serial port opened successfully");
+        }
+    } catch (serial::IOException &e) {
+       RCLCPP_ERROR(node->get_logger(), "Unable to open port: %s", e.what());
+    }
+
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
 
@@ -150,16 +168,18 @@ int main(int argc, char** argv)
         // Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt)
     };
 
+    std::cout << "BBBBBBBBBBBBBBBBB" << std::endl;
+
 
     const int scale       = 20; // size up visualization for better quality
     const int display_res = 600;
-    cv::Mat simulation;
-    cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-    cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
-    std::string window_name = ("Robot Simulation");
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::moveWindow(window_name, 0, 0);
-    cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
+    // cv::Mat simulation;
+    // cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+    // cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
+    // std::string window_name = ("Robot Simulation");
+    // cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    // cv::moveWindow(window_name, 0, 0);
+    // cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
 
     std::chrono::time_point<std::chrono::steady_clock> astarStartTime, astarEndTime, elasticStartTime, elasticEndTime, realStartTime, realEndTime, loopStartTime,
     loopEndTime; std::chrono::duration<double> astarDuration, elasticDuration, realDuration, loopDuration;
@@ -170,288 +190,303 @@ int main(int argc, char** argv)
 
 
 
-    tf2_ros::Buffer tf_buffer(node->get_clock());
-    tf2_ros::TransformListener tf_listener(tf_buffer);
+    // tf2_ros::Buffer tf_buffer(node->get_clock());
+    // tf2_ros::TransformListener tf_listener(tf_buffer);
 
-    // Wait for robot to be spawned
-    RCLCPP_INFO(node->get_logger(), "Waiting for robot to be spawned in Gazebo...");
+    // // Wait for robot to be spawned
+    // RCLCPP_INFO(node->get_logger(), "Waiting for robot to be spawned in Gazebo...");
 
-    while (rclcpp::ok()) {
-        try {
-            // Try to lookup transform from 'odom' to 'base_link' (i.e., check if the robot exists)
-            auto transform = tf_buffer.lookupTransform("odom", "base_link", tf2::TimePointZero);
-            RCLCPP_INFO(node->get_logger(), "Robot spawn confirmed! Starting loop...");
-            break;
-        } catch (tf2::TransformException& ex) {
-            RCLCPP_WARN(node->get_logger(), "Robot not spawned yet... waiting.");
-        }
-        rclcpp::sleep_for(std::chrono::milliseconds(500)); // Wait before retrying
-    }
-    rclcpp::sleep_for(std::chrono::seconds(2));
+    // while (rclcpp::ok()) {
+    //     try {
+    //         // Try to lookup transform from 'odom' to 'base_link' (i.e., check if the robot exists)
+    //         auto transform = tf_buffer.lookupTransform("odom", "base_link", tf2::TimePointZero);
+    //         RCLCPP_INFO(node->get_logger(), "Robot spawn confirmed! Starting loop...");
+    //         break;
+    //     } catch (tf2::TransformException& ex) {
+    //         RCLCPP_WARN(node->get_logger(), "Robot not spawned yet... waiting.");
+    //     }
+    //     rclcpp::sleep_for(std::chrono::milliseconds(500)); // Wait before retrying
+    // }
+    rclcpp::sleep_for(std::chrono::seconds(3));
 
 
     realStartTime = std::chrono::steady_clock::now();
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
-        std::cout << "Robot Theta: " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
+        // std::cout << "Robot Theta: " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
+
+////////////////////////////////////////////////////////////////
+        // double dt = getDt(node);
+        // //     loopStartTime = std::chrono::steady_clock::now();
+
+        // // Updating the Map
+        // for (auto& obstacle : obstacles)
+        // {
+        //     obstacle.update();
+        // }
+        // Point::maze.renderObstacles(obstacles, Point::maze.im);
 
 
-        double dt = getDt(node);
-        //     loopStartTime = std::chrono::steady_clock::now();
+        // switch (state) {
+        // case INIT:
+        //     std::cout << "State: INIT, goal: (" << goals[current_goal_index].x << ", " << goals[current_goal_index].y << ")" << std::endl;
 
-        // Updating the Map
-        for (auto& obstacle : obstacles)
-        {
-            obstacle.update();
-        }
-        Point::maze.renderObstacles(obstacles, Point::maze.im);
+        //     robot.setIsStarting(true); // Enable gradual start
 
+        //     goal = goals[current_goal_index];
 
-        switch (state) {
-        case INIT:
-            std::cout << "State: INIT, goal: (" << goals[current_goal_index].x << ", " << goals[current_goal_index].y << ")" << std::endl;
+        //     Point::maze.computeDistanceTransform();
+        //     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+        //     start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
+        //     goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+        //     astar_path = Astar(start_p, goal_p);
 
-            robot.setIsStarting(true); // Enable gradual start
+        //     for (auto& position : astar_path) {
+        //         position           = position * (1 / Point::maze.resize_for_astar);
+        //         astar_path.front() = Position(start);
+        //         astar_path.back()  = Position(goal);
+        //     }
 
-            goal = goals[current_goal_index];
+        //     elastic_band.updatePath(astar_path);
+        //     // std::cout << "    -> A* Path Set" << std::endl;
 
-            Point::maze.computeDistanceTransform();
-            cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-            start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
-            goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-            astar_path = Astar(start_p, goal_p);
-
-            for (auto& position : astar_path) {
-                position           = position * (1 / Point::maze.resize_for_astar);
-                astar_path.front() = Position(start);
-                astar_path.back()  = Position(goal);
-            }
-
-            elastic_band.updatePath(astar_path);
-            // std::cout << "    -> A* Path Set" << std::endl;
-
-            elastic_band.runFullOptimization(start, goal);
-            // std::cout << "Elastic Band Path completed full optimization, -> Path Set" << std::endl;
-            publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+        //     elastic_band.runFullOptimization(start, goal);
+        //     // std::cout << "Elastic Band Path completed full optimization, -> Path Set" << std::endl;
+        //     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
             
-            state = TURN_TO_PATH;
-            // state = PATH_PLANNING;
-            [[fallthrough]];
+        //     state = TURN_TO_PATH;
+        //     // state = PATH_PLANNING;
+        //     [[fallthrough]];
 
 
-        case TURN_TO_PATH:
-            std::cout << "State: TURN_TO_PATH" << std::endl;
+        // case TURN_TO_PATH:
+        //     std::cout << "State: TURN_TO_PATH" << std::endl;
 
-            if (robot.turnToPathOrientation(dt, elastic_band.getSmoothedPath())) {
-                std::cout << "Robot is aligned to path orientation!" << std::endl;
-                robot.setIsStarting(true);
-                state = NAVIGATION;
-            }
+        //     if (robot.turnToPathOrientation(dt, elastic_band.getSmoothedPath())) {
+        //         std::cout << "Robot is aligned to path orientation!" << std::endl;
+        //         robot.setIsStarting(true);
+        //         state = NAVIGATION;
+        //     }
 
-            break;
-
-
-        case PATH_PLANNING:
-            std::cout << "State: PLANNING" << std::endl;
-
-            // astarStartTime = std::chrono::steady_clock::now();
-
-            // Recalculate A* path
-            Point::maze.computeDistanceTransform();
-            cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-            start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
-            goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-            astar_path = Astar(start_p, goal_p);
-
-            for (auto& position : astar_path) {
-                position           = position * (1 / Point::maze.resize_for_astar);
-                astar_path.front() = Position(start);
-                astar_path.back()  = Position(goal);
-            }
-
-            // Check the difference in the A* path
-            path_difference_front = 0.0;
-            path_difference_end   = 0.0;
-            path_difference       = 0.0;
-            // path_difference_check_limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
-            path_difference_check_limit = astar_path.size() / 2;
-            if (astar_path_previous.size() != 0) {
-                for (size_t i = 1 + path_difference_check_limit; i < astar_path.size(); i += 2) {
-                    double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
-                    double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
-                    path_difference_front += sqrt(dx * dx + dy * dy);
-                }
-                path_difference_front /= astar_path.size();
-                // std ::cout << "A* path diff front: %: " << path_difference_front;
-
-                for (size_t i = 1; i < astar_path.size() - path_difference_check_limit; i += 2) {
-                    double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
-                    double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
-                    path_difference_end += sqrt(dx * dx + dy * dy);
-                }
-                path_difference_end /= astar_path.size();
-                // std ::cout << " A* path diff end: %: " << path_difference_end;
-            } else {
-                // std::cout << "astar_path_previous.size() = " << astar_path_previous.size() << std::endl;
-            }
-            path_difference = path_difference_front + path_difference_end;
-            if (path_difference_front > 3) {
-                astar_path_previous = astar_path;
-                elastic_band.updatePath(astar_path);
-                // std::cout << "    -> A* Path Front, set eb" << std::endl;
-                elastic_band.resetOptimization();
-                counter_set_eb_path       = 0;
-                set_eb_path_counter_limit = 1;
-                eb_comp_inarow            = 1;
-            } else if (path_difference_end > 4) {
-                astar_path_previous = astar_path;
-                elastic_band.updatePath(astar_path);
-                // std::cout << "    -> A* Path Back, set eb" << std::endl;
-                set_eb_path_counter_limit = 2;
-                counter_set_eb_path       = 0;
-                elastic_band.resetOptimization();
-            } else if (path_difference >= 3.1) {
-                astar_path_previous = astar_path;
-                elastic_band.updatePath(astar_path);
-                // std::cout << "    -> A* Path FULL, set eb" << std::endl;
-                elastic_band.resetOptimization();
-                counter_set_eb_path       = 0;
-                set_eb_path_counter_limit = 1;
-                eb_comp_inarow            = 1;
-                elastic_band.setMaxInterations(6);
-            } else if (path_difference > 2.6 && path_difference < 3 || astar_path_previous.size() == 0) {
-                astar_path_previous = astar_path;
-                elastic_band.updatePath(astar_path);
-                // std::cout << "    -> A* Path MEDIUM, set eb" << std::endl;
-                set_eb_path_counter_limit = 3;
-                counter_set_eb_path       = 0;
-                elastic_band.resetOptimization();
-            } else {
-                std ::cout << "" << std::endl;
-            }
+        //     break;
 
 
-            // astarEndTime  = std::chrono::steadyStartTime;
-            // std::cout << "A* completed in: " << std::fixed << std::setprecision(3) << astarDuration.count() * 1000 << " ms" << std::endl;
+        // case PATH_PLANNING:
+        //     std::cout << "State: PLANNING" << std::endl;
 
-            state = NAVIGATION;
-            [[fallthrough]];
+        //     // astarStartTime = std::chrono::steady_clock::now();
 
+        //     // Recalculate A* path
+        //     Point::maze.computeDistanceTransform();
+        //     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+        //     start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
+        //     goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+        //     astar_path = Astar(start_p, goal_p);
 
-        case NAVIGATION:
-            std::cout << "State: NAVIGATION, goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+        //     for (auto& position : astar_path) {
+        //         position           = position * (1 / Point::maze.resize_for_astar);
+        //         astar_path.front() = Position(start);
+        //         astar_path.back()  = Position(goal);
+        //     }
 
-            // elasticStartTime = std::chrono::steady_clock::now();
+        //     // Check the difference in the A* path
+        //     path_difference_front = 0.0;
+        //     path_difference_end   = 0.0;
+        //     path_difference       = 0.0;
+        //     // path_difference_check_limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
+        //     path_difference_check_limit = astar_path.size() / 2;
+        //     if (astar_path_previous.size() != 0) {
+        //         for (size_t i = 1 + path_difference_check_limit; i < astar_path.size(); i += 2) {
+        //             double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
+        //             double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
+        //             path_difference_front += sqrt(dx * dx + dy * dy);
+        //         }
+        //         path_difference_front /= astar_path.size();
+        //         // std ::cout << "A* path diff front: %: " << path_difference_front;
 
-
-            // for (int i = 0; i < eb_comp_inarow; i++) {
-            //     Point::maze.computeDistanceTransform();
-            elastic_band.optimize(start, goal);
-
-            if (elastic_band.errorCheck() == true) {
-                // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
-                elastic_band.resetOptimization();
-                state = PATH_PLANNING;
-                break;
-            }
-
-            if (elastic_band.isOptimizationComplete()) {
-                // std::cout << "Elastic Band optimization completed";
-                counter_set_eb_path++;
-                elastic_band.resetOptimization();
-
-                if (counter_set_eb_path > set_eb_path_counter_limit) {
-                    // std ::cout << "counter_set_eb_path > set_eb_path_counter_limit: " << counter_set_eb_path << " > " << set_eb_path_counter_limit << std::endl;
-                    elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
-                    // std::cout << "  -> Path Set" << std::endl;
-
-                    // counter++;
-                    // if(counter >= 2){
-                    set_eb_path_counter_limit = set_eb_path_counter_limit_default;
-                    eb_comp_inarow            = eb_comp_inarow_default;
-                    // }
-
-                    publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-
-
-                } else {
-                    // std::cout << "" << std::endl;
-                }
-            }
-
-            // elasticEndTime  = std::chrono::steady_clock::now();
-            // elasticDuration = elasticEndTime - elasticStartTime;
-            // std::cout << "Elastic Band optimization completed in: " << std::fixed << std::setprecision(3) << elasticDuration.count() * 1000 << " ms" << std::endl;
-
-
-            robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
-
-            start = Point(robot.getX(), robot.getY());
-
-            distance_to_goal = robot.distanceToGoal(goal);
-            if (distance_to_goal < 5.0) {
-                std::cout << "Distance to goal: " << distance_to_goal << std::endl;
-
-                if (distance_to_goal < 0.5) {
-                    std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
-                    state = TURN_TO_GOAL;
-                }
-
-            } else if (t % static_cast<int>(1 / dt) == 0) {
-                state = PATH_PLANNING;
-            } else {
-                state = NAVIGATION;
-            }
-
-            break;
-
-
-        case TURN_TO_GOAL:
-            std::cout << "State: TURN_TO_GOAL" << std::endl;
-
-            if (robot.turnToGoalOrientation(dt)) {
-                std::cout << "Robot is aligned to target orientation!" << std::endl;
-                state = GOAL_REACHED;
-            }
-
-            break;
+        //         for (size_t i = 1; i < astar_path.size() - path_difference_check_limit; i += 2) {
+        //             double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
+        //             double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
+        //             path_difference_end += sqrt(dx * dx + dy * dy);
+        //         }
+        //         path_difference_end /= astar_path.size();
+        //         // std ::cout << " A* path diff end: %: " << path_difference_end;
+        //     } else {
+        //         // std::cout << "astar_path_previous.size() = " << astar_path_previous.size() << std::endl;
+        //     }
+        //     path_difference = path_difference_front + path_difference_end;
+        //     if (path_difference_front > 3) {
+        //         astar_path_previous = astar_path;
+        //         elastic_band.updatePath(astar_path);
+        //         // std::cout << "    -> A* Path Front, set eb" << std::endl;
+        //         elastic_band.resetOptimization();
+        //         counter_set_eb_path       = 0;
+        //         set_eb_path_counter_limit = 1;
+        //         eb_comp_inarow            = 1;
+        //     } else if (path_difference_end > 4) {
+        //         astar_path_previous = astar_path;
+        //         elastic_band.updatePath(astar_path);
+        //         // std::cout << "    -> A* Path Back, set eb" << std::endl;
+        //         set_eb_path_counter_limit = 2;
+        //         counter_set_eb_path       = 0;
+        //         elastic_band.resetOptimization();
+        //     } else if (path_difference >= 3.1) {
+        //         astar_path_previous = astar_path;
+        //         elastic_band.updatePath(astar_path);
+        //         // std::cout << "    -> A* Path FULL, set eb" << std::endl;
+        //         elastic_band.resetOptimization();
+        //         counter_set_eb_path       = 0;
+        //         set_eb_path_counter_limit = 1;
+        //         eb_comp_inarow            = 1;
+        //         elastic_band.setMaxInterations(6);
+        //     } else if (path_difference > 2.6 && path_difference < 3 || astar_path_previous.size() == 0) {
+        //         astar_path_previous = astar_path;
+        //         elastic_band.updatePath(astar_path);
+        //         // std::cout << "    -> A* Path MEDIUM, set eb" << std::endl;
+        //         set_eb_path_counter_limit = 3;
+        //         counter_set_eb_path       = 0;
+        //         elastic_band.resetOptimization();
+        //     } else {
+        //         std ::cout << "" << std::endl;
+        //     }
 
 
-        case GOAL_REACHED:
-            std::cout << "State: GOAL_REACHED: (" << goal.x << ", " << goal.y << ")" << std::endl;
+        //     // astarEndTime  = std::chrono::steadyStartTime;
+        //     // std::cout << "A* completed in: " << std::fixed << std::setprecision(3) << astarDuration.count() * 1000 << " ms" << std::endl;
 
-            if (current_goal_index + 1 < goals.size()) {
-                current_goal_index++;
-                robot.setTargetTheta(target_thetas[current_goal_index]);
-                state = INIT;
-            } else {
-                std::cout << "All goals have been reached. Mission complete!" << std::endl;
-                return 0; // End simulation
-            }
-            break;
+        //     state = NAVIGATION;
+        //     [[fallthrough]];
+
+
+        // case NAVIGATION:
+        //     std::cout << "State: NAVIGATION, goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+
+        //     // elasticStartTime = std::chrono::steady_clock::now();
+
+
+        //     // for (int i = 0; i < eb_comp_inarow; i++) {
+        //     //     Point::maze.computeDistanceTransform();
+        //     elastic_band.optimize(start, goal);
+
+        //     if (elastic_band.errorCheck() == true) {
+        //         // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
+        //         elastic_band.resetOptimization();
+        //         state = PATH_PLANNING;
+        //         break;
+        //     }
+
+        //     if (elastic_band.isOptimizationComplete()) {
+        //         // std::cout << "Elastic Band optimization completed";
+        //         counter_set_eb_path++;
+        //         elastic_band.resetOptimization();
+
+        //         if (counter_set_eb_path > set_eb_path_counter_limit) {
+        //             // std ::cout << "counter_set_eb_path > set_eb_path_counter_limit: " << counter_set_eb_path << " > " << set_eb_path_counter_limit << std::endl;
+        //             elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
+        //             // std::cout << "  -> Path Set" << std::endl;
+
+        //             // counter++;
+        //             // if(counter >= 2){
+        //             set_eb_path_counter_limit = set_eb_path_counter_limit_default;
+        //             eb_comp_inarow            = eb_comp_inarow_default;
+        //             // }
+
+        //             publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+
+
+        //         } else {
+        //             // std::cout << "" << std::endl;
+        //         }
+        //     }
+
+        //     // elasticEndTime  = std::chrono::steady_clock::now();
+        //     // elasticDuration = elasticEndTime - elasticStartTime;
+        //     // std::cout << "Elastic Band optimization completed in: " << std::fixed << std::setprecision(3) << elasticDuration.count() * 1000 << " ms" << std::endl;
+
+
+        //     robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
+
+        //     start = Point(robot.getX(), robot.getY());
+
+        //     distance_to_goal = robot.distanceToGoal(goal);
+        //     if (distance_to_goal < 5.0) {
+        //         std::cout << "Distance to goal: " << distance_to_goal << std::endl;
+
+        //         if (distance_to_goal < 0.5) {
+        //             std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
+        //             state = TURN_TO_GOAL;
+        //         }
+
+        //     } else if (t % static_cast<int>(1 / dt) == 0) {
+        //         state = PATH_PLANNING;
+        //     } else {
+        //         state = NAVIGATION;
+        //     }
+
+        //     break;
+
+
+        // case TURN_TO_GOAL:
+        //     std::cout << "State: TURN_TO_GOAL" << std::endl;
+
+        //     if (robot.turnToGoalOrientation(dt)) {
+        //         std::cout << "Robot is aligned to target orientation!" << std::endl;
+        //         state = GOAL_REACHED;
+        //     }
+
+        //     break;
+
+
+        // case GOAL_REACHED:
+        //     std::cout << "State: GOAL_REACHED: (" << goal.x << ", " << goal.y << ")" << std::endl;
+
+        //     if (current_goal_index + 1 < goals.size()) {
+        //         current_goal_index++;
+        //         robot.setTargetTheta(target_thetas[current_goal_index]);
+        //         state = INIT;
+        //     } else {
+        //         std::cout << "All goals have been reached. Mission complete!" << std::endl;
+        //         return 0; // End simulation
+        //     }
+        //     break;
+        // }
+
+        // auto msg = geometry_msgs::msg::Twist();
+
+        // // Example: Use your robot's computed speed and rotation
+        // msg.linear.x  = robot.getLinearVelocity() /100;  // Replace with your velocity computation
+        // msg.angular.z = - robot.getAngularVelocity(); // Replace with your rotation computation
+        // // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
+        // velocity_publisher->publish(msg);
+
+        // rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+/////////////////////////////////////////////////////
+
+        if(ser.isOpen()) {
+            ser.write("Hello from robot_serial_node\n");
+            std::cout << "wrote to serial" << std::endl;
         }
 
-        auto msg = geometry_msgs::msg::Twist();
+        
+        if (ser.available()) {
 
-        // Example: Use your robot's computed speed and rotation
-        msg.linear.x  = robot.getLinearVelocity() /100;  // Replace with your velocity computation
-        msg.angular.z = - robot.getAngularVelocity(); // Replace with your rotation computation
-        // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
-        velocity_publisher->publish(msg);
+            std::cout << " MESSAGE FROM ESP:" << std::endl;
+            std::string result = ser.read(ser.available());
+            RCLCPP_INFO(node->get_logger(), "Received from serial: %s", result.c_str());
+        }
 
-        rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-        robot.updatePosition(dt);
+        // robot.updatePosition(dt);
         
         // robot.setPose(robot_x, robot_y, robot_theta);
 
-        cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
-        robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
-        cv::imshow(window_name, simulation);
-        cv::waitKey(1);
+        // cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+        // cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
+        // robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
+        // cv::imshow(window_name, simulation);
+        // cv::waitKey(1);
 
 
         // loopEndTime  = std::chrono::steady_clock::now();

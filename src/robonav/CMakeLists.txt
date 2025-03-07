@@ -12,7 +12,6 @@ find_package(yaml-cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(SFML REQUIRED COMPONENTS graphics window system)
 
 
 # Library für Maze-Funktionalität
@@ -30,6 +29,15 @@ add_library(maze_lib SHARED
     src/robot.cpp
 )
 
+add_library(serial_lib STATIC
+    src/serial/src/serial.cc
+    src/serial/src/impl/unix.cc
+)
+
+target_include_directories(serial_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/serial/include
+)
+
 target_link_libraries(maze_lib ${OpenCV_LIBS} yaml-cpp)
 ament_target_dependencies(maze_lib rclcpp geometry_msgs OpenCV yaml-cpp)
 
@@ -37,20 +45,15 @@ add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAPS="${CMAKE_CURRENT_SOURCE_DIR}/maps")
 
 add_executable(main_node src/main.cpp)
-target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp)
+target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib)
 ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs)
 
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-add_executable(interactive_generation src/interactive_generation.cpp)
-target_link_libraries(interactive_generation maze_lib ${OpenCV_LIBS} yaml-cpp sfml-graphics sfml-window sfml-system)
-ament_target_dependencies(interactive_generation OpenCV yaml-cpp)
-
 install(TARGETS
   main_node
   maze_lib  
-  interactive_generation
   DESTINATION lib/${PROJECT_NAME}
 )
 
