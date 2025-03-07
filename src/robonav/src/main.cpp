@@ -94,6 +94,7 @@ double getDt(const rclcpp::Node::SharedPtr& node)
 
 int main(int argc, char** argv)
 {
+
     rclcpp::init(argc, argv);
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
@@ -107,7 +108,6 @@ int main(int argc, char** argv)
     ser.setBaudrate(115200);
     serial::Timeout to = serial::Timeout::simpleTimeout(1000);
     ser.setTimeout(to);
-
     try {
         ser.open();
         if(ser.isOpen())
@@ -117,6 +117,26 @@ int main(int argc, char** argv)
     } catch (serial::IOException &e) {
        RCLCPP_ERROR(node->get_logger(), "Unable to open port: %s", e.what());
     }
+
+    ser.write("START\n");
+    ser.write("RESET\n");
+
+    // Wait until serial sends "ESP Initialized!"
+    while (rclcpp::ok()) {
+        if (ser.available()) {
+            std::string result = ser.read(ser.available());
+            RCLCPP_INFO(node->get_logger(), "From ESP: %s", result.c_str());
+            if (result.find("ESP Initialized!") != std::string::npos) {
+                RCLCPP_INFO(node->get_logger(), "ESP Initialization confirmed!");
+                break;
+            }
+        }
+        rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    ser.write("START\n");
+
 
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
@@ -168,9 +188,6 @@ int main(int argc, char** argv)
         // Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt)
     };
 
-    std::cout << "BBBBBBBBBBBBBBBBB" << std::endl;
-
-
     const int scale       = 20; // size up visualization for better quality
     const int display_res = 600;
     // cv::Mat simulation;
@@ -211,6 +228,7 @@ int main(int argc, char** argv)
 
 
     realStartTime = std::chrono::steady_clock::now();
+
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
@@ -467,7 +485,7 @@ int main(int argc, char** argv)
 
         if(ser.isOpen()) {
             ser.write("Hello from robot_serial_node\n");
-            std::cout << "wrote to serial" << std::endl;
+            // std::cout << "wrote to serial" << std::endl;
         }
 
         
@@ -475,7 +493,16 @@ int main(int argc, char** argv)
 
             std::cout << " MESSAGE FROM ESP:" << std::endl;
             std::string result = ser.read(ser.available());
-            RCLCPP_INFO(node->get_logger(), "Received from serial: %s", result.c_str());
+            RCLCPP_INFO(node->get_logger(), "From ESP: %s", result.c_str());
+
+
+            float posX, posY, posTheta;
+            if (sscanf(result.c_str(), "X: %f, Y: %f, Theta: %f", &posX, &posY, &posTheta) == 3) {
+                // Die Werte wurden erfolgreich geparst.
+                std::cout << "Gespeicherte Position: X = " << posX << ", Y = " << posY << ", Theta = " << posTheta << std::endl;
+            } else {
+                std::cout << "Parsing fehlgeschlagen." << std::endl;
+            }
         }
 
         // robot.updatePosition(dt);
@@ -504,7 +531,7 @@ int main(int argc, char** argv)
         // // std::cout << "Simulation time: " << std::fixed << std::setprecision(3) << t * dt << " s" << std::endl;
         realEndTime  = std::chrono::steady_clock::now();
         realDuration = realEndTime - realStartTime;
-        std::cout << "Real Time:       " << std::fixed << std::setprecision(3) << realDuration.count() << " s" << std::endl;
+        // std::cout << "Real Time:       " << std::fixed << std::setprecision(3) << realDuration.count() << " s" << std::endl;
     }
 
     rclcpp::shutdown();
