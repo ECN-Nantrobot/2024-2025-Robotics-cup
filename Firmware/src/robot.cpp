@@ -50,8 +50,8 @@ namespace ecn
         // Serial.print("Controlsignal: ");
         // Serial.println(output);
 
-        Serial.print("angle_error: ");
-        Serial.println(angle_error);
+        // Serial.print("angle_error: ");
+        // Serial.println(angle_error);
 
         const float r = 0.0684 / 2; // meters
 
@@ -69,8 +69,8 @@ namespace ecn
 
     void Robot::updatePosition()
     {
-        double v = (leftSpeed_ + rightSpeed_) / 2.0f;
-        double omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+        // double v = (leftSpeed_ + rightSpeed_) / 2.0f;
+        // double omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
 
         // Euler integration
         //  x_ += v * std::cos(theta_) * dt_;
@@ -185,8 +185,8 @@ namespace ecn
             }
         }
 
-        Serial.print("Target index: ");
-        Serial.println(targetIdx);
+        // Serial.print("Target index: ");
+        // Serial.println(targetIdx);
 
         // Ensure the target index is valid
         if (targetIdx == closestIdx && closestIdx < path.size() - 1)

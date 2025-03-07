@@ -225,7 +225,7 @@ namespace ecn
 
         static void autoUpdateDisplay(void *pvParameters){
             if (pvParameters == NULL) {
-                Serial.println("Error: NULL instance passed to autoUpdateDisplay!");
+                // Serial.println("Error: NULL instance passed to autoUpdateDisplay!");
                 vTaskDelete(NULL); // Terminate the task safely
                 return;
             }
@@ -233,7 +233,7 @@ namespace ecn
             DisplayHandler* instance = static_cast<DisplayHandler*>(pvParameters);
             while (true) {
                 instance->_updateDisplay();
-                Serial.println("update display");
+                // Serial.println("update display");
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
             }
         }

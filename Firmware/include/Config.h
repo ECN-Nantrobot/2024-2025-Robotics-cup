@@ -4,7 +4,6 @@
 #include <Arduino.h>
 #include "Wire.h"
 
-
 // Define pins for motors
 #define stepPin1 26
 #define dirPin1 25
@@ -39,6 +38,12 @@ extern SemaphoreHandle_t robotXMutex;
 // I2C instances
 extern TwoWire myWire;
 extern TwoWire wireDisplay;
+
+
+// Forward declaration of ecn::DisplayHandler
+namespace ecn {
+	class DisplayHandler;
+}
 
 // display instance
 #include "displayHandler.h"

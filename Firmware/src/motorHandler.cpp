@@ -47,7 +47,7 @@ void initMotor()
 
   disableCore1WDT();
 
-  Serial.println("Motors initialized.");
+  Serial.println("Motors initialized!");
 }
 
 void setMotorSpeeds(float leftSpeed, float rightSpeed)

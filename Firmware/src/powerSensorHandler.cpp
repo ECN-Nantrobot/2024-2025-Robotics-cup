@@ -51,7 +51,7 @@ void updateBattery(void *pvParameters){
         // the display object has it's own freeRTOS task to periodiclly update the actual screen
         display.updateBatteryDisplay(ina219.getBusVoltage_V());
 
-        Serial.println("update voltage");
+        // Serial.println("update voltage");
         vTaskDelay(3000 / portTICK_PERIOD_MS);
     }
 }
