@@ -145,6 +145,8 @@ void sendState(serial::Serial& ser, RobotState state)
     cout << "Sent State: " << message << endl;
 }
 
+
+
 void processCommand(const std::string& command)
 {
     std::cout << "ESP Received command: " << command;
