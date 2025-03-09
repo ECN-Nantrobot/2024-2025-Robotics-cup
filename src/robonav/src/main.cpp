@@ -127,23 +127,27 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     }
     message += "\n";
     ser.write(message);
-    std::cout << "Sent Path: " << message << std::endl;
+    std::cout << "Sent Path:" << std::endl;
+    for (size_t i = 0; i < path.size() && i < 5; ++i) {
+        std::cout << "Path " << i << ": (" << path[i].x << ", " << path[i].y << ")" << std::endl;
+    }
+    std::cout << "..." << std::endl;
 }
 
-void sendState(serial::Serial& ser, RobotState state)
-{
-    string stateStr;
-    switch (state) {
-    case TURN_TO_PATH: stateStr = "TURN_TO_PATH"; break;
-    case NAVIGATION: stateStr = "DRIVING"; break;
-    case TURN_TO_GOAL: stateStr = "TURN_TO_GOAL"; break;
-    case GOAL_REACHED: stateStr = "GOAL_REACHED"; break;
-    default: stateStr = "UNKNOWN"; break;
-    }
-    string message = "STATE:" + stateStr + "\n";
-    ser.write(message);
-    cout << "Sent State: " << message << endl;
-}
+// void sendState(serial::Serial& ser, RobotState state)
+// {
+//     string stateStr;
+//     switch (state) {
+//     case TURN_TO_PATH: stateStr = "TURN_TO_PATH"; break;
+//     case NAVIGATION: stateStr = "DRIVING"; break;
+//     case TURN_TO_GOAL: stateStr = "TURN_TO_GOAL"; break;
+//     case GOAL_REACHED: stateStr = "GOAL_REACHED"; break;
+//     default: stateStr = "UNKNOWN"; break;
+//     }
+//     string message = "STATE:" + stateStr + "\n";
+//     ser.write(message);
+//     cout << "Sent State: " << message << endl;
+// }
 
 
 
@@ -187,7 +191,7 @@ int main(int argc, char** argv)
 
 
     //-------------------------------------------------------------------------------------
-    RobotState state = INIT;
+    RobotState state = PATH_PLANNING;
 
     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
     Point::maze.load(filename_maze);
@@ -205,6 +209,8 @@ int main(int argc, char** argv)
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
     target_thetas = { 45 *M_PI/180, 0 };
 
+
+
     int counter_set_eb_path = 0;
 
     Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 5, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
@@ -212,13 +218,15 @@ int main(int argc, char** argv)
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
 
+    robot_x     = robot.getX();
+    robot_y     = robot.getY();
+    robot_theta = robot.getTheta();
 
     std::vector<Position> astar_path;
     std::vector<Position> astar_path_previous;
     ElasticBand elastic_band(astar_path, Point::maze);
     elastic_band.resetOptimization(); // Setzt die Optimierung zurück
 
-    // const float dt = 0.001;
     int t          = 0;
 
     float distance_to_goal                = robot.distanceToGoal(goal);
@@ -234,7 +242,6 @@ int main(int argc, char** argv)
 
 
     rclcpp::sleep_for(std::chrono::seconds(3));
-
 
     goal = goals[current_goal_index];
 
@@ -278,8 +285,16 @@ int main(int argc, char** argv)
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 
-    ser.write("STATE:INIT\n");
+    while (ser.available()) {
+        std::string command = ser.readline(); // Wartet auf eine vollständige Zeile (\n)
+        processCommand(command);
+    }
 
+    ser.write("STATE:INIT\n");
+    std::cout << "Sent INIT state" << std::endl;
+
+
+    std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
@@ -299,7 +314,7 @@ int main(int argc, char** argv)
             std::cout << "State: PLANNING" << std::endl;
 
             // Recalculate A* path
-            Point::maze.computeDistanceTransform();
+            // Point::maze.computeDistanceTransform();
             cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
             start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
             goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
@@ -378,7 +393,6 @@ int main(int argc, char** argv)
 
         case NAVIGATION:
             std::cout << "State: NAVIGATION, goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
-            sendState(ser, NAVIGATION);
 
             elastic_band.optimize(start, goal);
 
