@@ -77,46 +77,46 @@ void setMotorSpeeds(float left_speed_to_set, float right_speed_to_set)
 const float stepDistance = (PI * wheelDiameter) / stepsPerRevolution;
 
 void allRunSpeed(void *pvParameters) {
-  while(1) {
-    // Check if each motor takes a step
-    bool leftStep = motorL.runSpeed();
-    bool rightStep = motorR.runSpeed();
-    
-    // If at least one motor stepped, update the odometry:
-    if (leftStep || rightStep) {
-      // Compute the distance traveled by each wheel.
-      // (For simplicity, we assume a true step moves the wheel forward by stepDistance.)
-      float dL = leftStep ? stepDistance : 0;
-      float dR = rightStep ? stepDistance : 0;
-      
-      // Differential drive equations:
-      // d_center is the average distance traveled by the two wheels.
-      float d_center = (dL + dR) / 2.0;
-      // dTheta is the change in orientation based on the difference in wheel travel.
-      float dTheta = (dR - dL) / trackWidth;
-      
-      // To update the robot's position accurately, use the robot's orientation at the midpoint of the motion.
-      float thetaMid = robotTheta + dTheta / 2.0;
-      
-      // Protect access to robotX, robotY, and robotTheta with the mutex.
-      // if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE) {
+    while(1) {
+        // Check if each motor takes a step
+        bool leftStep = motorL.runSpeed();
+        bool rightStep = motorR.runSpeed();
+        
+        // If at least one motor stepped, update the odometry:
+        if (leftStep || rightStep) {
+            // Compute the distance traveled by each wheel.
+            // (For simplicity, we assume a true step moves the wheel forward by stepDistance.)
+            float dL = leftStep ? (motorL.speed() > 0 ? stepDistance : -stepDistance) : 0;
+            float dR = rightStep ? (motorR.speed() > 0 ? stepDistance : -stepDistance) : 0;
+            
+            // Differential drive equations:
+            // d_center is the average distance traveled by the two wheels.
+            float d_center = (dL + dR) / 2.0;
+            // dTheta is the change in orientation based on the difference in wheel travel.
+            float dTheta = (dR - dL) / trackWidth;
+            
+            // To update the robot's position accurately, use the robot's orientation at the midpoint of the motion.
+            float thetaMid = robotTheta + dTheta / 2.0;
+            
+            // Protect access to robotX, robotY, and robotTheta with the mutex.
+            // if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE) {
 
-    //   robot.updatePositionFromMotors(d_center, thetaMid, dTheta);
+        //   robot.updatePositionFromMotors(d_center, thetaMid, dTheta);
 
-      _robotX += d_center * cos(thetaMid);
-      _robotY += d_center * sin(thetaMid);
-      _robotTheta += dTheta;
-        // Serial.print("position updated: X: ");
-        // Serial.print(_robotX);
-        // Serial.print(", Y: ");
-        // Serial.print(_robotY);
-        // Serial.print(", Theta: ");
-        // Serial.println(_robotTheta);
+            _robotX += d_center * cos(thetaMid) * 100; //in cm
+            _robotY += d_center * sin(thetaMid) * 100; //in cm
+            _robotTheta += dTheta;
+                // Serial.print("position updated: X: ");
+                // Serial.print(_robotX);
+                // Serial.print(", Y: ");
+                // Serial.print(_robotY);
+                // Serial.print(", Theta: ");
+                // Serial.println(_robotTheta);
 
-      //   xSemaphoreGive(robotXMutex);
-      // }
+            //   xSemaphoreGive(robotXMutex);
+            // }
+        }
+        
+        // Optionally add a small delay or yield to let other tasks run.
     }
-    
-    // Optionally add a small delay or yield to let other tasks run.
-  }
 }

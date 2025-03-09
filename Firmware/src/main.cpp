@@ -216,7 +216,11 @@ void loop()
             [[fallthrough]];
 
         case TURN_TO_PATH:
-            Serial.println("CurrentState: TURN_TO_PATH");
+            if (state != lastState)
+            {
+                Serial.println("CurrentState: TURN_TO_PATH");
+                lastState = state;
+            }
 
             if (robot.turnToPathOrientation())
             {
@@ -228,7 +232,11 @@ void loop()
             break;
 
         case NAVIGATION:
-            Serial.println("CurrentState: NAVIGATION");
+            if (state != lastState)
+            {
+                Serial.println("CurrentState: NAVIGATION");
+                lastState = state;
+            }
 
             robot.followPath();
 
@@ -278,7 +286,7 @@ void loop()
         if (state != WAIT)
         {
             setMotorSpeeds(robot.getLeftSpeed(), robot.getRightSpeed());
-            Serial.printf("Left Motor Speed: %f, Right Motor Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
+            Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
             robot.setPose(_robotX, _robotY, _robotTheta);
             sendPositionUpdate();
         }
