@@ -6,16 +6,16 @@
 namespace ecn
 {
 
-    Robot::Robot(float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd, float dt)
-        : x_(x), y_(y), theta_(theta), wheelBase_(wheelBase), speed_(speed),
-          leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0), dt_(dt)
+    Robot::Robot(float x, float y, float theta, float target_speed, float kp, float ki, float kd)
+        : x_(x), y_(y), theta_(theta), target_speed_(target_speed),
+          leftSpeed_(0), rightSpeed_(0), kp_(kp), ki_(ki), kd_(kd), prevError_(0), integral_(0)
     {
     }
 
-    float Robot::calcAngleError(int target_index, const std::vector<Point> &path)
+    float Robot::calcAngleError(int target_index)
     {
-        float targetX = path[target_index].x;
-        float targetY = path[target_index].y;
+        float targetX = path_[target_index].x;
+        float targetY = path_[target_index].y;
         float target_angle = std::atan2(targetY - y_, targetX - x_);
 
         float error = target_angle - theta_;
@@ -29,15 +29,6 @@ namespace ecn
 
     float Robot::computePID(float angle_error)
     {
-        // Serial.print("Target x: ");
-        // Serial.print(target_x);
-        // Serial.print(", Target y: ");
-        // Serial.println(target_y);
-        // Serial.print("Current x: ");
-        // Serial.print(x_);
-        // Serial.print(", Current y: ");
-        // Serial.println(y_);
-
         // float targetAngle = std::atan2(target_y - x_, target_x - y_);
         // float distance = sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
 
@@ -47,16 +38,8 @@ namespace ecn
 
         float output = kp_ * angle_error + ki_ * integral_ + kd_ * derivative;
 
-        // Serial.print("Controlsignal: ");
-        // Serial.println(output);
-
-        // Serial.print("angle_error: ");
-        // Serial.println(angle_error);
-
-        const float r = 0.0684 / 2; // meters
-
+        // const float r = 0.0684 / 2; // meters
         // double thetaL = (kp / r) * distance + (kp * L / r) * angle_error;
-        // double thetaR = (kp / r) * distance - (kp * L / r) * angle_error;
 
         const float maxTurnRate = 8.0;
         if (output > maxTurnRate)
@@ -128,16 +111,16 @@ namespace ecn
             rightSpeed_ = turnSignal;
         }
 
-        setMotorSpeeds(leftSpeed_, rightSpeed_);
-        updatePosition();
+        // setMotorSpeeds(leftSpeed_, rightSpeed_);
+        // updatePosition();
         return (std::abs(angleError) < 0.02);
     }
 
-    bool Robot::turnToPathOrientation(const std::vector<Point> &path)
+    bool Robot::turnToPathOrientation()
     {
-        int target_index = findClosestPointOnPath(path);
+        int target_index = findClosestPointOnPath();
 
-        float angle_error = calcAngleError(target_index, path);
+        float angle_error = calcAngleError(target_index);
 
         if (std::abs(angle_error) < 0.02)
         {
@@ -151,19 +134,19 @@ namespace ecn
             rightSpeed_ = turnSignal;
         }
 
-        setMotorSpeeds(leftSpeed_, rightSpeed_);
-        updatePosition();
+        // setMotorSpeeds(leftSpeed_, rightSpeed_);
+        // updatePosition();
         return (std::abs(angle_error) < 0.02);
     }
 
-    int Robot::findClosestPointOnPath(const std::vector<Point> &path)
+    int Robot::findClosestPointOnPath()
     {
         // Find the closest point on the path to the current position
         float minDist = std::numeric_limits<float>::max();
         int closestIdx = 0;
-        for (int i = 0; i < path.size(); ++i)
+        for (int i = 0; i < path_.size(); ++i)
         {
-            float dist = std::hypot(path[i].x - x_, path[i].y - y_);
+            float dist = std::hypot(path_[i].x - x_, path_[i].y - y_);
             if (dist < minDist)
             {
                 minDist = dist;
@@ -175,9 +158,9 @@ namespace ecn
         const float lookaheadDistance = robot_diameter_ * 0.5f + 1.0f;
         int targetIdx = closestIdx;
 
-        for (int i = closestIdx + 1; i < path.size(); ++i)
+        for (int i = closestIdx + 1; i < path_.size(); ++i)
         {
-            float dist = std::hypot(path[i].x - x_, path[i].y - y_);
+            float dist = std::hypot(path_[i].x - x_, path_[i].y - y_);
             if (dist >= lookaheadDistance)
             {
                 targetIdx = i;
@@ -185,30 +168,26 @@ namespace ecn
             }
         }
 
-        // Serial.print("Target index: ");
-        // Serial.println(targetIdx);
-
         // Ensure the target index is valid
-        if (targetIdx == closestIdx && closestIdx < path.size() - 1)
-            targetIdx = path.size() - 1;
+        if (targetIdx == closestIdx && closestIdx < path_.size() - 1)
+            targetIdx = path_.size() - 1;
 
         return targetIdx;
     }
 
-    void Robot::followPath(const std::vector<Point> &path)
+    void Robot::followPath()
     {
-        int target_index = findClosestPointOnPath(path);
+        int target_index = findClosestPointOnPath();
 
         // Calculate the target angle to the target point
-        if (target_index < path.size())
+        if (target_index < path_.size())
         {
-            float angle_error = calcAngleError(target_index, path);
+            float angle_error = calcAngleError(target_index);
             float controlSignal = computePID(angle_error);
 
             // Adjust speed based on proximity to obstacles and goal
-            // float speed_closetobstacle = maxSpeed_;
             float speed_closetogoal = maxSpeed_;
-            float distanceToGoal = std::hypot(path.back().x - x_, path.back().y - y_);
+            float distanceToGoal = std::hypot(path_.back().x - x_, path_.back().y - y_);
 
             // Slow speed if the robot is close to a goal
             if (distanceToGoal < 15.0f)
@@ -231,8 +210,6 @@ namespace ecn
                 speed_closetogoal = maxSpeed_;
             }
 
-            // speed_ = std::min(speed_closetogoal, speed_closetobstacle);
-
             // If close to the goal: stop
             if (distanceToGoal < 0.02f)
             {
@@ -242,14 +219,14 @@ namespace ecn
             // Normal speed
             else
             {
-                leftSpeed_ = speed_ - controlSignal;
-                rightSpeed_ = speed_ + controlSignal;
+                leftSpeed_ = target_speed_ - controlSignal;
+                rightSpeed_ = target_speed_ + controlSignal;
             }
 
-            setMotorSpeeds(leftSpeed_, rightSpeed_);
+            // setMotorSpeeds(leftSpeed_, rightSpeed_);
         }
 
-        updatePosition();
+        // updatePosition();
     }
 
 } // namespace ecn

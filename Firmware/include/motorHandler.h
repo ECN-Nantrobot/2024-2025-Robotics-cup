@@ -3,7 +3,8 @@
 #include "Arduino.h"
 
 void initMotor();
-void setMotorSpeeds(float leftSpeed, float rightSpeed);
+void setMotorSpeeds(float left_speed_to_set, float right_speed_to_set);
 void allRunSpeed(void *pvParameters);
+
 
 #endif

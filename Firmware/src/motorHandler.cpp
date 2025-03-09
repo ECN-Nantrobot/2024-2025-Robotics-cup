@@ -1,10 +1,19 @@
-# include <math.h>
+#include "robot.h"
+#include <math.h>
 #include "motorHandler.h"
 #include <AccelStepper.h>
 #include "Config.h"
 
-
 SemaphoreHandle_t robotXMutex;
+
+// extern Robot robot;
+
+volatile float robotX = 0.0;
+volatile float robotY = 0.0;
+volatile float robotTheta = 0.0;
+volatile float _robotX = 0.0;
+volatile float _robotY = 0.0;
+volatile float _robotTheta = 0.0;
 
 const double oneStepAngle = 2.0*M_PI / stepsPerRevolution; // [rad]
 const double metersPerStep = oneStepAngle * wheelDiameter/2; // [m]
@@ -50,16 +59,15 @@ void initMotor()
   Serial.println("Motors initialized!");
 }
 
-void setMotorSpeeds(float leftSpeed, float rightSpeed)
+void setMotorSpeeds(float left_speed_to_set, float right_speed_to_set)
 {
   // speed conversion from [m/s] to [steps/s]
-  leftSpeed = leftSpeed / metersPerStep;   
-  rightSpeed = rightSpeed / metersPerStep;
-  // Serial.println(leftSpeed);
-  
+  double left_speed = left_speed_to_set / metersPerStep;
+  double right_speed = right_speed_to_set / metersPerStep;
+
   // Set speeds in steps per second
-  motorL.setSpeed(leftSpeed);
-  motorR.setSpeed(rightSpeed);
+  motorL.setSpeed(left_speed);
+  motorR.setSpeed(right_speed);
 }
 
 
@@ -86,16 +94,17 @@ void allRunSpeed(void *pvParameters) {
       // dTheta is the change in orientation based on the difference in wheel travel.
       float dTheta = (dR - dL) / trackWidth;
       
-      // To update the robot's position accurately, use the robot's orientation
-      // at the midpoint of the motion.
+      // To update the robot's position accurately, use the robot's orientation at the midpoint of the motion.
       float thetaMid = robotTheta + dTheta / 2.0;
       
       // Protect access to robotX, robotY, and robotTheta with the mutex.
       // if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE) {
 
-        _robotX += d_center * cos(thetaMid);
-        _robotY += d_center * sin(thetaMid);
-        _robotTheta += dTheta;
+    //   robot.updatePositionFromMotors(d_center, thetaMid, dTheta);
+
+      _robotX += d_center * cos(thetaMid);
+      _robotY += d_center * sin(thetaMid);
+      _robotTheta += dTheta;
 
       //   xSemaphoreGive(robotXMutex);
       // }
