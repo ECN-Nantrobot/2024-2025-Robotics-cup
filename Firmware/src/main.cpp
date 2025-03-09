@@ -13,7 +13,7 @@ TwoWire wireDisplay(1);
 
 using namespace ecn;
 
-Robot robot(0, 0, 0, 15, 10, 0.01, 0.5); // x, y, theta, wheelBase, speed, kp, ki, kd
+Robot robot(0, 0, 0, 15, 10, 0.01, 0.5); // x, y, theta, speed, kp, ki, kd
 
 DisplayHandler display;
 
@@ -28,7 +28,7 @@ unsigned long startTime = 0;
 
 const int internalLed = 2; // eingebaute LED auf GPIO 2
 
-int current_goal_index = 0;
+int current_goal_index = 1;
 float distance_to_goal = 0.0;
 
 enum RobotState
@@ -67,6 +67,19 @@ void parseGoals(String data)
 
         robot.goals.push_back(Pose(x, y, theta));
     }
+
+    robot.setPose(robot.goals[0].point.x, robot.goals[0].point.y, robot.goals[0].theta);
+
+    // Initialize the robot's position with the first goal's coordinates
+    if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
+    {
+        _robotX = robot.goals[0].point.x;
+        _robotY = robot.goals[0].point.y;
+        _robotTheta = robot.goals[0].theta;
+        xSemaphoreGive(robotXMutex);
+    }
+
+    robot.setTargetTheta(robot.goals[0].theta);
 }
 
 void parsePath(String data)
@@ -132,18 +145,19 @@ void sendPositionUpdate()
 {
     if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
     {
-        currentX = robot.getX();
-        currentY = robot.getY();
-        currentTheta = robot.getTheta();
+        // currentX = robot.getX();
+        // currentY = robot.getY();
+        // currentTheta = robot.getTheta();
+        robot.setPose(_robotX, _robotY, _robotTheta);
         xSemaphoreGive(robotXMutex);
 
         digitalWrite(internalLed, HIGH);
         Serial.print("X: ");
-        Serial.print(currentX);
+        Serial.print(robot.getX());
         Serial.print(", Y: ");
-        Serial.print(currentY);
+        Serial.print(robot.getY());
         Serial.print(", Theta: ");
-        Serial.println(currentTheta);
+        Serial.println(robot.getTheta());
         digitalWrite(internalLed, LOW);
 
         display.updatePointsDisplay(robotY);
@@ -196,6 +210,8 @@ void loop()
         case INIT:
             Serial.println("CurrentState: INIT");
 
+            Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+                
             state = TURN_TO_PATH;
             [[fallthrough]];
 
@@ -262,6 +278,7 @@ void loop()
         if (state != WAIT)
         {
             setMotorSpeeds(robot.getLeftSpeed(), robot.getRightSpeed());
+            Serial.printf("Left Motor Speed: %f, Right Motor Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
             robot.setPose(_robotX, _robotY, _robotTheta);
             sendPositionUpdate();
         }

@@ -68,6 +68,7 @@ void setMotorSpeeds(float left_speed_to_set, float right_speed_to_set)
   // Set speeds in steps per second
   motorL.setSpeed(left_speed);
   motorR.setSpeed(right_speed);
+//   Serial.println("Motor speeds set: " + String(left_speed) + ", " + String(right_speed));
 }
 
 
@@ -105,6 +106,12 @@ void allRunSpeed(void *pvParameters) {
       _robotX += d_center * cos(thetaMid);
       _robotY += d_center * sin(thetaMid);
       _robotTheta += dTheta;
+        // Serial.print("position updated: X: ");
+        // Serial.print(_robotX);
+        // Serial.print(", Y: ");
+        // Serial.print(_robotY);
+        // Serial.print(", Theta: ");
+        // Serial.println(_robotTheta);
 
       //   xSemaphoreGive(robotXMutex);
       // }
