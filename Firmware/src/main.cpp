@@ -107,7 +107,7 @@ void parsePath(String data)
 }
 
 void processCommand(String command)
-{
+{    
     if (command.startsWith("GOALS:"))
     {
         parseGoals(command.substring(6));
