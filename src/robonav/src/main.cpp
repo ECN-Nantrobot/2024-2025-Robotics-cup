@@ -53,22 +53,22 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
 
-void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-{
-    // Get `x` and `y`, convert from meters to cm
-    robot_x = msg->pose.pose.position.x * 100;
-    robot_y = 200 - msg->pose.pose.position.y * 100;
+// void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+// {
+//     // Get `x` and `y`, convert from meters to cm
+//     robot_x = msg->pose.pose.position.x * 100;
+//     robot_y = 200 - msg->pose.pose.position.y * 100;
 
-    // Correctly Convert Quaternion to Yaw (Theta)
-    tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-    tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw); // Extract yaw angle
+//     // Correctly Convert Quaternion to Yaw (Theta)
+//     tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+//     tf2::Matrix3x3 m(q);
+//     double roll, pitch, yaw;
+//     m.getRPY(roll, pitch, yaw); // Extract yaw angle
 
-    robot_theta = - yaw; // Now theta (yaw) is correct
+//     robot_theta = - yaw; // Now theta (yaw) is correct
 
-    RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
-}
+//     RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
+// }
 
 // ROS dt 
 rclcpp::Time last_time;
@@ -93,16 +93,12 @@ double getDt(const rclcpp::Node::SharedPtr& node)
 // }
 
 
-void receivePosition(serial::Serial &ser, double &posX, double &posY, double &posTheta) {
-    if (ser.available()) {
-        std::string result = ser.readline();
-        std::cout << "ESP32 Response: " << result << std::endl;
-
-        if (sscanf(result.c_str(), "X: %lf, Y: %lf, Theta: %lf", &posX, &posY, &posTheta) == 3) {
-            std::cout << "Updated Position -> X: " << posX << ", Y: " << posY << ", Theta: " << posTheta << std::endl;
-         } else {
-            std::cout << "⚠️ Failed to parse position data." << std::endl;
-        }
+void receivePosition(std::string result) {
+    
+    if (sscanf(result.c_str(), "X: %lf, Y: %lf, Theta: %lf", &robot_x, &robot_y, &robot_theta) == 3) {
+        // std::cout << "Updated Position -> X: " << robot_x << ", Y: " << robot_y << ", Theta: " << robot_theta << std::endl;
+    } else {
+        std::cout << "⚠️ Failed to parse position data." << std::endl;
     }
 }
 
@@ -134,30 +130,18 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     std::cout << "..." << std::endl;
 }
 
-// void sendState(serial::Serial& ser, RobotState state)
-// {
-//     string stateStr;
-//     switch (state) {
-//     case TURN_TO_PATH: stateStr = "TURN_TO_PATH"; break;
-//     case NAVIGATION: stateStr = "DRIVING"; break;
-//     case TURN_TO_GOAL: stateStr = "TURN_TO_GOAL"; break;
-//     case GOAL_REACHED: stateStr = "GOAL_REACHED"; break;
-//     default: stateStr = "UNKNOWN"; break;
-//     }
-//     string message = "STATE:" + stateStr + "\n";
-//     ser.write(message);
-//     cout << "Sent State: " << message << endl;
-// }
-
 
 
 void processCommand(const std::string& command)
 {
-    std::cout << "ESP Received command: " << command;
-    if (command.rfind("POS:", 0) == 0) {
-        std::string position_data = command.substr(4);
-        // Parse the position data here
-    } 
+    std::cout << "Recieved from ESP: " << command;
+
+    if (command.rfind("X:", 0) == 0) {
+        std::string position_string = command;
+        receivePosition(position_string);
+    }
+        // Use the receivePosition function to process and save to robot_x, robot_y, robot_theta
+
 }
 
 
@@ -167,7 +151,7 @@ int main(int argc, char** argv)
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
-    auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
+    // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
 
     last_time = node->now();
 
@@ -261,7 +245,6 @@ int main(int argc, char** argv)
     elastic_band.runFullOptimization(start, goal);
 
 
-    double dt = 0.05;
 
     // Wait until serial sends "ESP Initialized!"
     while (rclcpp::ok()) {
@@ -296,6 +279,10 @@ int main(int argc, char** argv)
 
     std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
+
+    // double dt = 0.05;
+    rclcpp::Rate loop_rate(3000); // 20 Hz, 50ms per loop
+
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
 
@@ -304,6 +291,7 @@ int main(int argc, char** argv)
         while (ser.available()) {
             std::string command = ser.readline(); // Wartet auf eine vollständige Zeile (\n)
             processCommand(command);
+            std::cout << "REEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAADing" << std::endl;
         }
 
         // receivePosition(ser, robot_x, robot_y, robot_theta);
@@ -435,6 +423,8 @@ int main(int argc, char** argv)
         // velocity_publisher->publish(msg);
 
         // rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
+        loop_rate.sleep();
+
         // std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         // robot.updatePosition(dt);
