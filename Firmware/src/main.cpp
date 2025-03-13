@@ -38,9 +38,11 @@ enum RobotState
     NAVIGATION,
     TURN_TO_GOAL,
     TURN_TO_PATH,
-    GOAL_REACHED
+    GOAL_REACHED,
+    PATH_PLANNING
 };
 RobotState state = WAIT;
+RobotState last_sent_state = WAIT;
 
 void parseGoals(String data)
 {
@@ -116,21 +118,21 @@ void processCommand(String command)
     else if (command.startsWith("PATH:"))
     {
         parsePath(command.substring(5));
-        Serial.println("ACK:PATH_RECEIVED\n");
+        Serial.println("ACK:PATH_RECEIVED");
     }
     else if (command.startsWith("STATE:"))
     {
         String stateStr = command.substring(6);
         if (stateStr == "INIT")
             state = INIT;
-        else if (stateStr == "NAVIGATION")
-            state = NAVIGATION;
-        else if (stateStr == "TURN_TO_GOAL")
-            state = TURN_TO_GOAL;
-        else if (stateStr == "TURN_TO_PATH")
-            state = TURN_TO_PATH;
-        else if (stateStr == "GOAL_REACHED")
-            state = GOAL_REACHED;
+        // else if (stateStr == "NAVIGATION")
+        //     state = NAVIGATION;
+        // else if (stateStr == "TURN_TO_GOAL")
+        //     state = TURN_TO_GOAL;
+        // else if (stateStr == "TURN_TO_PATH")
+        //     state = TURN_TO_PATH;
+        // else if (stateStr == "GOAL_REACHED")
+        //     state = GOAL_REACHED;
         Serial.print("ACK:STATE_RECEIVED: ");
         Serial.println(stateStr);
     }
@@ -207,8 +209,17 @@ void loop()
 
         switch (state)
         {
+        case WAIT:
+           
+            Serial. println("CurrentState: WAIT");
+
+            break; 
         case INIT:
-            Serial.println("CurrentState: INIT");
+            // if (state != lastState)
+            // {
+                Serial.println("CurrentState: INIT");
+            //     lastState = state;
+            // }
 
             Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
                 
@@ -216,11 +227,11 @@ void loop()
             [[fallthrough]];
 
         case TURN_TO_PATH:
-            if (state != lastState)
-            {
+            // if (state != lastState)
+            // {
                 Serial.println("CurrentState: TURN_TO_PATH");
-                lastState = state;
-            }
+            //     lastState = state;
+            // }
 
             if (robot.turnToPathOrientation())
             {
@@ -232,11 +243,13 @@ void loop()
             break;
 
         case NAVIGATION:
-            if (state != lastState)
+            if (PATH_PLANNING != last_sent_state)
             {
-                Serial.println("CurrentState: NAVIGATION");
-                lastState = state;
+                Serial.print("STATE:PATH_PLANNING\n");
+                last_sent_state = PATH_PLANNING;
             }
+            Serial.println("CurrentState: NAVIGATION");
+            
 
             robot.followPath();
 
@@ -286,18 +299,12 @@ void loop()
         if (state != WAIT)
         {
             setMotorSpeeds(robot.getLeftSpeed(), robot.getRightSpeed());
-            Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
+            // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
             robot.setPose(_robotX, _robotY, _robotTheta);
             sendPositionUpdate();
         }
-        else
-        {
-            if (state != lastState)
-            {
-                Serial.println("CurrentState: WAIT");
-                lastState = state;
-            }
-        }
+        
+
         display.updatePointsDisplay(0);
 
         // End of loop

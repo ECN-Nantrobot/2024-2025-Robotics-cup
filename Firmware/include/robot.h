@@ -85,7 +85,7 @@ namespace ecn
         float leftSpeed_;
         float rightSpeed_;
 
-        float dt_ = 3;
+        float dt_ = 50; //in ms
 
         float maxSpeed_ = 10.0;
         bool isStarting_ = true;
