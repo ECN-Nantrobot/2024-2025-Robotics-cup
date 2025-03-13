@@ -27,7 +27,9 @@ using namespace std;
 using namespace ecn;
 
 
-enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
+enum RobotState { WAITING, INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
+
+RobotState state = WAITING;
 
 void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
@@ -70,28 +72,6 @@ double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 //     RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
 // }
 
-// ROS dt 
-rclcpp::Time last_time;
-double getDt(const rclcpp::Node::SharedPtr& node)
-{
-    static rclcpp::Time last_time = node->now();
-    rclcpp::Time now = node->now();
-    double dt = (now - last_time).seconds();
-    last_time = now;
-    return dt;
-}
-
-// C++ dt
-// double getDt()
-// {
-//     static auto last_time                 = std::chrono::steady_clock::now();
-//     auto now                              = std::chrono::steady_clock::now();
-//     std::chrono::duration<double> elapsed = now - last_time;
-//     last_time                             = now;
-//     // std::cout << "dt: " << elapsed.count() << " seconds" << std::endl;
-//     return elapsed.count();
-// }
-
 
 void receivePosition(std::string result) {
     
@@ -123,11 +103,11 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     }
     message += "\n";
     ser.write(message);
-    std::cout << "Sent Path:" << std::endl;
-    for (size_t i = 0; i < path.size() && i < 5; ++i) {
-        std::cout << "Path " << i << ": (" << path[i].x << ", " << path[i].y << ")" << std::endl;
+    std::cout << "Sent Path:    ";
+    for (size_t i = 0; i < path.size() && i < 4; ++i) {
+        std::cout << i << ": (" << path[i].x << ", " << path[i].y << ")  ";
     }
-    std::cout << "..." << std::endl;
+    std::cout << " ..." << std::endl;
 }
 
 
@@ -139,11 +119,26 @@ void processCommand(const std::string& command)
     if (command.rfind("X:", 0) == 0) {
         std::string position_string = command;
         receivePosition(position_string);
+
+    } else if (command.rfind("STATE:", 0) == 0) {
+        std::string stateStr = command.substr(6);
+        stateStr.erase(std::remove(stateStr.begin(), stateStr.end(), '\n'), stateStr.end());
+        if (stateStr == "INIT")
+            state = INIT;
+        else if (stateStr == "PATH_PLANNING")
+            state = PATH_PLANNING;
+        else if (stateStr == "TURN_TO_GOAL")
+            state = WAITING;
+        else if (stateStr == "TURN_TO_PATH")
+            state = WAITING;
+        else if (stateStr == "GOAL_REACHED")
+            state = GOAL_REACHED;
+        std::cout << "ACK:STATE_RECEIVED: " << stateStr << std::endl;
+
+    } else if (command.rfind("CurrenState: ", 0) == 0) {
+        std::cout << "Current State: " << command.substr(13) << std::endl;
     }
-        // Use the receivePosition function to process and save to robot_x, robot_y, robot_theta
-
 }
-
 
 int main(int argc, char** argv)
 {
@@ -153,29 +148,36 @@ int main(int argc, char** argv)
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
 
-    last_time = node->now();
-
     serial::Serial ser;
-    ser.setPort("/dev/ttyUSB0");
-    ser.setBaudrate(115200);
-    serial::Timeout to = serial::Timeout::simpleTimeout(1000);
-    ser.setTimeout(to);
-    try {
-        ser.open();
-        if(ser.isOpen())
-        {
-          RCLCPP_INFO(node->get_logger(), "Serial port opened successfully");
+    bool port_opened = false;
+
+    for (int i = 0; i < 10; ++i) {
+        std::string port = "/dev/ttyUSB" + std::to_string(i);
+        ser.setPort(port);
+        ser.setBaudrate(115200);
+        serial::Timeout to = serial::Timeout::simpleTimeout(1000);
+        ser.setTimeout(to);
+        try {
+            ser.open();
+            if (ser.isOpen()) {
+                std::cout << "Serial port " << port << " opened successfully" << std::endl;
+                port_opened = true;
+                break;
+            }
+        } catch (serial::IOException &e) {
+            std::cout << "Unable to open port " << port << std::endl;
         }
-    } catch (serial::IOException &e) {
-       RCLCPP_ERROR(node->get_logger(), "Unable to open port: %s", e.what());
+    }
+
+    if (!port_opened) {
+        std::cerr << "Failed to open any serial port." << std::endl;
+        return 1;
     }
 
     ser.write("RESET\n");
     std::cout << "Sent RESET command" << std::endl;
 
-
     //-------------------------------------------------------------------------------------
-    RobotState state = PATH_PLANNING;
 
     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
     Point::maze.load(filename_maze);
@@ -246,60 +248,63 @@ int main(int argc, char** argv)
 
 
 
-    // Wait until serial sends "ESP Initialized!"
-    while (rclcpp::ok()) {
+    std::cout << "Waiting for ESP reset ... " << std::endl;
+    while (true) {
         if (ser.available()) {
-            std::string result = ser.read(ser.available());
-            RCLCPP_INFO(node->get_logger(), "From ESP: %s", result.c_str());
-            std::cout << result << std::endl;
+            std::string result = ser.readline();
             if (result.find("ESP Initialized!") != std::string::npos) {
-                RCLCPP_INFO(node->get_logger(), "ESP Initialization confirmed!");
+                std::cout << "ESP Initialization confirmed!" << std::endl;
                 break;
             }
         }
-        rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-
-    std::cout << "OKEEE Letsgo" << std::endl;
+    std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 
-    while (ser.available()) {
-        std::string command = ser.readline(); // Wartet auf eine vollständige Zeile (\n)
-        processCommand(command);
-    }
-
     ser.write("STATE:INIT\n");
     std::cout << "Sent INIT state" << std::endl;
 
-
     std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
+    int navigation_counter = 0;
 
-    // double dt = 0.05;
-    rclcpp::Rate loop_rate(3000); // 20 Hz, 50ms per loop
+    rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
 
-    // double dt = getDt(node);
+        
+        int max_reads = 10; // Prevent infinite looping
+        // std::string latest_command;
 
-        while (ser.available()) {
-            std::string command = ser.readline(); // Wartet auf eine vollständige Zeile (\n)
+        // while (ser.available() && max_reads > 0) {
+        //     latest_command = ser.readline(); // Keep only the latest message
+        //     max_reads--;
+        //     }
+
+        //     if (!latest_command.empty()) {
+        //         processCommand(latest_command);
+
+        while (ser.available() && max_reads > 0) {
+            std::string command = ser.readline();
             processCommand(command);
-            std::cout << "REEEEEEEEEEEEEEEEEEEEEEEEEEEEAAAAAAAAAAAAAAAADing" << std::endl;
+            max_reads--;
         }
 
-        // receivePosition(ser, robot_x, robot_y, robot_theta);
         robot.setPose(robot_x, robot_y, robot_theta);
 
         switch (state) {
+        case WAITING:
+            std::cout << "State: WAITING" << std::endl;
+
+
+            break;
+
         case PATH_PLANNING:
-            std::cout << "State: PLANNING" << std::endl;
+            std::cout << "State: PATH_PLANNING" << std::endl;
 
             // Recalculate A* path
             // Point::maze.computeDistanceTransform();
@@ -380,7 +385,7 @@ int main(int argc, char** argv)
 
 
         case NAVIGATION:
-            std::cout << "State: NAVIGATION, goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+            std::cout << "State: NAVIGATION to: (" << goal.x << ", " << goal.y << ")" << std::endl;
 
             elastic_band.optimize(start, goal);
 
@@ -409,10 +414,31 @@ int main(int argc, char** argv)
                 }
             }
 
+            navigation_counter++;
+
+            if (navigation_counter >= 20) {
+                state = PATH_PLANNING;
+                navigation_counter = 0;
+            }
+
             // robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
 
             break;
 
+        case GOAL_REACHED:
+            std::cout << "State: GOAL_REACHED" << std::endl;
+
+            if (current_goal_index < goals.size() - 1) {
+                current_goal_index++;
+                goal = goals[current_goal_index];
+                state = PATH_PLANNING;
+                std::cout << "New goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+            } else {
+                std::cout << "All goals reached!" << std::endl;
+                state = WAITING;
+            }
+
+            break;
         }
 
 
