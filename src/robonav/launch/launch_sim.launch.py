@@ -19,13 +19,13 @@ def generate_launch_description():
 
     package_name = 'robonav'  # <--- CHANGE ME
 
-    # # Include the robot_state_publisher launch file
-    # rsp = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([os.path.join(
-    #         get_package_share_directory(package_name), 'launch', 'rsp.launch.py'
-    #     )]),
-    #     launch_arguments={'use_sim_time': 'true'}.items()
-    # )
+    # Include the robot_state_publisher launch file
+    rsp = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory(package_name), 'launch', 'rsp.launch.py'
+        )]),
+        launch_arguments={'use_sim_time': 'false'}.items()
+    )
 
     # # Include the Gazebo launch file with the custom world and GUI configuration
     # gazebo = IncludeLaunchDescription(
@@ -113,14 +113,22 @@ def generate_launch_description():
     #     output='screen'
     # )
 
+    static_tf_pub = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=['0', '0', '0', '0', '0', '0', '1', 'odom', 'base_link']
+    )
+
+
     # Launch them all!
     return LaunchDescription([
         # world_file_arg,
-        # rsp,
+        rsp,
         # gazebo,
         # spawn_entity,
         # start_rviz,
-        cmd_vel_publisher
+        cmd_vel_publisher,
         # map_server,
         # image_publisher  
+        static_tf_pub
     ])

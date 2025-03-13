@@ -84,29 +84,24 @@ void parseGoals(String data)
     robot.setTargetTheta(robot.goals[0].theta);
 }
 
-void parsePath(String data)
-{
+void parsePath(String data) {
     robot.path_.clear();
-    int lastIndex = 0;
-    while (lastIndex < data.length())
-    {
-        int nextIndex = data.indexOf(';', lastIndex);
-        if (nextIndex == -1)
-            nextIndex = data.length();
 
-        String segment = data.substring(lastIndex, nextIndex);
-        lastIndex = nextIndex + 1;
+    const char *cstr = data.c_str();  // Konvertiere String in char-Array für direkte Verarbeitung
+    char *token = strtok(const_cast<char *>(cstr), ";");  // Zerlege die Eingabe an ';'
 
-        int comma = segment.indexOf(',');
-        if (comma == -1)
-            continue;
-
-        float x = segment.substring(0, comma).toFloat();
-        float y = segment.substring(comma + 1).toFloat();
-
-        robot.path_.push_back(Point(x, y));
+    while (token != nullptr) {
+        char *comma = strchr(token, ',');  // Suche nach ','
+        if (comma != nullptr) {
+            *comma = '\0';  // Trenne X und Y
+            float x = atof(token);
+            float y = atof(comma + 1);
+            robot.path_.push_back(Point(x, y));  // Punkt hinzufügen
+        }
+        token = strtok(nullptr, ";");  // Nächstes Segment holen
     }
 }
+
 
 void processCommand(String command)
 {    
@@ -230,7 +225,9 @@ void loop()
             // if (state != lastState)
             // {
                 Serial.println("CurrentState: TURN_TO_PATH");
-            //     lastState = state;
+
+
+                //     lastState = state;
             // }
 
             if (robot.turnToPathOrientation())

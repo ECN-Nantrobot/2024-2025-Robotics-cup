@@ -22,7 +22,6 @@
 
 #include <serial/serial.h>
 
-
 using namespace std;
 using namespace ecn;
 
@@ -54,23 +53,27 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
+void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr& odom_publisher, const rclcpp::Node::SharedPtr& node)
+{
+    nav_msgs::msg::Odometry odom_msg;
+    odom_msg.header.stamp    = node->now();
+    odom_msg.header.frame_id = "odom"; 
 
-// void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
-// {
-//     // Get `x` and `y`, convert from meters to cm
-//     robot_x = msg->pose.pose.position.x * 100;
-//     robot_y = 200 - msg->pose.pose.position.y * 100;
+    // Set robot position
+    odom_msg.pose.pose.position.x = robot_x / 100.0; // cm to meters
+    odom_msg.pose.pose.position.y = 2 - (robot_y / 100.0); // Frame transformation
+    odom_msg.pose.pose.position.z = 0.0;
 
-//     // Correctly Convert Quaternion to Yaw (Theta)
-//     tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-//     tf2::Matrix3x3 m(q);
-//     double roll, pitch, yaw;
-//     m.getRPY(roll, pitch, yaw); // Extract yaw angle
+    // Set orientation as quaternion
+    tf2::Quaternion q;
+    q.setRPY(0, 0, robot_theta);
+    odom_msg.pose.pose.orientation.x = q.x();
+    odom_msg.pose.pose.orientation.y = q.y();
+    odom_msg.pose.pose.orientation.z = q.z();
+    odom_msg.pose.pose.orientation.w = q.w();
 
-//     robot_theta = - yaw; // Now theta (yaw) is correct
-
-//     RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
-// }
+    odom_publisher->publish(odom_msg);
+}
 
 
 void receivePosition(std::string result) {
@@ -110,8 +113,6 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     std::cout << " ..." << std::endl;
 }
 
-
-
 void processCommand(const std::string& command)
 {
     std::cout << "Recieved from ESP: " << command;
@@ -139,6 +140,7 @@ void processCommand(const std::string& command)
         std::cout << "Current State: " << command.substr(13) << std::endl;
     }
 }
+
 
 int main(int argc, char** argv)
 {
@@ -187,6 +189,7 @@ int main(int argc, char** argv)
     Point goal;
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+    auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
 
     std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
     int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
@@ -195,9 +198,6 @@ int main(int argc, char** argv)
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
     target_thetas = { 45 *M_PI/180, 0 };
 
-
-
-    int counter_set_eb_path = 0;
 
     Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 5, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
@@ -213,9 +213,8 @@ int main(int argc, char** argv)
     ElasticBand elastic_band(astar_path, Point::maze);
     elastic_band.resetOptimization(); // Setzt die Optimierung zurück
 
-    int t          = 0;
-
     float distance_to_goal                = robot.distanceToGoal(goal);
+    int counter_set_eb_path = 0;
     int set_eb_path_counter_limit_default = 1;
     int set_eb_path_counter_limit         = set_eb_path_counter_limit_default;
     int eb_comp_inarow_default            = 1;
@@ -225,13 +224,7 @@ int main(int argc, char** argv)
     double path_difference       = 0.0;
     double path_difference_check_limit = 0.0;
     
-
-
-    rclcpp::sleep_for(std::chrono::seconds(3));
-
-    goal = goals[current_goal_index];
-
-    Point::maze.computeDistanceTransform();
+    // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
     start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
     goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
@@ -245,7 +238,6 @@ int main(int argc, char** argv)
 
     elastic_band.updatePath(astar_path);
     elastic_band.runFullOptimization(start, goal);
-
 
 
     std::cout << "Waiting for ESP reset ... " << std::endl;
@@ -276,10 +268,8 @@ int main(int argc, char** argv)
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
 
-        
         int max_reads = 10; // Prevent infinite looping
         // std::string latest_command;
-
         // while (ser.available() && max_reads > 0) {
         //     latest_command = ser.readline(); // Keep only the latest message
         //     max_reads--;
@@ -299,7 +289,6 @@ int main(int argc, char** argv)
         switch (state) {
         case WAITING:
             std::cout << "State: WAITING" << std::endl;
-
 
             break;
 
@@ -421,8 +410,6 @@ int main(int argc, char** argv)
                 navigation_counter = 0;
             }
 
-            // robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
-
             break;
 
         case GOAL_REACHED:
@@ -441,21 +428,11 @@ int main(int argc, char** argv)
             break;
         }
 
+        publishPosition(odom_publisher, node);
 
-        // auto msg = geometry_msgs::msg::Twist();
-        // msg.linear.x  = robot.getLinearVelocity() /100;  // Replace with your velocity computation
-        // msg.angular.z = - robot.getAngularVelocity(); // Replace with your rotation computation
-        // // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
-        // velocity_publisher->publish(msg);
-
-        // rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         loop_rate.sleep();
 
         // std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-        // robot.updatePosition(dt);
-        // robot.setPose(robot_x, robot_y, robot_theta);
-
    }
 
     rclcpp::shutdown();

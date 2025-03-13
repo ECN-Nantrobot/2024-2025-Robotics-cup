@@ -3,22 +3,6 @@
 
     <xacro:include filename="inertial_macros.xacro"/>
 
-    <!-- Define Colors -->
-    <material name="white">
-        <color rgba="1 1 1 1"/>
-    </material>
-
-    <material name="orange">
-        <color rgba="1 0.25 0.1 1"/>
-    </material>
-
-    <material name="blue">
-        <color rgba="0.2 0.2 1 1"/>
-    </material>
-
-    <material name="black">
-        <color rgba="0 0 0 1"/>
-    </material>
 
     <!-- Base Link -->
     <link name="base_link"/>
@@ -36,7 +20,9 @@
             <geometry>
                 <box size="0.25 0.25 0.15"/>
             </geometry>
-            <material name="white"/>
+            <material name="blue">
+                <color rgba="0.0 0.0 1.0 1.0"/>
+            </material>
         </visual>
         <collision>
             <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
@@ -47,12 +33,9 @@
         <xacro:inertial_box mass="1.0" x="0.25" y="0.25" z="0.15" origin_xyz="0.1 0 -0.05" origin_rpy="0 0 0"/>
     </link>
 
-    <gazebo reference="chassis">
-        <material>Gazebo/White</material>
-    </gazebo>
 
     <!-- Left Wheel -->
-    <joint name="left_wheel_joint" type="continuous">
+    <joint name="left_wheel_joint" type="fixed">
         <parent link="base_link"/>
         <child link="left_wheel"/>
         <origin xyz="0 0.15 0" rpy="-${pi/2} 0 0"/>
@@ -64,7 +47,9 @@
             <geometry>
                 <cylinder radius="0.0342" length="0.03"/>
             </geometry>
-            <material name="blue"/>
+            <material name="black">
+                <color rgba="0.0 0.0 0.0 1.0"/>
+            </material>
         </visual>
         <collision>
             <geometry>
@@ -74,12 +59,9 @@
         <xacro:inertial_cylinder mass="0.1" length="0.03" radius="0.0342"/>
     </link>
 
-    <gazebo reference="left_wheel">
-        <material>Gazebo/Blue</material>
-    </gazebo>
 
     <!-- Right Wheel -->
-    <joint name="right_wheel_joint" type="continuous">
+    <joint name="right_wheel_joint" type="fixed">
         <parent link="base_link"/>
         <child link="right_wheel"/>
         <origin xyz="0 -0.15 0" rpy="${pi/2} 0 0"/>
@@ -91,7 +73,9 @@
             <geometry>
                 <cylinder radius="0.0342" length="0.03"/>
             </geometry>
-            <material name="blue"/>
+            <material name="black">
+                <color rgba="0.0 0.0 0.0 1.0"/>
+            </material>
         </visual>
         <collision>
             <geometry>
@@ -101,9 +85,6 @@
         <xacro:inertial_cylinder mass="0.1" length="0.03" radius="0.0342"/>
     </link>
 
-    <gazebo reference="right_wheel">
-        <material>Gazebo/Blue</material>
-    </gazebo>
 
     <!-- Caster Wheel -->
     <joint name="caster_wheel_joint" type="fixed">
@@ -117,7 +98,9 @@
             <geometry>
                 <sphere radius="0.0342"/>
             </geometry>
-            <material name="black"/>
+            <material name="black">
+                <color rgba="0.0 0.0 0.0 1.0"/>
+            </material>
         </visual>
         <collision>
             <geometry>
@@ -126,36 +109,5 @@
         </collision>
         <xacro:inertial_sphere mass="0.1" radius="0.0342"/>
     </link>   
-
-    <gazebo reference="caster_wheel">
-        <material>Gazebo/Black</material>
-        <mu1 value="0.0001"/>
-        <mu2 value="0.0001"/>
-    </gazebo> 
-
-
-
-
-    <transmission name="left_wheel_joint_tran">
-        <type>transmission_interface/SimpleTransmission</type>
-        <joint name="left_wheel_joint">
-            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-        </joint>
-        <actuator name="left_wheel_joint_actr">
-            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-            <mechanicalReduction>1</mechanicalReduction>
-        </actuator>
-    </transmission>
-
-        <transmission name="right_wheel_joint_tran">
-        <type>transmission_interface/SimpleTransmission</type>
-        <joint name="right_wheel_joint">
-            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-        </joint>
-        <actuator name="right_wheel_joint_actr">
-            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-            <mechanicalReduction>1</mechanicalReduction>
-        </actuator>
-    </transmission>
 
 </robot>
