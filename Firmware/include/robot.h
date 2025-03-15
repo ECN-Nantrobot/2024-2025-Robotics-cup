@@ -42,6 +42,17 @@ namespace ecn
             x_ = x;
             y_ = y;
         }
+        void setSpeed(float speed)
+        {
+            target_speed_ = speed;
+        }
+
+        void setPID(float P, float I, float D)
+        {
+            kp_ = P;
+            ki_ = I;
+            kd_ = D;
+        }
 
         void setPose(volatile float x, volatile float y, volatile float theta)
         {

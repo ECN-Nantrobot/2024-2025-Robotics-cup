@@ -13,7 +13,7 @@ TwoWire wireDisplay(1);
 
 using namespace ecn;
 
-Robot robot(0, 0, 0, 3, 20, 0.01, 0.1); // x, y, theta, speed, kp, ki, kd
+Robot robot(0, 0, 0, 3, 5, 0.01, 0.1); // x, y, theta, speed, kp, ki, kd
 
 DisplayHandler display;
 
@@ -107,6 +107,34 @@ void parsePath(String data) {
         }
         token = strtok(nullptr, ";");  // Nächstes Segment holen
     }
+}
+
+void parseSpeedAndPID(String data)
+{
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+    int thirdComma = data.indexOf(',', secondComma + 1);
+
+    if (firstComma == -1 || secondComma == -1 || thirdComma == -1)
+        return;
+
+    float speed = data.substring(0, firstComma).toFloat();
+    float P = data.substring(firstComma + 1, secondComma).toFloat();
+    float I = data.substring(secondComma + 1, thirdComma).toFloat();
+    float D = data.substring(thirdComma + 1).toFloat();
+
+    robot.setSpeed(speed);
+    robot.setPID(P, I, D);
+
+    Serial.print("Received Speed and PID: ");
+    Serial.print("Speed: ");
+    Serial.print(speed);
+    Serial.print(", P: ");
+    Serial.print(P);
+    Serial.print(", I: ");
+    Serial.print(I);
+    Serial.print(", D: ");
+    Serial.println(D);
 }
 
 
