@@ -13,7 +13,7 @@ TwoWire wireDisplay(1);
 
 using namespace ecn;
 
-Robot robot(0, 0, 0, 15, 10, 0.01, 0.5); // x, y, theta, speed, kp, ki, kd
+Robot robot(0, 0, 0, 3, 20, 0.01, 0.1); // x, y, theta, speed, kp, ki, kd
 
 DisplayHandler display;
 
@@ -82,6 +82,13 @@ void parseGoals(String data)
     }
 
     robot.setTargetTheta(robot.goals[0].theta);
+
+    Serial.print("Goals received: ");
+    for (const auto &goal : robot.goals)
+    {
+        Serial.printf("(%f, %f, %f) ", goal.point.x, goal.point.y, goal.theta);
+    }
+    Serial.println();
 }
 
 void parsePath(String data) {
@@ -157,13 +164,13 @@ void sendPositionUpdate()
         Serial.println(robot.getTheta());
         digitalWrite(internalLed, LOW);
 
-        display.updatePointsDisplay(robotY);
+        // display.updatePointsDisplay(robotY);
     }
 }
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(921600);
     while (!Serial)
     {
         delay(10);
@@ -297,8 +304,26 @@ void loop()
         {
             setMotorSpeeds(robot.getLeftSpeed(), robot.getRightSpeed());
             // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
-            robot.setPose(_robotX, _robotY, _robotTheta);
-            sendPositionUpdate();
+
+            if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
+            {
+                robot.setPose(_robotX, _robotY, _robotTheta);
+                xSemaphoreGive(robotXMutex);
+
+                digitalWrite(internalLed, HIGH);
+                Serial.print("X: ");
+                Serial.print(robot.getX());
+                Serial.print(", Y: ");
+                Serial.print(robot.getY());
+                Serial.print(", Theta: ");
+                Serial.println(robot.getTheta());
+                digitalWrite(internalLed, LOW);
+
+                // display.updatePointsDisplay(robotY);
+            }
+
+            // robot.setPose(_robotX, _robotY, _robotTheta);
+            // sendPositionUpdate();
         }
         
 

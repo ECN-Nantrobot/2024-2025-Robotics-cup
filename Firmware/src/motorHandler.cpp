@@ -96,22 +96,35 @@ void allRunSpeed(void *pvParameters) {
             float dTheta = (dR - dL) / trackWidth;
             
             // To update the robot's position accurately, use the robot's orientation at the midpoint of the motion.
-            float thetaMid = robotTheta + dTheta / 2.0;
-            
+            // float thetaMid = _robotTheta + dTheta;
+
+            if (fabs(dTheta) < 1e-6)
+            { // Falls Drehung sehr klein -> Geradeausbewegung
+                _robotX = _robotX + d_center * cos(_robotTheta + dTheta);
+                _robotY = _robotY + d_center * sin(_robotTheta + dTheta);
+                // Serial.println("Geradeausbewegung");
+            }
+            else
+            { // Kreisbogenbewegung
+                double R = d_center / dTheta;
+                _robotX = _robotX + R * (sin(_robotTheta + dTheta) - sin(_robotTheta));
+                _robotY = _robotY - R * (cos(_robotTheta + dTheta) - cos(_robotTheta));
+            }
+
+            _robotTheta += dTheta;
+
             // Protect access to robotX, robotY, and robotTheta with the mutex.
             // if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE) {
 
-        //   robot.updatePositionFromMotors(d_center, thetaMid, dTheta);
+            // _robotX += d_center * cos(thetaMid) * 100; // in cm
+            // _robotY += d_center * sin(thetaMid) * 100; // in cm
 
-            _robotX += d_center * cos(thetaMid) * 100; //in cm
-            _robotY += d_center * sin(thetaMid) * 100; //in cm
-            _robotTheta += dTheta;
-                // Serial.print("position updated: X: ");
-                // Serial.print(_robotX);
-                // Serial.print(", Y: ");
-                // Serial.print(_robotY);
-                // Serial.print(", Theta: ");
-                // Serial.println(_robotTheta);
+            // Serial.print("X: ");
+            // Serial.print(_robotX);
+            // Serial.print(" Y: ");
+            // Serial.print(_robotY);
+            // Serial.print(" Theta: ");
+            // Serial.println(_robotTheta);
 
             //   xSemaphoreGive(robotXMutex);
             // }

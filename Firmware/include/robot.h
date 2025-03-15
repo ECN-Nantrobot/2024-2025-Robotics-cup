@@ -79,7 +79,7 @@ namespace ecn
 
         float target_speed_;
 
-        float wheelBase_ = 7.0;
+        float wheelBase_ = 18.5;
         float robot_diameter_ = wheelBase_;
 
         float leftSpeed_;
@@ -87,7 +87,7 @@ namespace ecn
 
         float dt_ = 50; //in ms
 
-        float maxSpeed_ = 10.0;
+        float maxSpeed_ = 6.0;
         bool isStarting_ = true;
 
         // PID parameters

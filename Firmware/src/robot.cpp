@@ -23,6 +23,8 @@ namespace ecn
             error -= 2 * M_PI;
         while (error < -M_PI)
             error += 2 * M_PI;
+        
+        Serial.println("target_angle - theta_ = error: " + String(target_angle) + " - " + String(theta_) + " = " + String(error));
 
         return error;
     }
@@ -37,6 +39,9 @@ namespace ecn
         prevError_ = angle_error;
 
         float output = kp_ * angle_error + ki_ * integral_ + kd_ * derivative;
+
+        Serial.print("PID output: ");
+        Serial.println(output);
 
         // const float r = 0.0684 / 2; // meters
         // double thetaL = (kp / r) * distance + (kp * L / r) * angle_error;
@@ -122,6 +127,8 @@ namespace ecn
 
         float angle_error = calcAngleError(target_index);
 
+        Serial.println("angle_error: " + String(angle_error));
+
         if (std::abs(angle_error) < 0.02)
         {
             leftSpeed_ = 0;
@@ -132,6 +139,7 @@ namespace ecn
             float turnSignal = computePID(targetTheta_);
             leftSpeed_ = -turnSignal;
             rightSpeed_ = turnSignal;
+            Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
         }
 
         // setMotorSpeeds(leftSpeed_, rightSpeed_);
@@ -183,6 +191,9 @@ namespace ecn
         if (target_index < path_.size())
         {
             float angle_error = calcAngleError(target_index);
+
+            Serial.println("angle_error: " + String(angle_error));
+
             float controlSignal = computePID(angle_error);
 
             // Adjust speed based on proximity to obstacles and goal
@@ -221,6 +232,8 @@ namespace ecn
             {
                 leftSpeed_ = target_speed_ - controlSignal;
                 rightSpeed_ = target_speed_ + controlSignal;
+
+                Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
             }
 
             // setMotorSpeeds(leftSpeed_, rightSpeed_);
