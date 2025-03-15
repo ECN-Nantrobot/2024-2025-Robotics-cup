@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < 10; ++i) {
         std::string port = "/dev/ttyUSB" + std::to_string(i);
         ser.setPort(port);
-        ser.setBaudrate(115200);
+        ser.setBaudrate(921600);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
         try {
@@ -175,6 +175,8 @@ int main(int argc, char** argv)
         std::cerr << "Failed to open any serial port." << std::endl;
         return 1;
     }
+
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // Give ESP time to start
 
     ser.write("RESET\n");
     std::cout << "Sent RESET command" << std::endl;
@@ -256,6 +258,8 @@ int main(int argc, char** argv)
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
     ser.write("STATE:INIT\n");
     std::cout << "Sent INIT state" << std::endl;
 
@@ -264,11 +268,14 @@ int main(int argc, char** argv)
     int navigation_counter = 0;
 
     rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
+    
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
+        
+        int max_reads = 10;
 
-        int max_reads = 10; // Prevent infinite looping
+        // Prevent infinite looping
         // std::string latest_command;
         // while (ser.available() && max_reads > 0) {
         //     latest_command = ser.readline(); // Keep only the latest message
