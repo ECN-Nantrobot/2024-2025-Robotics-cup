@@ -54,6 +54,7 @@ We are currently working on our **first prototype**. Stay tuned for updates, ima
 ## 📩 Contact Us
 
 For inquiries or collaboration opportunities, feel free to reach out:
-📧 **Email:** your.email@example.com *(Replace with actual email)*
+📧 **Email:** nantrobot@gmail.com
+📧 **Email** (project manager): al3xism0rice@gmail.com
 
 We look forward to sharing our progress and competing in 2025! 🚀
