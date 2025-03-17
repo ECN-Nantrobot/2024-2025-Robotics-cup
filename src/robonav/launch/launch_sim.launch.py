@@ -113,11 +113,11 @@ def generate_launch_description():
     #     output='screen'
     # )
 
-    static_tf_pub = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        arguments=['0', '0', '0', '0', '0', '0', '1', 'odom', 'base_link']
-    )
+    # static_tf_pub = Node(
+    #     package='tf2_ros',
+    #     executable='static_transform_publisher',
+    #     arguments=['0', '0', '0', '0', '0', '0', '1', 'odom', 'base_link']
+    # )
 
 
     # Launch them all!
@@ -130,5 +130,5 @@ def generate_launch_description():
         cmd_vel_publisher,
         # map_server,
         # image_publisher  
-        static_tf_pub
+        # static_tf_pub
     ])

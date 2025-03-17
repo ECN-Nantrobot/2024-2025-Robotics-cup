@@ -127,8 +127,6 @@ namespace ecn
 
         float angle_error = calcAngleError(target_index);
 
-        Serial.println("angle_error: " + String(angle_error));
-
         if (std::abs(angle_error) < 0.02)
         {
             leftSpeed_ = 0;
@@ -149,6 +147,12 @@ namespace ecn
 
     int Robot::findClosestPointOnPath()
     {
+        Serial.print("Path: ");
+        for (const auto &point : path_)
+        {
+            Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
+        }
+        Serial.println();
         // Find the closest point on the path to the current position
         float minDist = std::numeric_limits<float>::max();
         int closestIdx = 0;
@@ -192,7 +196,7 @@ namespace ecn
         {
             float angle_error = calcAngleError(target_index);
 
-            Serial.println("angle_error: " + String(angle_error));
+            Serial.println("POP:" + String(path_[target_index].x) + ", " + String(path_[target_index].y));
 
             float controlSignal = computePID(angle_error);
 

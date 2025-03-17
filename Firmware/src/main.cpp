@@ -91,21 +91,27 @@ void parseGoals(String data)
     Serial.println();
 }
 
-void parsePath(String data) {
+void parsePath(String data)
+{
     robot.path_.clear();
+    int lastIndex = 0;
+    while (lastIndex < data.length())
+    {
+        int nextIndex = data.indexOf(';', lastIndex);
+        if (nextIndex == -1)
+            nextIndex = data.length();
 
-    const char *cstr = data.c_str();  // Konvertiere String in char-Array für direkte Verarbeitung
-    char *token = strtok(const_cast<char *>(cstr), ";");  // Zerlege die Eingabe an ';'
+        String segment = data.substring(lastIndex, nextIndex);
+        lastIndex = nextIndex + 1;
 
-    while (token != nullptr) {
-        char *comma = strchr(token, ',');  // Suche nach ','
-        if (comma != nullptr) {
-            *comma = '\0';  // Trenne X und Y
-            float x = atof(token);
-            float y = atof(comma + 1);
-            robot.path_.push_back(Point(x, y));  // Punkt hinzufügen
-        }
-        token = strtok(nullptr, ";");  // Nächstes Segment holen
+        int comma = segment.indexOf(',');
+        if (comma == -1)
+            continue;
+
+        float x = segment.substring(0, comma).toFloat();
+        float y = segment.substring(comma + 1).toFloat();
+
+        robot.path_.push_back(Point(x, y));
     }
 }
 
@@ -137,9 +143,8 @@ void parseSpeedAndPID(String data)
     Serial.println(D);
 }
 
-
 void processCommand(String command)
-{    
+{
     if (command.startsWith("GOALS:"))
     {
         parseGoals(command.substring(6));
@@ -170,6 +175,11 @@ void processCommand(String command)
     {
         Serial.println("ESP32 restarting...");
         ESP.restart(); // Software Reset
+    }
+
+    else if (command.startsWith("SPEED_PID:"))
+    {
+        parseSpeedAndPID(command.substring(10));
     }
 }
 
@@ -237,32 +247,46 @@ void loop()
             processCommand(command);
         }
 
+        // static String inputString = ""; // Buffer for incoming data
+
+        // while (Serial.available())
+        // {
+        //     char c = Serial.read();
+        //     inputString += c;
+
+        //     if (c == '\n')
+        //     { // Full message received
+        //         processCommand(inputString);
+        //         inputString = ""; // Reset buffer
+        //     }
+        // }
+
         switch (state)
         {
         case WAIT:
-           
-            Serial. println("CurrentState: WAIT");
 
-            break; 
+            Serial.println("CurrentState: WAIT");
+
+            break;
         case INIT:
             // if (state != lastState)
             // {
-                Serial.println("CurrentState: INIT");
+            Serial.println("CurrentState: INIT");
             //     lastState = state;
             // }
 
             Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
-                
+
             state = TURN_TO_PATH;
             [[fallthrough]];
 
         case TURN_TO_PATH:
+
             // if (state != lastState)
             // {
-                Serial.println("CurrentState: TURN_TO_PATH");
+            Serial.println("CurrentState: TURN_TO_PATH");
 
-
-                //     lastState = state;
+            //     lastState = state;
             // }
 
             if (robot.turnToPathOrientation())
@@ -281,7 +305,6 @@ void loop()
                 last_sent_state = PATH_PLANNING;
             }
             Serial.println("CurrentState: NAVIGATION");
-            
 
             robot.followPath();
 
@@ -303,7 +326,8 @@ void loop()
         case TURN_TO_GOAL:
             Serial.println("CurrentState: TURN_TO_GOAL");
 
-            if (robot.turnToGoalOrientation()) {
+            if (robot.turnToGoalOrientation())
+            {
                 std::cout << "Robot is aligned to goal orientation!" << std::endl;
                 state = GOAL_REACHED;
             }
@@ -353,7 +377,6 @@ void loop()
             // robot.setPose(_robotX, _robotY, _robotTheta);
             // sendPositionUpdate();
         }
-        
 
         display.updatePointsDisplay(0);
 

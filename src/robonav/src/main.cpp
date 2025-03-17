@@ -53,11 +53,18 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
-void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr& odom_publisher, const rclcpp::Node::SharedPtr& node)
+#include <tf2_ros/transform_broadcaster.h>
+
+void publishPosition(
+    const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher,  
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,               
+    const rclcpp::Node::SharedPtr node)                                          
+
 {
     nav_msgs::msg::Odometry odom_msg;
     odom_msg.header.stamp    = node->now();
-    odom_msg.header.frame_id = "odom"; 
+    odom_msg.header.frame_id = "odom";
+    odom_msg.child_frame_id  = "base_link";  // Set the child frame ID
 
     // Set robot position
     odom_msg.pose.pose.position.x = robot_x / 100.0; // cm to meters
@@ -72,8 +79,24 @@ void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
     odom_msg.pose.pose.orientation.z = q.z();
     odom_msg.pose.pose.orientation.w = q.w();
 
+    // Publish odometry message
     odom_publisher->publish(odom_msg);
+
+    // ALSO BROADCAST TF TRANSFORM (`odom -> base_link`)
+    geometry_msgs::msg::TransformStamped odom_tf;
+    odom_tf.header.stamp = odom_msg.header.stamp;
+    odom_tf.header.frame_id = "odom"; 
+    odom_tf.child_frame_id = "base_link"; 
+
+    odom_tf.transform.translation.x = odom_msg.pose.pose.position.x;
+    odom_tf.transform.translation.y = odom_msg.pose.pose.position.y;
+    odom_tf.transform.translation.z = 0.0;
+    odom_tf.transform.rotation = odom_msg.pose.pose.orientation;
+
+    // Publish the TF transform
+    tf_broadcaster->sendTransform(odom_tf);
 }
+
 
 
 void receivePosition(std::string result) {
@@ -111,7 +134,43 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
         std::cout << i << ": (" << path[i].x << ", " << path[i].y << ")  ";
     }
     std::cout << " ..." << std::endl;
+
+    // Print the entire path to std
+    std::cout << "Full Path: ";
+    for (const auto& point : path) {
+        std::cout << "(" << point.x << ", " << point.y << ") ";
+    }
+    std::cout << std::endl;
 }
+
+// void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
+// {
+//     std::string message = "PATH:";
+//     for (const auto& point : path) {
+//         message += std::to_string(point.x) + "," + std::to_string(point.y) + ";";
+//         if (message.length() > 512) { // Send every 512 bytes
+//             message += "\n";
+//             ser.write(message);
+//             std::cout << "Sent Path: " << message << std::endl;
+//             message.clear();
+//             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+//         }
+//     }
+//     message += "\n";
+//     ser.write(message);
+//     std::cout << "Sent Path: " << message << std::endl;
+// }
+
+
+void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, double D)
+{
+    std::string message = "SPEED_PID:" + std::to_string(speed) + "," + std::to_string(P) + "," + std::to_string(I) + "," + std::to_string(D) + "\n";
+    ser.write(message);
+    std::cout << "Sent Speed and PID: " << message << std::endl;
+}
+
+
+ecn::Point pop;
 
 void processCommand(const std::string& command)
 {
@@ -139,6 +198,14 @@ void processCommand(const std::string& command)
     } else if (command.rfind("CurrenState: ", 0) == 0) {
         std::cout << "Current State: " << command.substr(13) << std::endl;
     }
+    else if (command.rfind("POP: ", 0) == 0) {
+        std::string popStr = command.substr(5);
+        if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {
+            std::cout << "Updated POP -> X: " << pop.x << ", Y: " << pop.y << std::endl;
+        } else {
+            std::cout << "⚠️ Failed to parse POP data." << std::endl;
+        }
+    }
 }
 
 
@@ -148,6 +215,7 @@ int main(int argc, char** argv)
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
+    auto tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(node);
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
 
     serial::Serial ser;
@@ -201,10 +269,11 @@ int main(int argc, char** argv)
     target_thetas = { 45 *M_PI/180, 0 };
 
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 5, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 18.5, 3, 5, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
+
 
     robot_x     = robot.getX();
     robot_y     = robot.getY();
@@ -255,8 +324,10 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+    sendSpeedAndPID(ser, 3.0, 5, 0.01, 0.5);
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
+
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -403,7 +474,7 @@ int main(int argc, char** argv)
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
 
-                    publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+                    // publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
                     sendPath(ser, elastic_band.getSmoothedPath());
 
                 } else {
@@ -435,7 +506,7 @@ int main(int argc, char** argv)
             break;
         }
 
-        publishPosition(odom_publisher, node);
+        publishPosition(odom_publisher, tf_broadcaster, node);
 
         loop_rate.sleep();
 
