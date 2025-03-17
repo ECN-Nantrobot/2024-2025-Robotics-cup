@@ -1,14 +1,14 @@
 #include <AccelStepper.h>
 
-int end_pin = 5;
-int dir_pin = 6;
-int step_pin = 7;
+int end_pin = 4;
+int dir_pin = 32;
+int step_pin = 33;
 AccelStepper stepper(AccelStepper::DRIVER, step_pin, dir_pin);
 int end_sensor_state = LOW;
 
 void initialize() {
   // Go to end switch
-  stepper.setSpeed(-200);
+  stepper.setSpeed(-20000);
   
   while (end_sensor_state == LOW) {
     end_sensor_state = digitalRead(end_pin);
@@ -26,14 +26,15 @@ void initialize() {
 }
 
 void setup() {
+  Serial.begin(115200);
   pinMode(end_pin, INPUT);
-  stepper.setAcceleration(200);
-  stepper.setMaxSpeed(200);
+  stepper.setAcceleration(2000000);
+  stepper.setMaxSpeed(20000);
   delay(100);
   initialize();
-  stepper.move(2000);
+  stepper.move(200000);
 }
 
 void loop() {
-  stepper.run();
+  Serial.println(stepper.run());
 }
