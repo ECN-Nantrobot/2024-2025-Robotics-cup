@@ -110,7 +110,7 @@ void parsePath(String data)
 
         float x = segment.substring(0, comma).toFloat();
         float y = segment.substring(comma + 1).toFloat();
-
+        // Serial.printf("Parsedpath Point: (%f, %f)\n", x, y);
         robot.path_.push_back(Point(x, y));
     }
 }
@@ -208,7 +208,7 @@ void sendPositionUpdate()
 
 void setup()
 {
-    Serial.begin(921600);
+    Serial.begin(115200);
     while (!Serial)
     {
         delay(10);

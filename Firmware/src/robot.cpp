@@ -147,12 +147,12 @@ namespace ecn
 
     int Robot::findClosestPointOnPath()
     {
-        Serial.print("Path: ");
-        for (const auto &point : path_)
-        {
-            Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
-        }
-        Serial.println();
+        // Serial.print("eeesppath: ");
+        // for (const auto &point : path_)
+        // {
+        //     Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
+        // }
+        // Serial.println();
         // Find the closest point on the path to the current position
         float minDist = std::numeric_limits<float>::max();
         int closestIdx = 0;

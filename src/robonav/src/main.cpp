@@ -123,17 +123,23 @@ void sendGoals(serial::Serial& ser, const vector<Point>& goals, const vector<dou
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
+    int path_sending_limit = 100;
     std::string message = "PATH:";
-    for (const auto& point : path) {
-        message += std::to_string(point.x) + "," + std::to_string(point.y) + ";";
+    size_t max_points      = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
+    for (size_t i = 0; i < max_points; ++i) {
+        message += std::to_string(path[i].x) + "," + std::to_string(path[i].y) + ";";
     }
     message += "\n";
     ser.write(message);
-    std::cout << "Sent Path:    ";
-    for (size_t i = 0; i < path.size() && i < 4; ++i) {
-        std::cout << i << ": (" << path[i].x << ", " << path[i].y << ")  ";
+    std::cout << "Sent Path:  ";
+    for (size_t i = 0; i < max_points && i < 3; ++i) {
+        std::cout << i << ": (" << path[i].x << ", " << path[i].y << ") ";
     }
-    std::cout << " ..." << std::endl;
+    if (path.size() > path_sending_limit) {
+        std::cout << " ... (truncated to 100 points)" << std::endl;
+    } else {
+        std::cout << " ..." << std::endl;
+    }
 
     // Print the entire path to std
     std::cout << "Full Path: ";
@@ -224,7 +230,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < 10; ++i) {
         std::string port = "/dev/ttyUSB" + std::to_string(i);
         ser.setPort(port);
-        ser.setBaudrate(921600);
+        ser.setBaudrate(115200);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
         try {
@@ -469,12 +475,12 @@ int main(int argc, char** argv)
                 elastic_band.resetOptimization();
 
                 if (counter_set_eb_path > set_eb_path_counter_limit) {
-                    elastic_band.generateSmoothedPath(0.8f, 21, 1.2f); // 0.08 ms
+                    elastic_band.generateSmoothedPath(1.8f, 21, 1.2f); // 0.08 ms
 
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
 
-                    // publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+                    publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
                     sendPath(ser, elastic_band.getSmoothedPath());
 
                 } else {
