@@ -137,15 +137,43 @@ void sendGoals(serial::Serial& ser, const vector<Point>& goals, const vector<dou
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
-    int path_sending_limit = 40;
-    std::string message = "PATH:";
-    size_t max_points = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
-    for (size_t i = 0; i < max_points; ++i) {
-        message += std::to_string(path[i].x) + "," + std::to_string(path[i].y) + ";";
+    // int path_sending_limit = 40;
+    // std::string message = "PATH:";
+    // size_t max_points = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
+    // for (size_t i = 0; i < max_points; ++i) {
+    //     message += std::to_string(path[i].x) + "," + std::to_string(path[i].y) + ";";
+    // }
+    // message += "\n";
+    // ser.write(message);
+    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+
+
+    int path_sending_limit = 5; // Send x points at a time
+    size_t path_size = std::min(path.size(), static_cast<size_t>(50));
+    // Loop through the entire path in chunks (in this case, 20 points at a time)
+    for (size_t i = 0; i < path_size; i += path_sending_limit) {
+        std::string message;
+        if (i + path_sending_limit >= path_size) {
+            message = "PATHEND:"; // Use "PATHEND:" for the last batch
+        } else {
+            message = (i == 0) ? "PATH:" : "PT:"; // Use "PATH:" for the first batch, "PT:" for subsequent ones
+        }
+
+        size_t max_points = std::min(path_size - i, static_cast<size_t>(path_sending_limit)); // Limit the number of points in each chunk
+
+        // Add points to the message
+        for (size_t j = i; j < i + max_points; ++j) {
+            message += std::to_string(path[j].x) + "," + std::to_string(path[j].y) + ";";
+        }
+
+        message += "\n"; // Add a newline to mark the end of the message
+        ser.write(message); // Send the message over serial
+        std::cout << "Sent Path: " << message << std::endl; // Print the message to std
+        std::this_thread::sleep_for(std::chrono::milliseconds(80)); // Optional: wait before sending the next chunk
     }
-    message += "\n";
-    ser.write(message);
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+
 
     // std::cout << "Sent Path:  ";
     // size_t index = 10;
@@ -358,7 +386,7 @@ int main(int argc, char** argv)
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
         
-        int max_reads = 10;
+        int max_reads = 15;
 
         // Prevent infinite looping
         // std::string latest_command;

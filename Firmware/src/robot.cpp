@@ -154,13 +154,13 @@ namespace ecn
 
     int Robot::findClosestPointOnPath()
     {
-        Serial.print("eeesppath: ");
-        for (const auto &point : path_)
-        {
-            Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
-        }
-        Serial.println();
-        Serial.println("Number of points on the path: " + String(path_.size() / 2));
+        // Serial.print("eeesppath: ");
+        // for (const auto &point : path_)
+        // {
+        //     Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
+        // }
+        // Serial.println();
+        // Serial.println("Number of points on the path: " + String(path_.size() / 2));
 
 
         // Find the closest point on the path to the current position
