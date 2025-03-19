@@ -422,7 +422,7 @@ void loop()
 
             if (state != WAIT)
             {
-                setMotorSpeeds(robot.getLeftSpeed(), robot.getRightSpeed());
+                setMotorSpeeds(robot.getLeftSpeed()/100, robot.getRightSpeed()/100);
                 // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
 
                 if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)

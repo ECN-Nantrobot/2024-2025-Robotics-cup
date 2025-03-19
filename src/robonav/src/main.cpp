@@ -368,7 +368,7 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-    sendSpeedAndPID(ser, 8.0, 0.5, 0.0005, 3);
+    sendSpeedAndPID(ser, 8.0, 0.5, 0.0005, 100);
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 

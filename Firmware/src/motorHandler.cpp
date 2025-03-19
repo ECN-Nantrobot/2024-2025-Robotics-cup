@@ -20,8 +20,8 @@ const double metersPerStep = oneStepAngle * wheelDiameter / 2; // [m]
 // １m/s = 1 / metersPerStep [steps/s]
 
 // Create motor instances
-AccelStepper motorR(motorInterfaceType, stepPin1, dirPin1);
-AccelStepper motorL(motorInterfaceType, stepPin2, dirPin2);
+AccelStepper motorR(motorInterfaceType, stepPin2, dirPin2);
+AccelStepper motorL(motorInterfaceType, stepPin1, dirPin1);
 
 void initMotor()
 {
@@ -33,7 +33,7 @@ void initMotor()
     motorR.setAcceleration(5000);
 
     // Invert direction if needed
-    motorL.setPinsInverted(true, false, false);
+    motorR.setPinsInverted(true, false, false);
 
     motorL.setCurrentPosition(0);
     motorR.setCurrentPosition(0);
@@ -101,17 +101,19 @@ void allRunSpeed(void *pvParameters)
 
             if (fabs(dTheta) < 1e-6)
             { // Falls Drehung sehr klein -> Geradeausbewegung
-                _robotX = _robotX + d_center * cos(_robotTheta + dTheta);
-                _robotY = _robotY + d_center * sin(_robotTheta + dTheta);
+                _robotX = _robotX + d_center * cos(_robotTheta + dTheta) * 100;
+                _robotY = _robotY + d_center * sin(_robotTheta + dTheta) * 100;
                 // Serial.println("Geradeausbewegung");
             }
             else
             { // Kreisbogenbewegung
                 double R = d_center / dTheta;
-                _robotX = _robotX + R * (sin(_robotTheta + dTheta) - sin(_robotTheta));
-                _robotY = _robotY - R * (cos(_robotTheta + dTheta) - cos(_robotTheta));
+                _robotX = _robotX + R * (sin(_robotTheta + dTheta) - sin(_robotTheta)) * 100 ;
+                _robotY = _robotY - R * (cos(_robotTheta + dTheta) - cos(_robotTheta)) * 100;
             }
 
+
+            
             _robotTheta += dTheta;
 
             if (_robotTheta > M_PI)
