@@ -1,4 +1,4 @@
-# include <math.h>
+#include <math.h>
 #include "motorHandler.h"
 #include <AccelStepper.h>
 #include "Config.h"
@@ -13,6 +13,7 @@ const double metersPerStep = oneStepAngle * wheelDiameter/2; // [m]
 // Create motor instances
 AccelStepper motorR(motorInterfaceType, stepPin1, dirPin1);
 AccelStepper motorL(motorInterfaceType, stepPin2, dirPin2);
+AccelStepper motorX(motorInterfaceType, stepPinX, dirPinX);
 
 void initMotor()
 {
@@ -23,11 +24,19 @@ void initMotor()
   motorR.setMaxSpeed(20000);
   motorR.setAcceleration(5000);
 
+  motorX.setMaxSpeed(20000);
+  motorX.setAcceleration(30000);
+
   // Invert direction if needed
   motorL.setPinsInverted(true, false, false);
 
   motorL.setCurrentPosition(0);
   motorR.setCurrentPosition(0);
+  motorX.setCurrentPosition(0);
+
+  motorL.setSpeed(0);
+  motorR.setSpeed(0);
+  motorX.setSpeed(5000);
 
     // Create the mutex before starting the task.
     robotXMutex = xSemaphoreCreateMutex();
@@ -48,6 +57,31 @@ void initMotor()
   disableCore1WDT();
 
   Serial.println("Motors initialized.");
+
+  initialize_X_axis();
+}
+
+int end_X_sensor = LOW;
+
+void initialize_X_axis(){
+
+
+  Serial.println("initializing X axis");
+  end_X_sensor = digitalRead(buttonPin3);
+
+  motorX.move(-9999999);
+  while(end_X_sensor == LOW){
+    end_X_sensor = digitalRead(buttonPin3);
+    Serial.print("ahhhh");
+    Serial.println(end_X_sensor);
+  } 
+
+  motorX.setCurrentPosition(0);
+  motorX.move(3000);
+  while(motorX.distanceToGo() != 0){}
+  motorX.setCurrentPosition(0);
+
+  Serial.println("Axe X initialize");
 }
 
 void setMotorSpeeds(float leftSpeed, float rightSpeed)
@@ -72,6 +106,7 @@ void allRunSpeed(void *pvParameters) {
     // Check if each motor takes a step
     bool leftStep = motorL.runSpeed();
     bool rightStep = motorR.runSpeed();
+    motorX.run();
     
     // If at least one motor stepped, update the odometry:
     if (leftStep || rightStep) {

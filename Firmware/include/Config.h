@@ -10,6 +10,9 @@
 #define dirPin1 25
 #define stepPin2 33
 #define dirPin2 32
+#define stepPinX 14
+#define dirPinX 27
+
 
 // Define pins for i2c
 #define displaySDA 19
