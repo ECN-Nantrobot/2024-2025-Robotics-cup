@@ -1,4 +1,4 @@
-25534943696308951
+25536684527378121
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -57217,6 +57217,13 @@ One digit LED 7 segment SA39-11 SC39-11 SA39-12 SC39-12
 0
 10
 10
+ECN
+4R7
+
+
+0
+4
+4
 ECN
 A4988
 Pololu Breakout 16-pin 15.2x20.3mm 0.6x0.8\
