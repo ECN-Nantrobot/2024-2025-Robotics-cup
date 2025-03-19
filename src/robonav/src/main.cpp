@@ -148,9 +148,9 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     // std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
 
-
-    int path_sending_limit = 5; // Send x points at a time
-    size_t path_size = std::min(path.size(), static_cast<size_t>(50));
+    int path_sending_limit = 1; // Send x points at a time
+    size_t path_size = std::min(path.size(), static_cast<size_t>(35));
+    std::cout << "Starting point of the path.................: (" << path.front().x << ", " << path.front().y << ")" << std::endl;
     // Loop through the entire path in chunks (in this case, 20 points at a time)
     for (size_t i = 0; i < path_size; i += path_sending_limit) {
         std::string message;
@@ -164,14 +164,16 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 
         // Add points to the message
         for (size_t j = i; j < i + max_points; ++j) {
-            message += std::to_string(path[j].x) + "," + std::to_string(path[j].y) + ";";
+            message += std::to_string(static_cast<int>(path[j].x * 100) / 100.0) + "," + 
+                   std::to_string(static_cast<int>(path[j].y * 100) / 100.0) + ";";
         }
 
         message += "\n"; // Add a newline to mark the end of the message
         ser.write(message); // Send the message over serial
-        std::cout << "Sent Path: " << message << std::endl; // Print the message to std
-        std::this_thread::sleep_for(std::chrono::milliseconds(80)); // Optional: wait before sending the next chunk
+        // std::cout << message; // Print the message to std
+        std::this_thread::sleep_for(std::chrono::milliseconds(5)); // Optional: wait before sending the next chunk
     }
+    // std::cout << std::endl;
 
 
 
@@ -265,7 +267,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < 10; ++i) {
         std::string port = "/dev/ttyUSB" + std::to_string(i);
         ser.setPort(port);
-        ser.setBaudrate(115200);
+        ser.setBaudrate(921600);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
         try {
@@ -345,12 +347,12 @@ int main(int argc, char** argv)
 
     for (auto& position : astar_path) {
         position           = position * (1 / Point::maze.resize_for_astar);
-        astar_path.front() = Position(start);
-        astar_path.back()  = Position(goal);
+        astar_path.front() = start_p;
+        astar_path.back()  = goal_p;
     }
 
     elastic_band.updatePath(astar_path);
-    elastic_band.runFullOptimization(start, goal);
+    elastic_band.runFullOptimization(robot.getPosition(), goal);
 
 
     std::cout << "Waiting for ESP reset ... " << std::endl;
@@ -366,7 +368,7 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-    sendSpeedAndPID(ser, 6.0, 0.06, 0.0015, 2.5);
+    sendSpeedAndPID(ser, 8.0, 0.5, 0.0005, 3);
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 
@@ -382,7 +384,7 @@ int main(int argc, char** argv)
 
     rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
     
-
+    int send_path_counter = 0;
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
         
@@ -422,10 +424,12 @@ int main(int argc, char** argv)
             goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
             astar_path = Astar(start_p, goal_p);
 
+            std::cout << "Start of Navigation..........: (" << start_p.x << ", " << start_p.y << ")" << std::endl;
+
             for (auto& position : astar_path) {
                 position           = position * (1 / Point::maze.resize_for_astar);
-                astar_path.front() = Position(start);
-                astar_path.back()  = Position(goal);
+                astar_path.front() = start_p;
+                astar_path.back()  = goal_p;
             }
 
             // Check the difference in the A* path
@@ -489,6 +493,11 @@ int main(int argc, char** argv)
                 std ::cout << "" << std::endl;
             }
 
+
+
+            elastic_band.updatePath(astar_path);
+
+
             state = NAVIGATION;
             [[fallthrough]];
 
@@ -496,7 +505,8 @@ int main(int argc, char** argv)
         case NAVIGATION:
             std::cout << "State: NAVIGATION to: (" << goal.x << ", " << goal.y << ")" << std::endl;
 
-            elastic_band.optimize(start, goal);
+
+            elastic_band.optimize(robot.getPosition(), goal);
 
             if (elastic_band.errorCheck() == true) {
                 // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
@@ -511,13 +521,18 @@ int main(int argc, char** argv)
                 elastic_band.resetOptimization();
 
                 if (counter_set_eb_path > set_eb_path_counter_limit) {
-                    elastic_band.generateSmoothedPath(2.0f, 21, 1.2f); // 0.08 ms
+                    elastic_band.generateSmoothedPath(2.5f, 21, 1.2f); // 0.08 ms
 
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
 
-                    publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-                    sendPath(ser, elastic_band.getSmoothedPath());
+                    send_path_counter ++;
+                     if (send_path_counter >= 10)
+                    {
+                        publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+                        sendPath(ser, elastic_band.getSmoothedPath());
+                        send_path_counter = 0;
+                    }
 
                 } else {
                 }
@@ -525,7 +540,7 @@ int main(int argc, char** argv)
 
             navigation_counter++;
 
-            if (navigation_counter >= 20) {
+            if (navigation_counter >= 10) {
                 state = PATH_PLANNING;
                 navigation_counter = 0;
             }

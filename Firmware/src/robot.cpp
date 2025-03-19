@@ -45,9 +45,9 @@ namespace ecn
         float ii = ki_ * integral_;
         float dd = kd_ * derivative;
 
-        Serial.println("PID output = kp*error " + String(kp_) + " * " + String(angle_error) + " = " + String(pp) +
-                       " ki*integral " + String(ki_) + " * " + String(integral_) + " = " + String(ii) +
-                       " kd*derivative " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
+        Serial.println("PID output = KP " + String(kp_) + " * " + String(angle_error) + " = " + String(pp) +
+                       " KI " + String(ki_) + " * " + String(integral_) + " = " + String(ii) +
+                       " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
                        String(output));
 
         // const float r = 0.0684 / 2; // meters

@@ -115,13 +115,13 @@ void parsePath(String data)
         // Serial.printf("Parsedpath Point: (%f, %f)\n", x, y);
         robot.path_.push_back(Point(x, y));
     }
-    Serial.print("Full Path received: ");
-    for (const auto &point : robot.path_)
-    {
-        Serial.printf("(%f, %f) ", point.x, point.y);
-    }
-    Serial.println();
-    Serial.print("Number of points in the path: ");
+    // Serial.print("Full Path received: ");
+    // for (const auto &point : robot.path_)
+    // {
+    //     Serial.printf("(%f, %f) ", point.x, point.y);
+    // }
+    // Serial.println();
+    Serial.print("Number of points in the path: ----------------------- ");
     Serial.println(robot.path_.size());
 }
 
@@ -155,7 +155,7 @@ void parseSpeedAndPID(String data)
 
 void processCommand(String command)
 {
-    Serial.println("RCCCC: " + command);
+    // Serial.println("RCCCC: " + command);
 
     if (command.startsWith("GOALS:"))
     {
@@ -235,7 +235,7 @@ void sendPositionUpdate()
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(921600);
     while (!Serial)
     {
         delay(10);
@@ -285,13 +285,17 @@ void loop()
                 }
 
                 fullPath += command;
+                int counter = 0;
                 // Keep collecting until "PATHEND:" is found
                 while (true)
                 {
                     if (Serial.available())
                     {
                         command = Serial.readStringUntil('\n');
-                        Serial.println("Commandrccc: " + command);
+
+                        // counter++;
+                        // Serial.print("Received Path Count: ");
+                        // Serial.println(counter);
 
                         // If we encounter "PATHEND:", we need to remove it before adding to fullPath
                         if (command.startsWith("PATHEND:"))

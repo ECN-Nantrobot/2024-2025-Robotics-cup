@@ -35,6 +35,7 @@ public:
 
     float getX() const { return x_; }
     float getY() const { return y_; }
+    Point getPosition() const { return Point{x_, y_}; }
     float getTheta() const { return theta_; }
 
     void setSpeed(float speed) { speed_ = speed; }
