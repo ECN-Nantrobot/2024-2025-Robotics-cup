@@ -19,7 +19,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
-
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include <serial/serial.h>
 
 using namespace std;
@@ -52,6 +52,7 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
 }
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
+ecn::Point pop;
 
 #include <tf2_ros/transform_broadcaster.h>
 
@@ -73,7 +74,7 @@ void publishPosition(
 
     // Set orientation as quaternion
     tf2::Quaternion q;
-    q.setRPY(0, 0, robot_theta);
+    q.setRPY(0, 0, -robot_theta);
     odom_msg.pose.pose.orientation.x = q.x();
     odom_msg.pose.pose.orientation.y = q.y();
     odom_msg.pose.pose.orientation.z = q.z();
@@ -97,7 +98,20 @@ void publishPosition(
     tf_broadcaster->sendTransform(odom_tf);
 }
 
+void publishPoint(const rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr& publisher, const rclcpp::Node::SharedPtr& node)
+{
+    geometry_msgs::msg::PointStamped point_msg;
+    point_msg.header.stamp    = node->now();
+    point_msg.header.frame_id = "odom"; // Set your frame_id
 
+    // Set the coordinates of the point
+    point_msg.point.x = pop.x / 100; // X coordinate in meters
+    point_msg.point.y = 2 - (pop.y / 100); // Y coordinate in meters
+    point_msg.point.z = 0.0;
+
+    publisher->publish(point_msg);
+    // RCLCPP_INFO(node->get_logger(), "Publishing point at: (%.2f, %.2f, %.2f)", point_msg.point.x, point_msg.point.y, point_msg.point.z);
+}
 
 void receivePosition(std::string result) {
     
@@ -123,30 +137,28 @@ void sendGoals(serial::Serial& ser, const vector<Point>& goals, const vector<dou
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
-    int path_sending_limit = 100;
+    int path_sending_limit = 40;
     std::string message = "PATH:";
-    size_t max_points      = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
+    size_t max_points = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
     for (size_t i = 0; i < max_points; ++i) {
         message += std::to_string(path[i].x) + "," + std::to_string(path[i].y) + ";";
     }
     message += "\n";
     ser.write(message);
-    std::cout << "Sent Path:  ";
-    for (size_t i = 0; i < max_points && i < 3; ++i) {
-        std::cout << i << ": (" << path[i].x << ", " << path[i].y << ") ";
-    }
-    if (path.size() > path_sending_limit) {
-        std::cout << " ... (truncated to 100 points)" << std::endl;
-    } else {
-        std::cout << " ..." << std::endl;
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-    // Print the entire path to std
-    std::cout << "Full Path: ";
-    for (const auto& point : path) {
-        std::cout << "(" << point.x << ", " << point.y << ") ";
-    }
-    std::cout << std::endl;
+    // std::cout << "Sent Path:  ";
+    // size_t index = 10;
+    // for (size_t i = 0; i < path_sending_limit; ++i) {
+    //     std::cout << i << ": (" << path[i].x << ", " << path[i].y << ") ";
+    // }
+
+    // // Print the entire path to std
+    // std::cout << "Full Path: ";
+    // for (const auto& point : path) {
+    //     std::cout << "(" << point.x << ", " << point.y << ") ";
+    // }
+    // std::cout << std::endl;
 }
 
 // void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
@@ -176,7 +188,6 @@ void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, doub
 }
 
 
-ecn::Point pop;
 
 void processCommand(const std::string& command)
 {
@@ -204,13 +215,9 @@ void processCommand(const std::string& command)
     } else if (command.rfind("CurrenState: ", 0) == 0) {
         std::cout << "Current State: " << command.substr(13) << std::endl;
     }
-    else if (command.rfind("POP: ", 0) == 0) {
-        std::string popStr = command.substr(5);
-        if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {
-            std::cout << "Updated POP -> X: " << pop.x << ", Y: " << pop.y << std::endl;
-        } else {
-            std::cout << "⚠️ Failed to parse POP data." << std::endl;
-        }
+    else if (command.rfind("POP:", 0) == 0) {
+        std::string popStr = command.substr(4);
+        if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     }
 }
 
@@ -266,16 +273,17 @@ int main(int argc, char** argv)
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
     auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+    auto point_publisher = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
 
     std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
     int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { 45 *M_PI/180, 0 };
+    target_thetas = { 90 *M_PI/180, 0 };
 
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 18.5, 3, 5, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 18.5, 5, 1, 0.01, 0.1); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
@@ -330,7 +338,7 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-    sendSpeedAndPID(ser, 3.0, 5, 0.01, 0.5);
+    sendSpeedAndPID(ser, 6.0, 0.06, 0.0015, 2.5);
     sendGoals(ser, goals, target_thetas);
     sendPath(ser, elastic_band.getSmoothedPath());
 
@@ -475,7 +483,7 @@ int main(int argc, char** argv)
                 elastic_band.resetOptimization();
 
                 if (counter_set_eb_path > set_eb_path_counter_limit) {
-                    elastic_band.generateSmoothedPath(1.8f, 21, 1.2f); // 0.08 ms
+                    elastic_band.generateSmoothedPath(2.0f, 21, 1.2f); // 0.08 ms
 
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
@@ -513,6 +521,8 @@ int main(int argc, char** argv)
         }
 
         publishPosition(odom_publisher, tf_broadcaster, node);
+        publishPoint(point_publisher, node);
+
 
         loop_rate.sleep();
 

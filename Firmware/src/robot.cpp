@@ -40,13 +40,20 @@ namespace ecn
 
         float output = kp_ * angle_error + ki_ * integral_ + kd_ * derivative;
 
-        Serial.print("PID output: ");
-        Serial.println(output);
+
+        float pp = kp_ * angle_error;
+        float ii = ki_ * integral_;
+        float dd = kd_ * derivative;
+
+        Serial.println("PID output = kp*error " + String(kp_) + " * " + String(angle_error) + " = " + String(pp) +
+                       " ki*integral " + String(ki_) + " * " + String(integral_) + " = " + String(ii) +
+                       " kd*derivative " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
+                       String(output));
 
         // const float r = 0.0684 / 2; // meters
         // double thetaL = (kp / r) * distance + (kp * L / r) * angle_error;
 
-        const float maxTurnRate = 8.0;
+        const float maxTurnRate = 5.0;
         if (output > maxTurnRate)
             output = maxTurnRate;
         else if (output < -maxTurnRate)
@@ -111,7 +118,7 @@ namespace ecn
         }
         else
         {
-            float turnSignal = computePID(targetTheta_);
+            float turnSignal = computePID(angleError);
             leftSpeed_ = -turnSignal;
             rightSpeed_ = turnSignal;
         }
@@ -134,7 +141,7 @@ namespace ecn
         }
         else
         {
-            float turnSignal = computePID(targetTheta_);
+            float turnSignal = computePID(angle_error);
             leftSpeed_ = -turnSignal;
             rightSpeed_ = turnSignal;
             Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
@@ -147,12 +154,15 @@ namespace ecn
 
     int Robot::findClosestPointOnPath()
     {
-        // Serial.print("eeesppath: ");
-        // for (const auto &point : path_)
-        // {
-        //     Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
-        // }
-        // Serial.println();
+        Serial.print("eeesppath: ");
+        for (const auto &point : path_)
+        {
+            Serial.print("(" + String(point.x) + ", " + String(point.y) + ") ");
+        }
+        Serial.println();
+        Serial.println("Number of points on the path: " + String(path_.size() / 2));
+
+
         // Find the closest point on the path to the current position
         float minDist = std::numeric_limits<float>::max();
         int closestIdx = 0;
@@ -167,7 +177,7 @@ namespace ecn
         }
 
         // Determine the lookahead distance and find the corresponding target point on the path
-        const float lookaheadDistance = robot_diameter_ * 0.5f + 1.0f;
+        const float lookaheadDistance = robot_diameter_ * 1.5f + 0.0f;
         int targetIdx = closestIdx;
 
         for (int i = closestIdx + 1; i < path_.size(); ++i)
@@ -184,6 +194,8 @@ namespace ecn
         if (targetIdx == closestIdx && closestIdx < path_.size() - 1)
             targetIdx = path_.size() - 1;
 
+        Serial.println("POP:" + String(path_[targetIdx].x) + "," + String(path_[targetIdx].y));
+
         return targetIdx;
     }
 
@@ -195,8 +207,6 @@ namespace ecn
         if (target_index < path_.size())
         {
             float angle_error = calcAngleError(target_index);
-
-            Serial.println("POP:" + String(path_[target_index].x) + ", " + String(path_[target_index].y));
 
             float controlSignal = computePID(angle_error);
 
