@@ -121,7 +121,7 @@ void parsePath(String data)
     //     Serial.printf("(%f, %f) ", point.x, point.y);
     // }
     // Serial.println();
-    Serial.print("Number of points in the path: ----------------------- ");
+    Serial.print("Number of points in the path::: ");
     Serial.println(robot.path_.size());
 }
 

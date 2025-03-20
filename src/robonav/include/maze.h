@@ -30,8 +30,8 @@ public:
 
     bool isFree(float fx, float fy, bool lowres = false) const;
     bool isFree(const Point& p, bool lowres = false) const;
-    bool isFreeNotPermanent(float fx, float fy) const;
-    bool isFreeNotPermanent(const Point& p) const;
+    bool isFreeNotPermanent(float fx, float fy, bool lowres=false) const;
+    bool isFreeNotPermanent(const Point& p, bool lowres = false) const;
 
 
     inline int height() const

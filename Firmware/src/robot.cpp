@@ -24,16 +24,13 @@ namespace ecn
         while (error < -M_PI)
             error += 2 * M_PI;
         
-        Serial.println("target_angle - theta_ = error: " + String(target_angle) + " - " + String(theta_) + " = " + String(error));
+        // Serial.println("target_angle - theta_ = error: " + String(target_angle) + " - " + String(theta_) + " = " + String(error));
 
         return error;
     }
 
     float Robot::computePID(float angle_error)
     {
-        // float targetAngle = std::atan2(target_y - x_, target_x - y_);
-        // float distance = sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
-
         integral_ += angle_error * dt_;
         float derivative = (angle_error - prevError_) / dt_;
         prevError_ = angle_error;
@@ -45,15 +42,12 @@ namespace ecn
         float ii = ki_ * integral_;
         float dd = kd_ * derivative;
 
-        Serial.println("PID output = KP " + String(kp_) + " * " + String(angle_error) + " = " + String(pp) +
-                       " KI " + String(ki_) + " * " + String(integral_) + " = " + String(ii) +
-                       " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
-                       String(output));
+        // Serial.println("PID output = KP " + String(kp_) + " * " + String(angle_error) + " = " + String(pp) +
+        //                " KI " + String(ki_) + " * " + String(integral_) + " = " + String(ii) +
+        //                " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
+        //                String(output));
 
-        // const float r = 0.0684 / 2; // meters
-        // double thetaL = (kp / r) * distance + (kp * L / r) * angle_error;
-
-        const float maxTurnRate = 5.0;
+        const float maxTurnRate = 10.0;
         if (output > maxTurnRate)
             output = maxTurnRate;
         else if (output < -maxTurnRate)
@@ -177,7 +171,7 @@ namespace ecn
         }
 
         // Determine the lookahead distance and find the corresponding target point on the path
-        const float lookaheadDistance = robot_diameter_ * 1.5f + 0.0f;
+        const float lookaheadDistance = robot_diameter_ * 0.9f + 0.0f;
         int targetIdx = closestIdx;
 
         for (int i = closestIdx + 1; i < path_.size(); ++i)

@@ -106,26 +106,39 @@ void publishPosition(
     tf_broadcaster->sendTransform(odom_tf);
 }
 
-void publishPoint(const rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr& publisher, const rclcpp::Node::SharedPtr& node)
+void publishPoint(const rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr& publisher, const rclcpp::Node::SharedPtr& node, const ecn::Point& point)
 {
     geometry_msgs::msg::PointStamped point_msg;
     point_msg.header.stamp    = node->now();
     point_msg.header.frame_id = "odom"; // Set your frame_id
 
     // Set the coordinates of the point
-    point_msg.point.x = pop.x / 100; // X coordinate in meters
-    point_msg.point.y = 2 - (pop.y / 100); // Y coordinate in meters
+    point_msg.point.x = point.x / 100; // X coordinate in meters
+    point_msg.point.y = 2 - (point.y / 100); // Y coordinate in meters
     point_msg.point.z = 0.0;
 
     publisher->publish(point_msg);
     // RCLCPP_INFO(node->get_logger(), "Publishing point at: (%.2f, %.2f, %.2f)", point_msg.point.x, point_msg.point.y, point_msg.point.z);
 }
 
-void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr &publisher, const cv::Mat &image)
+void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr& publisher, cv::Mat& origina_image)
 {
-    // Convert OpenCV image into OccupancyGrid message
-    nav_msgs::msg::OccupancyGrid grid;
+    cv::Mat image = origina_image.clone();
 
+    cv::flip(image, image, 0); // Flip the image on the horizontal axis
+
+    if (image.channels() != 1) {
+        cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);  // Convert to grayscale (if not already)
+    }
+
+    if (image.type() == CV_16U) {
+        cv::Mat im_8bit;
+        image.convertTo(im_8bit, CV_8UC1, 1.0 / 256);  // Normalize 16-bit to 8-bit range
+        image = im_8bit;
+    }
+
+    // Convert OpenCV image to OccupancyGrid data
+    nav_msgs::msg::OccupancyGrid grid;
     grid.info.resolution = 0.01;  // meters per pixel
     grid.info.width = image.cols;
     grid.info.height = image.rows;
@@ -133,24 +146,19 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
     grid.info.origin.position.y = 0.0;
     grid.info.origin.position.z = 0.0;
     grid.info.origin.orientation.w = 1.0;
-
     grid.header.frame_id = "odom";
 
-    // Convert OpenCV image to OccupancyGrid data
     std::vector<int8_t> data;
     for (int i = 0; i < image.rows; ++i) {
-        for (int j = 0; j < image.cols; ++j)
-        {
-            uint8_t pixel_value = image.at<uint8_t>(i, j);
+        for (int j = 0; j < image.cols; ++j) {
+            uint8_t pixel_value = image.at<uchar>(i, j);
             if (pixel_value < 120)  // Occupied
             {
                 data.push_back(100);  // 100 represents occupied
-            }
-            else if (pixel_value >= 120)  // Free
+            } else if (pixel_value >= 120)  // Free
             {
                 data.push_back(0);    // 0 represents free space
-            }
-            else  // Unknown area
+            } else  // Unknown area
             {
                 data.push_back(-1);   // -1 represents unknown space
             }
@@ -189,7 +197,6 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
     int path_sending_limit = 2; // Send x points at a time
     size_t path_size       = std::min(path.size(), static_cast<size_t>(35));
-    std::cout << "Starting point of the path.................: (" << path.front().x << ", " << path.front().y << ")" << std::endl;
 
     // Loop through the entire path in chunks (in this case, 2 points at a time)
     for (size_t i = 0; i < path_size; i += path_sending_limit) {
@@ -215,10 +222,10 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
         message += "\n";      // Add a newline to mark the end of the message
 
         ser.write(message);                                        // Send the message over serial
-        std::cout << message;                                      // Print the message to std
+        // std::cout << message;                                      // Print the message to std
         std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Optional: wait before sending the next chunk
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
 }
 
 
@@ -388,7 +395,7 @@ int main(int argc, char** argv)
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
-    sendSpeedAndPID(ser, 3.0, 10, 0.01, 0.5);
+    sendSpeedAndPID(ser, 12.0, 25, 0.01, 0.5);
     sendGoals(ser, goals, target_thetas);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -427,7 +434,7 @@ int main(int argc, char** argv)
             break;
 
         case PATH_PLANNING:
-            std::cout << "State: PATH_PLANNING" << std::endl;
+            std::cout << "State: PATH_PLANNING-------" << std::endl;
 
             // Recalculate A* path
             // Point::maze.computeDistanceTransform();
@@ -435,8 +442,6 @@ int main(int argc, char** argv)
             start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
             goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
             astar_path = Astar(start_p, goal_p);
-
-            std::cout << "Start of Navigation..........: (" << start_p.x << ", " << start_p.y << ")" << std::endl;
 
             for (auto& position : astar_path) {
                 position           = position * (1 / Point::maze.resize_for_astar);
@@ -575,9 +580,15 @@ int main(int argc, char** argv)
             break;
         }
 
+        static auto last_clone_time = std::chrono::steady_clock::now();
+        auto current_time = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+            last_clone_time = current_time;
+            publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+        }
+
         publishPosition(odom_publisher, tf_broadcaster, node);
-        publishPoint(point_publisher, node);
-        publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+        publishPoint(point_publisher, node, pop);
 
 
         loop_rate.sleep();
