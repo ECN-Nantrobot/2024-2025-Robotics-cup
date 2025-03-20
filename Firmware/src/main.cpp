@@ -264,7 +264,7 @@ RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand
 
 void loop()
 {
-    if (millis() - lastUpdateTime >= robot.getDt())
+    if (millis() - lastUpdateTime >= robot.getDtInMs())
     {
         lastUpdateTime = millis();
 
@@ -292,6 +292,7 @@ void loop()
                     if (Serial.available())
                     {
                         command = Serial.readStringUntil('\n');
+                        // Serial.println("RCCCC: " + command);
 
                         // counter++;
                         // Serial.print("Received Path Count: ");

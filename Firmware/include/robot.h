@@ -25,6 +25,7 @@ namespace ecn
         float getRightSpeed() const { return rightSpeed_; }
 
         float getDt() const { return dt_; }
+        float getDtInMs() const { return dt_inms_; }
 
         volatile float getX() const { return x_; }
         volatile float getY() const { return y_; }
@@ -96,7 +97,8 @@ namespace ecn
         float leftSpeed_;
         float rightSpeed_;
 
-        float dt_ = 50; //in ms
+        float dt_ = 0.05; //in seconds
+        float dt_inms_ = dt_ * 1000.0;
 
         float maxSpeed_ = 6.0;
         bool isStarting_ = true;

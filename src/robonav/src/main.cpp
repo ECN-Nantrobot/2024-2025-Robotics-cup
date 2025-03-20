@@ -9,6 +9,8 @@
 #include <maze.h>
 #include <point.h>
 #include <position.h>
+#include <sstream>  // For std::ostringstream
+#include <iomanip>  // For std::fixed and std::setprecision
 
 #include "point.h"
 #include "robot.h"
@@ -137,21 +139,11 @@ void sendGoals(serial::Serial& ser, const vector<Point>& goals, const vector<dou
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
-    // int path_sending_limit = 40;
-    // std::string message = "PATH:";
-    // size_t max_points = std::min(path.size(), static_cast<size_t>(path_sending_limit)); // Limit to 100 points
-    // for (size_t i = 0; i < max_points; ++i) {
-    //     message += std::to_string(path[i].x) + "," + std::to_string(path[i].y) + ";";
-    // }
-    // message += "\n";
-    // ser.write(message);
-    // std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-
-    int path_sending_limit = 1; // Send x points at a time
-    size_t path_size = std::min(path.size(), static_cast<size_t>(35));
+    int path_sending_limit = 2; // Send x points at a time
+    size_t path_size       = std::min(path.size(), static_cast<size_t>(35));
     std::cout << "Starting point of the path.................: (" << path.front().x << ", " << path.front().y << ")" << std::endl;
-    // Loop through the entire path in chunks (in this case, 20 points at a time)
+
+    // Loop through the entire path in chunks (in this case, 2 points at a time)
     for (size_t i = 0; i < path_size; i += path_sending_limit) {
         std::string message;
         if (i + path_sending_limit >= path_size) {
@@ -163,51 +155,23 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
         size_t max_points = std::min(path_size - i, static_cast<size_t>(path_sending_limit)); // Limit the number of points in each chunk
 
         // Add points to the message
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
+
         for (size_t j = i; j < i + max_points; ++j) {
-            message += std::to_string(static_cast<int>(path[j].x * 100) / 100.0) + "," + 
-                   std::to_string(static_cast<int>(path[j].y * 100) / 100.0) + ";";
+            // Format x and y to two decimal places
+            oss << path[j].x << "," << path[j].y << ";";
         }
 
-        message += "\n"; // Add a newline to mark the end of the message
-        ser.write(message); // Send the message over serial
-        // std::cout << message; // Print the message to std
-        std::this_thread::sleep_for(std::chrono::milliseconds(5)); // Optional: wait before sending the next chunk
+        message += oss.str(); // Add the formatted points to the message
+        message += "\n";      // Add a newline to mark the end of the message
+
+        ser.write(message);                                        // Send the message over serial
+        std::cout << message;                                      // Print the message to std
+        std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Optional: wait before sending the next chunk
     }
-    // std::cout << std::endl;
-
-
-
-    // std::cout << "Sent Path:  ";
-    // size_t index = 10;
-    // for (size_t i = 0; i < path_sending_limit; ++i) {
-    //     std::cout << i << ": (" << path[i].x << ", " << path[i].y << ") ";
-    // }
-
-    // // Print the entire path to std
-    // std::cout << "Full Path: ";
-    // for (const auto& point : path) {
-    //     std::cout << "(" << point.x << ", " << point.y << ") ";
-    // }
-    // std::cout << std::endl;
+    std::cout << std::endl;
 }
-
-// void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
-// {
-//     std::string message = "PATH:";
-//     for (const auto& point : path) {
-//         message += std::to_string(point.x) + "," + std::to_string(point.y) + ";";
-//         if (message.length() > 512) { // Send every 512 bytes
-//             message += "\n";
-//             ser.write(message);
-//             std::cout << "Sent Path: " << message << std::endl;
-//             message.clear();
-//             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-//         }
-//     }
-//     message += "\n";
-//     ser.write(message);
-//     std::cout << "Sent Path: " << message << std::endl;
-// }
 
 
 void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, double D)
@@ -368,12 +332,14 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-    sendSpeedAndPID(ser, 8.0, 0.5, 0.0005, 100);
+    sendSpeedAndPID(ser, 8.0, 10, 0.01, 0.5);
     sendGoals(ser, goals, target_thetas);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
     sendPath(ser, elastic_band.getSmoothedPath());
 
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ser.write("STATE:INIT\n");
     std::cout << "Sent INIT state" << std::endl;
@@ -389,16 +355,6 @@ int main(int argc, char** argv)
     while (rclcpp::ok()) {
         
         int max_reads = 15;
-
-        // Prevent infinite looping
-        // std::string latest_command;
-        // while (ser.available() && max_reads > 0) {
-        //     latest_command = ser.readline(); // Keep only the latest message
-        //     max_reads--;
-        //     }
-
-        //     if (!latest_command.empty()) {
-        //         processCommand(latest_command);
 
         while (ser.available() && max_reads > 0) {
             std::string command = ser.readline();
@@ -527,7 +483,7 @@ int main(int argc, char** argv)
                     eb_comp_inarow            = eb_comp_inarow_default;
 
                     send_path_counter ++;
-                     if (send_path_counter >= 10)
+                     if (send_path_counter >= 5)
                     {
                         publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
                         sendPath(ser, elastic_band.getSmoothedPath());
