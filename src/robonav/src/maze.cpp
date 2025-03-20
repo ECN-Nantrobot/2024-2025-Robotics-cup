@@ -32,7 +32,7 @@ void Maze::load(std::string _filename)
 
 
     // Add a 5-pixel border around obstacles
-    const int border_size = 5;
+    const int border_size = 0;
     cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
 
     // Create a mask for all pixels below the threshold

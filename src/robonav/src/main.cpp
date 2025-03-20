@@ -24,6 +24,12 @@
 #include "geometry_msgs/msg/point_stamped.hpp"
 #include <serial/serial.h>
 
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/msg/image.hpp>
+#include <vector>
+
+
 using namespace std;
 using namespace ecn;
 
@@ -114,6 +120,48 @@ void publishPoint(const rclcpp::Publisher<geometry_msgs::msg::PointStamped>::Sha
     publisher->publish(point_msg);
     // RCLCPP_INFO(node->get_logger(), "Publishing point at: (%.2f, %.2f, %.2f)", point_msg.point.x, point_msg.point.y, point_msg.point.z);
 }
+
+void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr &publisher, const cv::Mat &image)
+{
+    // Convert OpenCV image into OccupancyGrid message
+    nav_msgs::msg::OccupancyGrid grid;
+
+    grid.info.resolution = 0.01;  // meters per pixel
+    grid.info.width = image.cols;
+    grid.info.height = image.rows;
+    grid.info.origin.position.x = 0.0;
+    grid.info.origin.position.y = 0.0;
+    grid.info.origin.position.z = 0.0;
+    grid.info.origin.orientation.w = 1.0;
+
+    grid.header.frame_id = "odom";
+
+    // Convert OpenCV image to OccupancyGrid data
+    std::vector<int8_t> data;
+    for (int i = 0; i < image.rows; ++i) {
+        for (int j = 0; j < image.cols; ++j)
+        {
+            uint8_t pixel_value = image.at<uint8_t>(i, j);
+            if (pixel_value < 120)  // Occupied
+            {
+                data.push_back(100);  // 100 represents occupied
+            }
+            else if (pixel_value >= 120)  // Free
+            {
+                data.push_back(0);    // 0 represents free space
+            }
+            else  // Unknown area
+            {
+                data.push_back(-1);   // -1 represents unknown space
+            }
+        }
+    }
+
+    grid.data = data;
+    publisher->publish(grid);
+}
+
+
 
 void receivePosition(std::string result) {
     
@@ -222,8 +270,12 @@ int main(int argc, char** argv)
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
-    auto tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(node);
+    auto odom_publisher     = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
+    auto point_publisher    = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
+    auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+    auto tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(node);
+
 
     serial::Serial ser;
     bool port_opened = false;
@@ -266,8 +318,7 @@ int main(int argc, char** argv)
     Point goal;
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-    auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
-    auto point_publisher = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
+
 
     std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
     int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
@@ -331,8 +382,13 @@ int main(int argc, char** argv)
     }
     std::cout << std::endl; // Move to the next line after the loop ends
 
+
+
+
     publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
-    sendSpeedAndPID(ser, 8.0, 10, 0.01, 0.5);
+    publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+
+    sendSpeedAndPID(ser, 3.0, 10, 0.01, 0.5);
     sendGoals(ser, goals, target_thetas);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -521,6 +577,7 @@ int main(int argc, char** argv)
 
         publishPosition(odom_publisher, tf_broadcaster, node);
         publishPoint(point_publisher, node);
+        publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
 
         loop_rate.sleep();

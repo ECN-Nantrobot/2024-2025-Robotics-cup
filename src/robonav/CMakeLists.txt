@@ -12,7 +12,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
-
+find_package(cv_bridge REQUIRED)
 
 # Library für Maze-Funktionalität
 add_library(maze_lib SHARED 
@@ -45,8 +45,8 @@ add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAPS="${CMAKE_CURRENT_SOURCE_DIR}/maps")
 
 add_executable(main_node src/main.cpp)
-target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib)
-ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs)
+target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib ${cv_bridge_LIBRARIES})
+ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs cv_bridge)
 
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
