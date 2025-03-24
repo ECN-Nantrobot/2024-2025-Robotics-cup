@@ -38,6 +38,8 @@ enum RobotState { WAITING, INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_T
 
 RobotState state = WAITING;
 
+int current_goal_index = 1; // Keep track of which goal the robot is targeting
+
 void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
     nav_msgs::msg::Path path_msg;
@@ -317,7 +319,9 @@ int main(int argc, char** argv)
 
     //-------------------------------------------------------------------------------------
 
-    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    // std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    std::string filename_maze = Maze::mazeFile("home_map.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
 
@@ -327,12 +331,11 @@ int main(int argc, char** argv)
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
 
-    std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
-    int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
+    std::vector<Point> goals = { Point(20, 20), Point(110, 60), Point(20, 20) }; // goal points
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { 90 *M_PI/180, 0 };
+    target_thetas = { 90 *M_PI/180, 0 , 0};
 
 
     Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 18.5, 5, 1, 0.01, 0.1); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
@@ -570,6 +573,10 @@ int main(int argc, char** argv)
             if (current_goal_index < goals.size() - 1) {
                 current_goal_index++;
                 goal = goals[current_goal_index];
+
+
+
+                
                 state = PATH_PLANNING;
                 std::cout << "New goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
             } else {

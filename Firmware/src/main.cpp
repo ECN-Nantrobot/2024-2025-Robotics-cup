@@ -395,6 +395,8 @@ void loop()
             case TURN_TO_GOAL:
                 Serial.println("CurrentState: TURN_TO_GOAL");
 
+                delay(800);
+
                 if (robot.turnToGoalOrientation())
                 {
                     std::cout << "Robot is aligned to goal orientation!" << std::endl;
@@ -406,12 +408,17 @@ void loop()
             case GOAL_REACHED:
 
                 Serial.println("CurrentState: GOAL_REACHED");
+                Serial.println("STATE:GOAL_REACHED");
 
-                if (current_goal_index++ < robot.goals.size())
-                {
-                    current_goal_index++;
+                                if (current_goal_index + 1 < robot.goals.size()) {
+                    Serial.print("current_goal_index: ");
+                    Serial.println(current_goal_index);
+                    Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+
+                    delay(1500);
+
                     robot.setTargetTheta(robot.goals[current_goal_index].theta);
-                    state = INIT;
+                        state = INIT;
                 }
                 else
                 {
