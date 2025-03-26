@@ -3,6 +3,7 @@
 
 #include "maze.h"
 #include "point.h"
+#include "pose.h"
 #include "position.h"
 #include <opencv2/opencv.hpp>
 #include <vector>
@@ -67,12 +68,18 @@ public:
     float getLinearVelocity() const { return (leftSpeed_ + rightSpeed_) / 2.0; }
     float getAngularVelocity() const { return (rightSpeed_ - leftSpeed_) / wheelBase_; }
 
+    std::vector<Pose> goals;
+    int goal_index = 1;
+
+
 private:
     float x_;         // x-coordinate of the robot
     float y_;         // y-coordinate of the robot
     float theta_;     // Orientation of the robot in radians
     float wheelBase_; // Distance between the wheels
     float robot_diameter_ = wheelBase_;
+
+    
 
     std::vector<ObstaclePoint> forwardConePoints_; // Member variable to store the points
     void checkForwardObstacles(float searchRadius, float coneAngle, int resolution_radial, int resolution_angle);

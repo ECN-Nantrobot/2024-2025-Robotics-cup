@@ -100,12 +100,15 @@ namespace ecn
     bool Robot::turnToGoalOrientation()
     {
         float angleError = targetTheta_ - theta_;
+
         while (angleError > M_PI)
             angleError -= 2 * M_PI;
         while (angleError < -M_PI)
             angleError += 2 * M_PI;
+        
+            Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (targetTheta_): " + String(targetTheta_) + ", Angle Error: " + String(angleError));
 
-        if (std::abs(angleError) < 0.02)
+                if (std::abs(angleError) < 0.02)
         {
             leftSpeed_ = 0;
             rightSpeed_ = 0;
@@ -115,6 +118,7 @@ namespace ecn
             float turnSignal = computePID(angleError);
             leftSpeed_ = -turnSignal;
             rightSpeed_ = turnSignal;
+            Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
         }
 
         // setMotorSpeeds(leftSpeed_, rightSpeed_);
@@ -156,6 +160,12 @@ namespace ecn
         // Serial.println();
         // Serial.println("Number of points on the path: " + String(path_.size() / 2));
 
+        // Check if the path is empty
+        if (path_.empty())
+        {
+            Serial.println("Error: Path is empty.");
+            return -1; 
+        }
 
         // Find the closest point on the path to the current position
         float minDist = std::numeric_limits<float>::max();

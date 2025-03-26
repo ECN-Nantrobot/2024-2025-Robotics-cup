@@ -32,7 +32,7 @@ namespace ecn
         volatile float getTheta() const { return theta_; }
 
 
-        void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta * M_PI / 180.0f; }
+        void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta; }
 
         void setX(volatile float x) { x_ = x; }
         void setY(volatile float y) { y_ = y; }
@@ -86,7 +86,7 @@ namespace ecn
         volatile float y_;
         volatile float theta_;
 
-        float targetTheta_ = 0.0;
+        float targetTheta_;
 
 
         float target_speed_;

@@ -23,6 +23,7 @@ add_library(maze_lib SHARED
     include/position.h
     include/obstacle.h
     include/robot.h
+    include/pose.h
     src/maze.cpp
     src/point.cpp
     src/elastic_bands.cpp

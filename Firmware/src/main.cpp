@@ -69,7 +69,7 @@ void parseGoals(String data)
         float y = segment.substring(comma1 + 1, comma2).toFloat();
         float theta = segment.substring(comma2 + 1).toFloat();
 
-        robot.goals.push_back(Pose(x, y, theta));
+        robot.goals.push_back(Pose(x, y, theta * M_PI / 180));
     }
 
     robot.setPose(robot.goals[0].point.x, robot.goals[0].point.y, robot.goals[0].theta);
@@ -338,11 +338,7 @@ void loop()
 
                 break;
             case INIT:
-                // if (state != lastState)
-                // {
                 Serial.println("CurrentState: INIT");
-                //     lastState = state;
-                // }
 
                 Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
 
@@ -350,13 +346,14 @@ void loop()
                 [[fallthrough]];
 
             case TURN_TO_PATH:
-
-                // if (state != lastState)
-                // {
                 Serial.println("CurrentState: TURN_TO_PATH");
 
-                //     lastState = state;
-                // }
+                if (INIT != last_sent_state)
+                {
+                    Serial.print("STATE:INIT\n");
+                    last_sent_state = INIT;
+                }
+
 
                 if (robot.turnToPathOrientation())
                 {
@@ -385,6 +382,7 @@ void loop()
 
                     if (distance_to_goal < 0.5)
                     {
+                        Serial.printf("Goal reached: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
                         std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
                         state = TURN_TO_GOAL;
                     }
@@ -394,8 +392,13 @@ void loop()
 
             case TURN_TO_GOAL:
                 Serial.println("CurrentState: TURN_TO_GOAL");
+                Serial.print("STATE:GOAL_REACHED\n");
 
-                delay(800);
+                if (last_sent_state != WAIT) {
+                    Serial.println("STATE:WAIT");
+                    last_sent_state = WAIT;
+                    // delay(1000);
+                }
 
                 if (robot.turnToGoalOrientation())
                 {
@@ -408,17 +411,24 @@ void loop()
             case GOAL_REACHED:
 
                 Serial.println("CurrentState: GOAL_REACHED");
-                Serial.println("STATE:GOAL_REACHED");
+                Serial.print("STATE:GOAL_REACHED\n");
 
-                                if (current_goal_index + 1 < robot.goals.size()) {
+                if (current_goal_index + 1 < robot.goals.size()) {
+
+                    current_goal_index++;
+
                     Serial.print("current_goal_index: ");
                     Serial.println(current_goal_index);
                     Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+                    
 
-                    delay(1500);
+                    delay(1000);
 
                     robot.setTargetTheta(robot.goals[current_goal_index].theta);
-                        state = INIT;
+
+                    std::cout << "Set Target theta to: " << robot.goals[current_goal_index].theta  << std::endl;
+
+                    state = INIT;
                 }
                 else
                 {

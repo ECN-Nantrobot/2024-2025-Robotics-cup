@@ -38,7 +38,8 @@ enum RobotState { WAITING, INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_T
 
 RobotState state = WAITING;
 
-int current_goal_index = 1; // Keep track of which goal the robot is targeting
+
+Robot robot(Point::maze, 0, 0, 0, 18.5, 5, 1, 0.01, 0.1); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
 
 void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
@@ -182,24 +183,28 @@ void receivePosition(std::string result) {
     }
 }
 
-void sendGoals(serial::Serial& ser, const vector<Point>& goals, const vector<double>& target_thetas)
+void sendGoals(serial::Serial& ser)
 {
+    std::cout << "Sending goals to ESP:" << std::endl;
     string message = "GOALS:";
-    for (size_t i = 0; i < goals.size(); i++) {
-        message += to_string(goals[i].x) + "," + to_string(goals[i].y) + "," + to_string(target_thetas[i]);
-        if (i < goals.size() - 1)
-            message += ";"; // Separate goals
+    for (size_t i = 0; i < robot.goals.size(); i++) {
+        std::ostringstream goal_oss; // stringstream 
+        goal_oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
+
+        goal_oss << robot.goals[i].point.x << "," << robot.goals[i].point.y << "," << robot.goals[i].theta << ";";
+        message += goal_oss.str();
+        std::cout << goal_oss.str() << std::endl;
     }
     message += "\n";
     ser.write(message);
-    cout << "Sent Goals: " << message << endl;
 }
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
     int path_sending_limit = 2; // Send x points at a time
-    size_t path_size       = std::min(path.size(), static_cast<size_t>(35));
+    size_t path_size       = std::min(path.size(), static_cast<size_t>(44));
 
+    int iterations = 0;
     // Loop through the entire path in chunks (in this case, 2 points at a time)
     for (size_t i = 0; i < path_size; i += path_sending_limit) {
         std::string message;
@@ -211,25 +216,26 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 
         size_t max_points = std::min(path_size - i, static_cast<size_t>(path_sending_limit)); // Limit the number of points in each chunk
 
-        // Add points to the message
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
+        std::ostringstream path_oss;
+        path_oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
 
+        // Add points to the message
         for (size_t j = i; j < i + max_points; ++j) {
             // Format x and y to two decimal places
-            oss << path[j].x << "," << path[j].y << ";";
+            path_oss << path[j].x << "," << path[j].y << ";";
         }
 
-        message += oss.str(); // Add the formatted points to the message
+        message += path_oss.str(); // Add the formatted points to the message
         message += "\n";      // Add a newline to mark the end of the message
 
         ser.write(message);                                        // Send the message over serial
+        iterations++;
         // std::cout << message;                                      // Print the message to std
         std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Optional: wait before sending the next chunk
     }
     // std::cout << std::endl;
+    std::cout << iterations << " of " << path_size / path_sending_limit << " PATH chunks sent" << std::endl;
 }
-
 
 void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, double D)
 {
@@ -237,7 +243,6 @@ void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, doub
     ser.write(message);
     std::cout << "Sent Speed and PID: " << message << std::endl;
 }
-
 
 
 void processCommand(const std::string& command)
@@ -255,13 +260,15 @@ void processCommand(const std::string& command)
             state = INIT;
         else if (stateStr == "PATH_PLANNING")
             state = PATH_PLANNING;
+        else if (stateStr == "WAIT")
+            state = WAITING;
         else if (stateStr == "TURN_TO_GOAL")
             state = WAITING;
         else if (stateStr == "TURN_TO_PATH")
             state = WAITING;
         else if (stateStr == "GOAL_REACHED")
             state = GOAL_REACHED;
-        std::cout << "ACK:STATE_RECEIVED: " << stateStr << std::endl;
+        std::cout << "ACK:STATE_RECEIVED: [" << stateStr << "]" << std::endl;
 
     } else if (command.rfind("CurrenState: ", 0) == 0) {
         std::cout << "Current State: " << command.substr(13) << std::endl;
@@ -324,25 +331,19 @@ int main(int argc, char** argv)
 
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
+    
+    robot.goals             = { Pose(60, 50, 90), Pose(130, 70, 90), Pose(60, 50, 90) };
+    
+    robot.setPose(robot.goals[0].point.x, robot.goals[0].point.y, robot.goals[0].theta * M_PI / 180);
+    robot.setTargetTheta(robot.goals[0].theta);
 
-    Point start;
-    Point goal;
+    Point start                   = robot.goals[0];
+    Point goal                    = robot.goals[1];
+    std::cout << "Initial Robot Pose: (" << robot.goals[0].point.x << ", " << robot.goals[0].point.y << ", " << robot.goals[0].theta << ")" << std::endl;
+    std::cout << "Start Point: (" << start.x << ", " << start.y << ")" << std::endl;
+    std::cout << "Goal Point: (" << goal.x << ", " << goal.y << ")" << std::endl;
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-
-
-    std::vector<Point> goals = { Point(20, 20), Point(110, 60), Point(20, 20) }; // goal points
-    start                    = goals[0];
-    goal                    = goals[current_goal_index];
-    std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { 90 *M_PI/180, 0 , 0};
-
-
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 18.5, 5, 1, 0.01, 0.1); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
-    robot.setIsStarting(true);  // Enable gradual start
-    robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
-    robot.setTargetTheta(target_thetas[0]);
-
 
     robot_x     = robot.getX();
     robot_y     = robot.getY();
@@ -399,7 +400,7 @@ int main(int argc, char** argv)
     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
     sendSpeedAndPID(ser, 12.0, 25, 0.01, 0.5);
-    sendGoals(ser, goals, target_thetas);
+    sendGoals(ser);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
 
@@ -435,6 +436,32 @@ int main(int argc, char** argv)
             std::cout << "State: WAITING" << std::endl;
 
             break;
+
+        case INIT:
+            std::cout << "State: INIT" << std::endl;
+
+            cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+            start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
+            goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+            astar_path = Astar(start_p, goal_p);
+
+            for (auto& position : astar_path) {
+                position           = position * (1 / Point::maze.resize_for_astar);
+                astar_path.front() = start_p;
+                astar_path.back()  = goal_p;
+            }
+
+            elastic_band.updatePath(astar_path);
+            elastic_band.runFullOptimization(robot.getPosition(), goal);
+
+            publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+            sendPath(ser, elastic_band.getSmoothedPath());
+
+
+            state = WAITING;
+
+
+        break;
 
         case PATH_PLANNING:
             std::cout << "State: PATH_PLANNING-------" << std::endl;
@@ -560,7 +587,7 @@ int main(int argc, char** argv)
 
             navigation_counter++;
 
-            if (navigation_counter >= 10) {
+            if (navigation_counter >= 15) {
                 state = PATH_PLANNING;
                 navigation_counter = 0;
             }
@@ -570,19 +597,16 @@ int main(int argc, char** argv)
         case GOAL_REACHED:
             std::cout << "State: GOAL_REACHED" << std::endl;
 
-            if (current_goal_index < goals.size() - 1) {
-                current_goal_index++;
-                goal = goals[current_goal_index];
-
-
-
-                
-                state = PATH_PLANNING;
+            if (robot.goal_index < robot.goals.size() - 1) {
+                robot.goal_index++;
+                goal = robot.goals[robot.goal_index];
                 std::cout << "New goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
             } else {
                 std::cout << "All goals reached!" << std::endl;
-                state = WAITING;
             }
+
+            state = WAITING;
+
 
             break;
         }
