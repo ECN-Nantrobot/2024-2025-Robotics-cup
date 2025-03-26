@@ -2,8 +2,10 @@
 <sdf version="1.6">
   <world name="bordered_world">
 
-
-
+    <!-- Define wall height -->
+    <plugin name="wall_height_plugin" filename="libWallHeightPlugin.so">
+      <wall_height>0.3</wall_height>
+    </plugin>
 
     <!-- Ground Plane -->
     <include>
@@ -19,100 +21,100 @@
     <model name="wall_north">
       <static>true</static>
       <link name="link">
-        <!-- <collision name="collision">
+        <collision name="collision">
           <geometry>
             <box>
-              <size>2 0.02 0.5</size>
+              <size>3 0.02 0.3</size>
             </box>
           </geometry>
           <collide_bitmask>0</collide_bitmask>
-        </collision> -->
+        </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>3 0.02 0.5</size>
+              <size>3 0.02 0.3</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>1.5 2 0.25 0 0 0</pose>
+        <pose>1.5 2 0.15 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_south">
       <static>true</static>
       <link name="link">
-        <!-- <collision name="collision">
+        <collision name="collision">
           <geometry>
             <box>
-              <size>2 0.02 0.5</size>
+              <size>3 0.02 0.3</size>
             </box>
           </geometry>
           <collide_bitmask>0</collide_bitmask>
-        </collision> -->
+        </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>3 0.02 0.5</size>
+              <size>3 0.02 0.3</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>1.5 0 0.25 0 0 0</pose>
+        <pose>1.5 0 0.15 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_east">
       <static>true</static>
       <link name="link">
-        <!-- <collision name="collision">
+        <collision name="collision">
           <geometry>
             <box>
-              <size>0.02 3 0.5</size>
+              <size>0.02 2 0.3</size>
             </box>
           </geometry>
           <collide_bitmask>0</collide_bitmask>
-        </collision> -->
+        </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.02 2 0.5</size>
+              <size>0.02 2 0.3</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>3 1 0.25 0 0 0</pose>
+        <pose>3 1 0.15 0 0 0</pose>
       </link>
     </model>
 
     <model name="wall_west">
       <static>true</static>
       <link name="link">
-        <!-- <collision name="collision">
+        <collision name="collision">
           <geometry>
             <box>
-              <size>0.02 3 0.5</size>
+              <size>0.02 2 0.3</size>
             </box>
           </geometry>
           <collide_bitmask>0</collide_bitmask>
-        </collision> -->
+        </collision>
         <visual name="visual">
           <geometry>
             <box>
-              <size>0.02 2 0.5</size>
+              <size>0.02 2 0.3</size>
             </box>
             <material>
               <ambient>0.7 0.7 0.7 1</ambient>
             </material>
           </geometry>
         </visual>
-        <pose>0 1 0.25 0 0 0</pose>
+        <pose>0 1 0.15 0 0 0</pose>
       </link>
     </model>
 

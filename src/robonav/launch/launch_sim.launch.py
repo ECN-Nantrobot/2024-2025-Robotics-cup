@@ -105,6 +105,14 @@ def generate_launch_description():
         output='screen'
     )
 
+    static_transform_publisher = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        arguments=['0.12', '0.0', '0.17', '0', '0', '0', 'odom', 'lidar'],
+        output='screen'
+    )
+
+
     # # Start the map server
     # map_server = Node(
     #     package='nav2_map_server',
@@ -135,7 +143,8 @@ def generate_launch_description():
         spawn_entity,
         start_rviz,
         cmd_vel_publisher,
-        relay_node    
+        relay_node,
+        static_transform_publisher 
         # map_server,
         # image_publisher  
     ])
