@@ -14,7 +14,7 @@ def generate_launch_description():
     # Declare an argument for the custom Gazebo world
     world_file_arg = DeclareLaunchArgument(
         'world',
-        default_value='draft.world',  # Default world file
+        default_value='competition.world',  # Default world file
         description='empty.world'
     )
 
@@ -93,18 +93,6 @@ def generate_launch_description():
         )]
     )
 
-    relay_node = ExecuteProcess(
-        cmd=[
-            'python3',
-            PathJoinSubstitution([
-                get_package_share_directory('robonav'),
-                'scripts',
-                'relay_scan.py'
-            ])
-        ],
-        output='screen'
-    )
-
     static_transform_publisher = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -112,28 +100,6 @@ def generate_launch_description():
         output='screen'
     )
 
-
-    # # Start the map server
-    # map_server = Node(
-    #     package='nav2_map_server',
-    #     executable='map_server',
-    #     name='map_server',
-    #     parameters=[{
-    #         'yaml_filename': PathJoinSubstitution([
-    #             get_package_share_directory('robonav'),
-    #             'config',
-    #             'map_server_params.yaml'
-    #         ])
-    #     }],
-    #     output='screen'
-    # )
-
-    # image_publisher = Node(
-    #     package='robonav',  # <--- Ersetze durch dein Paket
-    #     executable='image_publisher.py',  # Name der ausführbaren Datei
-    #     name='image_publisher',
-    #     output='screen'
-    # )
 
     # Launch them all!
     return LaunchDescription([
@@ -143,8 +109,5 @@ def generate_launch_description():
         spawn_entity,
         start_rviz,
         cmd_vel_publisher,
-        relay_node,
         static_transform_publisher 
-        # map_server,
-        # image_publisher  
     ])

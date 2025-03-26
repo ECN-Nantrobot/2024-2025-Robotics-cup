@@ -13,7 +13,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(SFML REQUIRED COMPONENTS graphics window system)
-
+# find_package(cv_bridge REQUIRED)
 
 # Library für Maze-Funktionalität
 add_library(maze_lib SHARED 
@@ -58,10 +58,9 @@ install(DIRECTORY launch worlds include description config scripts
   DESTINATION share/${PROJECT_NAME}/
 )
 
-install(PROGRAMS
-  scripts/image_publisher.py
-  scripts/relay_scan.py
-  DESTINATION lib/${PROJECT_NAME}
-)
+# install(PROGRAMS
+#   scripts/.....
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 ament_package()

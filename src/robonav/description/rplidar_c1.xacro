@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-    <!-- RPLIDAR C1 Sensor -->
+    <!-- Lidar -->
     <link name="lidar_link">
         <visual>
             <geometry>
@@ -22,18 +22,20 @@
         </inertial>
     </link>
 
-
     <gazebo reference="lidar_link">
         <material>Gazebo/Black</material>
     </gazebo>
 
-    <!-- Joint zum Roboter (chassis) -->
+
+    <!-- Joint Lidar to Robot (chassis) -->
     <joint name="rplidar_joint" type="fixed">
         <parent link="chassis"/>
         <child link="lidar_link"/>
-        <origin xyz="0.12 0.0 0.17" rpy="0 0 0"/>  <!-- Lidar sitzt oben auf dem Chassis -->
+        <origin xyz="0.12 0.0 0.35" rpy="0 0 0"/>  <!-- Lidar is on top of the Chassis -->
     </joint>
 
+
+    <!-- Lidar Plugin -->
     <gazebo reference="lidar_link">
         <sensor type="ray" name="rplidar_sensor">
             <visualize>true</visualize>
@@ -42,20 +44,20 @@
                 <scan>
                     <horizontal>
                         <samples>360</samples>
-                        <resolution>1</resolution>
+                        <resolution>0.72</resolution> <!-- Match datasheet -->
                         <min_angle>-3.14159</min_angle>
                         <max_angle>3.14159</max_angle>
                     </horizontal>
                 </scan>
                 <range>
-                    <min>0.12</min>
+                    <min>0.05</min>
                     <max>12.0</max>
-                    <resolution>0.01</resolution>
+                    <resolution>0.015</resolution>
                 </range>
                 <noise>
                     <type>gaussian</type>
                     <mean>0.0</mean>
-                    <stddev>0.01</stddev>
+                    <stddev>0.015</stddev>  <!-- Noise stddev to match ±30mm accuracy of C1   -->
                 </noise>
             </ray>
             <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
@@ -64,7 +66,7 @@
                 <remapping>~/out:=scan</remapping>
                 </ros>
                 <output_type>sensor_msgs/LaserScan</output_type>
-                <frame_name>lidar_link</frame_name> <!-- Updated to match the frame name -->
+                <frame_name>lidar_link</frame_name> 
             </plugin>
         </sensor>
     </gazebo>

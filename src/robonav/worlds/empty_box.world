@@ -238,44 +238,6 @@
         <falloff>0.5</falloff>
       </spot>
     </light>
-        <!-- Spotlight -->
-    <light name="spotlight1" type="spot">
-      <pose>0.5 1.5 1.0 0 0 0</pose>
-      <diffuse>1.0 0.8 0.6 1</diffuse>
-      <specular>1.0 0.8 0.6 1</specular>
-      <attenuation>
-        <range>10.0</range>
-        <constant>0.5</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>0 0 -1</direction>
-      <spot>
-        <inner_angle>0.1</inner_angle>
-        <outer_angle>0.4</outer_angle>
-        <falloff>0.5</falloff>
-      </spot>
-    </light>
-
-    <!-- Spotlight -->
-    <light name="spotlight2" type="spot">
-      <pose>0.5 0.5 1.0 0 0 0</pose>
-      <diffuse>1.0 0.8 0.6 1</diffuse>
-      <specular>1.0 0.8 0.6 1</specular>
-      <attenuation>
-        <range>10.0</range>
-        <constant>0.5</constant>
-        <linear>0.01</linear>
-        <quadratic>0.001</quadratic>
-      </attenuation>
-      <direction>0 0 -1</direction>
-      <spot>
-        <inner_angle>0.1</inner_angle>
-        <outer_angle>0.4</outer_angle>
-        <falloff>0.5</falloff>
-      </spot>
-    </light>
-
     <gravity>0 0 -9.8</gravity>
     <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
     <atmosphere type='adiabatic'/>
@@ -301,10 +263,10 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='bordered_world'>
-      <sim_time>710 290000000</sim_time>
-      <real_time>324 553329975</real_time>
-      <wall_time>1739229932 425573521</wall_time>
-      <iterations>321732</iterations>
+      <sim_time>388 558000000</sim_time>
+      <real_time>389 553185187</real_time>
+      <wall_time>1739229163 805093150</wall_time>
+      <iterations>388558</iterations>
       <model name='ground_plane'>
         <pose>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -316,7 +278,37 @@
         </link>
       </model>
       <model name='wall_east'>
-        <pose>-3 0 0 0 -0 0</pose>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>3 1 0.25 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='wall_north'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>1.5 2 0.25 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='wall_south'>
+        <pose>0 0 0 0 -0 0</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>1.5 0 0.25 0 -0 0</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>0 0 0 0 -0 0</acceleration>
+          <wrench>0 0 0 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='wall_west'>
+        <pose>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
           <pose>0 1 0.25 0 -0 0</pose>
@@ -325,38 +317,8 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='wall_north'>
-        <pose>-3 0 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>-1.5 2 0.25 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
-      <model name='wall_south'>
-        <pose>-3 0 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>-1.5 0 0.25 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
-      <model name='wall_west'>
-        <pose>-3 0 0 0 -0 0</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>-3 1 0.25 0 -0 0</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0 0 0 0 -0 0</acceleration>
-          <wrench>0 0 0 0 -0 0</wrench>
-        </link>
-      </model>
       <light name='spotlight'>
-        <pose>1.29097 -0.934058 0.993508 0.060214 -1.27947 2.4309</pose>
+        <pose>-1.04905 2.90669 0.993508 0.060217 -1.27947 -0.797362</pose>
       </light>
       <light name='sun'>
         <pose>0 0 10 0 -0 0</pose>
@@ -364,7 +326,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>-3.12329 6.53387 8.8757 0 0.909797 -1.54696</pose>
+        <pose>2.66815 -2.84883 3.78034 0 0.727642 1.68419</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

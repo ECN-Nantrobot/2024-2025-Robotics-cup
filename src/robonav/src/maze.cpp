@@ -30,9 +30,20 @@ void Maze::load(std::string _filename)
         std::cout << "Converted grayscale image to BGR format ... ";
     }
 
+    std::cout << "Image type before: " << im.type() << " ... ";
+
+    if (im.depth() == CV_16U) {
+        cv::Mat temp;
+        im.convertTo(temp, CV_8UC3, 1.0 / 256); // Scale 16-bit to 8-bit
+        im = temp;
+        std::cout << "Converted 16-bit image to 8-bit ... ";
+    }
+
+    std::cout << "Image type after: " << im.type() << " ... ";
 
     // Add a 5-pixel border around obstacles
-    const int border_size = 5;
+    const int border_size = 4;
+    const cv::Vec3b border_colour(100, 100, 100);
     cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
 
     // Create a mask for all pixels below the threshold
@@ -47,7 +58,7 @@ void Maze::load(std::string _filename)
         }
     }
 
-    // Step 2: Dilate the obstacle mask to include the border
+    // Step 2: Dilate the obstacle mask (make the mask bigger) to include the border
     cv::Mat dilated_mask;
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2 * border_size + 1, 2 * border_size + 1));
     cv::dilate(obstacle_mask, dilated_mask, kernel);
@@ -56,28 +67,27 @@ void Maze::load(std::string _filename)
     cv::Mat border_mask;
     cv::subtract(dilated_mask, obstacle_mask, border_mask);
 
-    // Step 4: Apply the border mask to the image
+    // Step 4: Colour each pixel of the image where the mask is the border_colour
     for (int y = 0; y < im.rows; ++y) {
         for (int x = 0; x < im.cols; ++x) {
             if (border_mask.at<uchar>(y, x) == 255) {
-                im.at<cv::Vec3b>(y, x) = cv::Vec3b(40, 40, 40);
+                im.at<cv::Vec3b>(y, x) = border_colour;
             }
         }
     }
-    std::cout << "Added border of " << border_size << " to permanent(balck) obstacles ... ";
+    std::cout << "Added border of " << border_size << " to permanent(black) obstacles ... ";
 
     original_im = im.clone();
     out         = im.clone();
 
     cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
-    std::cout << "Downsized the image for A* by "
-              << resize_for_astar << " ... ";
+    std::cout << "Downsized the image for A* by " << resize_for_astar << " ... ";
 
     out_lowres = im_lowres.clone();
 
-    std::cout << " ok"
-              << std::endl;
+    std::cout << " ok" << std::endl;
 }
+
 
 // void Maze::loadLowRes(std::string _filename)
 // {

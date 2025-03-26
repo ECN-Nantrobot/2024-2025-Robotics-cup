@@ -243,7 +243,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     float rep_to_spring_radius_factor = 0.4;
 
     const float repulsive_strength = 6;
-    const int min_rep_radius       = 6;
+    const int min_rep_radius       = 10;
     const int max_rep_radius       = 18;
     float dynamic_rep_radius       = min_rep_radius;
     const int repel_raduis         = 24;

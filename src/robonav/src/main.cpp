@@ -20,6 +20,10 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
+// #include <cv_bridge/cv_bridge.h>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+// #include <sensor_msgs/msg/image.hpp>
+#include <vector>
 
 using namespace std;
 using namespace ecn;
@@ -47,6 +51,55 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
 
     path_publisher->publish(path_msg);
 }
+
+void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr& publisher, cv::Mat& origina_image)
+{
+    cv::Mat image = origina_image.clone();
+
+    cv::flip(image, image, 0); // Flip the image on the horizontal axis
+
+    if (image.channels() != 1) {
+        cv::cvtColor(image, image, cv::COLOR_BGR2GRAY); // Convert to grayscale (if not already)
+    }
+
+    if (image.type() == CV_16U) {
+        cv::Mat im_8bit;
+        image.convertTo(im_8bit, CV_8UC1, 1.0 / 256); // Normalize 16-bit to 8-bit range
+        image = im_8bit;
+    }
+
+    // Convert OpenCV image to OccupancyGrid data
+    nav_msgs::msg::OccupancyGrid grid;
+    grid.info.resolution           = 0.01; // meters per pixel
+    grid.info.width                = image.cols;
+    grid.info.height               = image.rows;
+    grid.info.origin.position.x    = 0.0;
+    grid.info.origin.position.y    = 0.0;
+    grid.info.origin.position.z    = 0.0;
+    grid.info.origin.orientation.w = 1.0;
+    grid.header.frame_id           = "odom";
+
+    std::vector<int8_t> data;
+    for (int i = 0; i < image.rows; ++i) {
+        for (int j = 0; j < image.cols; ++j) {
+            uint8_t pixel_value = image.at<uchar>(i, j);
+            if (pixel_value < 120) // Occupied
+            {
+                data.push_back(100);       // 100 represents occupied
+            } else if (pixel_value >= 120) // Free
+            {
+                data.push_back(0); // 0 represents free space
+            } else                 // Unknown area
+            {
+                data.push_back(-1); // -1 represents unknown space
+            }
+        }
+    }
+
+    grid.data = data;
+    publisher->publish(grid);
+}
+
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
@@ -97,6 +150,7 @@ int main(int argc, char** argv)
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
+    auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
     last_time = node->now();
 
@@ -121,7 +175,7 @@ int main(int argc, char** argv)
 
     int counter_set_eb_path = 0;
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 5, 10, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 2, 14, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
@@ -440,12 +494,19 @@ int main(int argc, char** argv)
         // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
         velocity_publisher->publish(msg);
 
+        static auto last_clone_time = std::chrono::steady_clock::now();
+        auto current_time           = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+            last_clone_time = current_time;
+            publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+        }
+
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        robot.updatePosition(dt);
+        // robot.updatePosition(dt); // Update robot position with integration
         
-        // robot.setPose(robot_x, robot_y, robot_theta);
+        robot.setPose(robot_x, robot_y, robot_theta); // Update robot position with odometry from gazebo
 
         cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
         cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency

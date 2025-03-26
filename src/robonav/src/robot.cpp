@@ -27,7 +27,7 @@ float Robot::computePID(float targetAngle, float dt)
     float output = kp_ * error + ki_ * integral_ + kd_ * derivative;
 
     // Clamp the output to a maximum turning rate
-    const float maxTurnRate = 8.0; // Limit turning rate
+    const float maxTurnRate = 5.0; // Limit turning rate
     if (output > maxTurnRate)
         output = maxTurnRate;
     else if (output < -maxTurnRate)
@@ -306,15 +306,17 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
         //     }
         // }
 
-        float speed_closetobstacle     = max_speed_;
-        float slowdown_factor_obstacle = distanceToClosestObstacleInFront(robot_diameter_ * 2, 40.0f);
 
-        if (slowdown_factor_obstacle < 1.0f) {
-            speed_closetobstacle = max_speed_ * slowdown_factor_obstacle; // Adjust speed based on slowdown factor
-            // std::cout << "Obstacle detected! Slowdown factor: " << slowdown_factor_obstacle << ", Speed: " << speed_ << std::endl;
-        } else {
-            speed_closetobstacle = max_speed_;
-        }
+        // Use front sensor --------------
+        float speed_closetobstacle     = max_speed_;
+        // float slowdown_factor_obstacle = distanceToClosestObstacleInFront(robot_diameter_ * 2, 40.0f);
+
+        // if (slowdown_factor_obstacle < 1.0f) {
+        //     speed_closetobstacle = max_speed_ * slowdown_factor_obstacle; // Adjust speed based on slowdown factor
+        //     // std::cout << "Obstacle detected! Slowdown factor: " << slowdown_factor_obstacle << ", Speed: " << speed_ << std::endl;
+        // } else {
+        //     speed_closetobstacle = max_speed_;
+        // }
 
 
         float speed_closetogoal = max_speed_;
