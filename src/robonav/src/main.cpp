@@ -22,7 +22,7 @@
 
 // #include <cv_bridge/cv_bridge.h>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-// #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <vector>
 
 using namespace std;
@@ -31,16 +31,33 @@ using namespace ecn;
 
 enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
 
+
+// #include <laser_geometry/laser_geometry.hpp>
+// #include <sensor_msgs/LaserScan.hpp>
+// #include <sensor_msgs/PointCloud2.hpp>
+
+// laser_geometry::LaserProjection projector;
+// rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub;
+
+// void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan_msg)
+// {
+//     sensor_msgs::msg::PointCloud2 cloud;
+//     projector.projectLaser(*scan_msg, cloud); // rechnet /scan in PointCloud2
+//     cloud.header.frame_id = "laser_frame";    // oder base_link, je nach Setup
+//     cloud_pub->publish(cloud);
+// }
+
+
 void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
     nav_msgs::msg::Path path_msg;
     path_msg.header.stamp    = node->now();
-    path_msg.header.frame_id = "odom"; 
+    path_msg.header.frame_id = "map"; 
 
     for (const auto& point : elastic_path) {
         geometry_msgs::msg::PoseStamped pose;
         pose.header.stamp       = path_msg.header.stamp;
-        pose.header.frame_id    = "odom";
+        pose.header.frame_id    = "map";
         pose.pose.position.x    = point.x/100.0;  // Convert from cm to m
         pose.pose.position.y    = 2 - point.y/100.0; // Conversion cm to m and frame change
         pose.pose.position.z    = 0.0;
@@ -150,7 +167,7 @@ int main(int argc, char** argv)
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
-    auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+    // auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
 
     last_time = node->now();
 
@@ -175,7 +192,7 @@ int main(int argc, char** argv)
 
     int counter_set_eb_path = 0;
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 2, 14, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 8, 14, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);
@@ -204,16 +221,16 @@ int main(int argc, char** argv)
         // Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt)
     };
 
-
-    const int scale       = 20; // size up visualization for better quality
-    const int display_res = 600;
-    cv::Mat simulation;
-    cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-    cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
-    std::string window_name = ("Robot Simulation");
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::moveWindow(window_name, 0, 0);
-    cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
+    // Vizualize with OpenCV 1 of 2
+    // const int scale       = 20; // size up visualization for better quality
+    // const int display_res = 600;
+    // cv::Mat simulation;
+    // cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+    // cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
+    // std::string window_name = ("Robot Simulation");
+    // cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    // cv::moveWindow(window_name, 0, 0);
+    // cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
 
     std::chrono::time_point<std::chrono::steady_clock> astarStartTime, astarEndTime, elasticStartTime, elasticEndTime, realStartTime, realEndTime, loopStartTime,
     loopEndTime; std::chrono::duration<double> astarDuration, elasticDuration, realDuration, loopDuration;
@@ -494,12 +511,12 @@ int main(int argc, char** argv)
         // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
         velocity_publisher->publish(msg);
 
-        static auto last_clone_time = std::chrono::steady_clock::now();
-        auto current_time           = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
-            last_clone_time = current_time;
-            publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
-        }
+        // static auto last_clone_time = std::chrono::steady_clock::now();
+        // auto current_time           = std::chrono::steady_clock::now();
+        // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+        //     last_clone_time = current_time;
+        //     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+        // }
 
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -508,11 +525,13 @@ int main(int argc, char** argv)
         
         robot.setPose(robot_x, robot_y, robot_theta); // Update robot position with odometry from gazebo
 
-        cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
-        robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
-        cv::imshow(window_name, simulation);
-        cv::waitKey(1);
+
+        // Vizualize with OpenCV 2 of 2
+        // cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+        // cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                    // to support transparency
+        // robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
+        // cv::imshow(window_name, simulation);
+        // cv::waitKey(1);
 
 
         // loopEndTime  = std::chrono::steady_clock::now();
