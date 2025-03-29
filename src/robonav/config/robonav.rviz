@@ -304,6 +304,27 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /amcl_pose
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_viz
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /map_viz_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -350,15 +371,15 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 5.193225383758545
+      Distance: 4.021633625030518
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.275139093399048
-        Y: 0.64490807056427
+        X: 1.4482226371765137
+        Y: 0.2973212003707886
         Z: -4.76837158203125e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
@@ -386,5 +407,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1624
-  X: 43
-  Y: -18
+  X: 684
+  Y: 58

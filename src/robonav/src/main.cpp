@@ -25,6 +25,8 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <vector>
 
+#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+
 using namespace std;
 using namespace ecn;
 
@@ -94,7 +96,7 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
     grid.info.origin.position.y    = 0.0;
     grid.info.origin.position.z    = 0.0;
     grid.info.origin.orientation.w = 1.0;
-    grid.header.frame_id           = "odom";
+    grid.header.frame_id           = "map";
 
     std::vector<int8_t> data;
     for (int i = 0; i < image.rows; ++i) {
@@ -138,6 +140,23 @@ void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
 }
 
+void amclCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+{
+    // Get `x` and `y`, convert from meters to cm
+    robot_x = msg->pose.pose.position.x * 100;
+    robot_y = 200 - msg->pose.pose.position.y * 100;
+
+    // Correctly Convert Quaternion to Yaw (Theta)
+    tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
+    tf2::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw); // Extract yaw angle
+
+    robot_theta = -yaw; // Now theta (yaw) is correct
+
+    RCLCPP_INFO(rclcpp::get_logger("AMCL"), "AMCL: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
+}
+
 // ROS dt 
 rclcpp::Time last_time;
 double getDt(const rclcpp::Node::SharedPtr& node)
@@ -166,8 +185,11 @@ int main(int argc, char** argv)
     auto node               = rclcpp::Node::make_shared("velocity_publisher");
     auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
+    // USE ODOM FOR POSITION
     auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
-    // auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
+    // USE LIDAR AMCL FOR POSITION
+    // auto amcl_subscriber    = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/amcl_pose", 10, amclCallback);
+    auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map_viz", 10);
 
     last_time = node->now();
 
@@ -511,12 +533,12 @@ int main(int argc, char** argv)
         // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
         velocity_publisher->publish(msg);
 
-        // static auto last_clone_time = std::chrono::steady_clock::now();
-        // auto current_time           = std::chrono::steady_clock::now();
-        // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
-        //     last_clone_time = current_time;
-        //     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
-        // }
+        static auto last_clone_time = std::chrono::steady_clock::now();
+        auto current_time           = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1) {
+            last_clone_time = current_time;
+            publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+        }
 
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
