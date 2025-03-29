@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 
     int counter_set_eb_path = 0;
 
-    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 8, 14, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+    Robot robot(Point::maze, start.x, start.y, target_thetas[0] * M_PI / 180, 33, 4, 14, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
     robot.setIsStarting(true);  // Enable gradual start
     robot.setPose(goals[0].x, goals[0].y, target_thetas[0] * M_PI / 180);
     robot.setTargetTheta(target_thetas[0]);

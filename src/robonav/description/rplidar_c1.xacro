@@ -43,7 +43,7 @@
             <ray>
                 <scan>
                     <horizontal>
-                        <samples>360</samples>
+                        <!-- <samples>500</samples> resolution = 360° / 500 = 0.72° -->
                         <resolution>0.72</resolution> <!-- Match datasheet -->
                         <min_angle>-3.14159</min_angle>
                         <max_angle>3.14159</max_angle>
@@ -51,19 +51,19 @@
                 </scan>
                 <range>
                     <min>0.05</min>
-                    <max>12.0</max>
+                    <max>10.0</max> <!-- Black: 6m, white: 12m -->
                     <resolution>0.015</resolution>
                 </range>
                 <noise>
                     <type>gaussian</type>
                     <mean>0.0</mean>
-                    <stddev>0.015</stddev>  <!-- Noise stddev to match ±30mm accuracy of C1   -->
+                    <stddev>0.03</stddev>  <!-- Noise stddev to match ±30mm accuracy of C1   -->
                 </noise>
             </ray>
             <plugin name="lidar_plugin" filename="libgazebo_ros_ray_sensor.so">
                 <ros>
-                <namespace>/</namespace>
-                <remapping>~/out:=scan</remapping>
+                    <namespace>/</namespace>
+                    <remapping>~/out:=scan</remapping>
                 </ros>
                 <output_type>sensor_msgs/LaserScan</output_type>
                 <frame_name>lidar_link</frame_name> 

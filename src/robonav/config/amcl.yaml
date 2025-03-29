@@ -35,12 +35,12 @@ amcl:
     global_frame_id: "map"
     lambda_short: 0.1
     laser_likelihood_max_dist: 2.0
-    laser_max_range: 12.0
+    laser_max_range: 4.0
     laser_min_range: 0.05
     laser_model_type: "likelihood_field"
-    max_beams: 200
-    max_particles: 2000
-    min_particles: 500
+    max_beams: 300
+    max_particles: 400
+    min_particles: 100
     odom_frame_id: "odom"
     pf_err: 0.05
     pf_z: 0.99
@@ -52,11 +52,11 @@ amcl:
     sigma_hit: 0.2
     tf_broadcast: true
     transform_tolerance: 1.0
-    update_min_a: 0.2
-    update_min_d: 0.25
-    z_hit: 0.5
-    z_max: 0.05
-    z_rand: 0.5
+    update_min_a: 0.04
+    update_min_d: 0.04
+    z_hit: 0.5  # How much to trust sensor readings that match the map perfectly. A weight of 0.5 means 50% importance.
+    z_max: 0.05 # How much to trust maximum-range readings (when the sensor doesn’t see anything in range)
+    z_rand: 0.5 # How much to expect random, unexplainable sensor readings.
     z_short: 0.05
     scan_topic: scan
     map_topic: map

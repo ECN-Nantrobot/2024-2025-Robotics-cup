@@ -79,19 +79,18 @@ Visualization Manager:
       Show Names: true
       Tree:
         map:
-          {}
-        odom:
-          base_footprint:
-            base_link:
-              chassis:
-                caster_wheel:
+          odom:
+            base_footprint:
+              base_link:
+                chassis:
+                  caster_wheel:
+                    {}
+                lidar_link:
                   {}
-              lidar_link:
+              left_wheel:
                 {}
-            left_wheel:
-              {}
-            right_wheel:
-              {}
+              right_wheel:
+                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -156,7 +155,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
-      Color: 240; 0; 0
+      Color: 0; 0; 0
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -258,7 +257,7 @@ Visualization Manager:
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.03999999910593033
+      Size (m): 0.02500000037252903
       Style: Spheres
       Topic:
         Depth: 5
@@ -269,6 +268,41 @@ Visualization Manager:
         Value: /pointcloud
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz_default_plugins/PoseWithCovariance
+      Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
+      Enabled: true
+      Head Length: 0.20000000298023224
+      Head Radius: 0.07999999821186066
+      Name: PoseWithCovariance
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /amcl_pose
       Value: true
   Enabled: true
   Global Options:
@@ -316,7 +350,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/ThirdPersonFollower
-      Distance: 5.266170501708984
+      Distance: 5.193225383758545
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -352,5 +386,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1624
-  X: 139
-  Y: 78
+  X: 43
+  Y: -18

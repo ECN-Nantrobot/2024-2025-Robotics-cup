@@ -160,7 +160,7 @@ def generate_launch_description():
 
 
     lifecycle_manager = TimerAction(
-        period=4.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
+        period=5.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
         actions=[Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',
