@@ -1,27 +1,5 @@
 amcl:
   ros__parameters:
-    use_sim_time: true
-    global_frame_id: map 
-    odom_frame_id: odom
-    base_frame_id: base_footprint
-    scan_topic: scan
-    min_particles: 100
-    max_particles: 500
-    laser_max_beams: 30
-    update_min_d: 0.05
-    update_min_a: 0.1
-    odom_model_type: diff
-    laser_model_type: likelihood_field
-    z_hit: 0.8
-    z_rand: 0.2
-    sigma_hit: 0.2
-    odom_alpha1: 0.2
-    odom_alpha2: 0.2
-    odom_alpha3: 0.2
-    odom_alpha4: 0.2
-
-amcl:
-  ros__parameters:
     alpha1: 0.2
     alpha2: 0.2
     alpha3: 0.2
@@ -38,9 +16,9 @@ amcl:
     laser_max_range: 4.0
     laser_min_range: 0.05
     laser_model_type: "likelihood_field"
-    max_beams: 300
-    max_particles: 400
-    min_particles: 100
+    max_beams: 60 # Maximum Number of beams to use
+    max_particles: 120 # Maximum number of particles to use 
+    min_particles: 50 # Minimum number of particles to use
     odom_frame_id: "odom"
     pf_err: 0.05
     pf_z: 0.99
@@ -51,12 +29,12 @@ amcl:
     save_pose_rate: 0.5
     sigma_hit: 0.2
     tf_broadcast: true
-    transform_tolerance: 1.0
-    update_min_a: 0.04
-    update_min_d: 0.04
-    z_hit: 0.5  # How much to trust sensor readings that match the map perfectly. A weight of 0.5 means 50% importance.
+    transform_tolerance: 1.0 
+    update_min_a: 0.02 # distance until update
+    update_min_d: 0.02 # angle until update
+    z_hit: 0.75  # How much to trust sensor readings that match the map perfectly. A weight of 0.5 means 50% importance.
     z_max: 0.05 # How much to trust maximum-range readings (when the sensor doesn’t see anything in range)
-    z_rand: 0.5 # How much to expect random, unexplainable sensor readings.
+    z_rand: 0.35 # How much to expect random, unexplainable sensor readings.
     z_short: 0.05
     scan_topic: scan
     map_topic: map

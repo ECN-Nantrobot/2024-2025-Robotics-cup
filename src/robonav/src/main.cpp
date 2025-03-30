@@ -248,6 +248,10 @@ double getDt(const rclcpp::Node::SharedPtr& node)
 //     return elapsed.count();
 // }
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
@@ -275,12 +279,12 @@ int main(int argc, char** argv)
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
-    std::vector<Point> goals = { Point(270, 150), Point(40, 40)}; // goal points
+    std::vector<Point> goals = { Point(270, 150), Point(40, 40), Point(275, 100) }; // goal points
     int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { 45 *M_PI/180, 0 };
+    target_thetas = { 45 *M_PI/180, 0 , -90 *M_PI/180 }; // Set target thetas for each goal
 
     int counter_set_eb_path = 0;
 
