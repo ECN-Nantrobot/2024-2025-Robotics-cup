@@ -260,7 +260,7 @@
             </box>
           </geometry>
         </visual>
-        <pose>0.6 1 0.3 0 0 0</pose>
+        <pose>0.5 1 0.3 0 0 0</pose>
       </link>
     </model>
 
