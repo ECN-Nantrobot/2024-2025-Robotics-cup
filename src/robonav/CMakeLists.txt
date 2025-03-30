@@ -16,6 +16,7 @@ find_package(SFML REQUIRED COMPONENTS graphics window system)
 # find_package(cv_bridge REQUIRED)
 find_package(laser_geometry REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
 
 
 # Library für Maze-Funktionalität
@@ -40,11 +41,11 @@ add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAPS="${CMAKE_CURRENT_SOURCE_DIR}/maps")
 
 add_executable(main_node src/main.cpp)
-target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp)
-ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs laser_geometry sensor_msgs)
+target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp ${PCL_LIBRARIES})
+ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs laser_geometry sensor_msgs pcl_conversions)
 
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${PCL_INCLUDE_DIRS})
 
 add_executable(interactive_generation src/interactive_generation.cpp)
 target_link_libraries(interactive_generation maze_lib ${OpenCV_LIBS} yaml-cpp sfml-graphics sfml-window sfml-system)

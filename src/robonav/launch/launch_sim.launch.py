@@ -49,21 +49,12 @@ def generate_launch_description():
             'world': os.path.join(
                 get_package_share_directory(package_name),
                 'worlds',
-                'competition.world'
+                'competition_copy.world'
             ),
-            'gui': 'false' ###
+            'gui': 'true' ###########
         }.items()
     )
     
-
-    cmd_vel_publisher = TimerAction(
-        period=6.0,
-        actions=[Node(
-            package='robonav',
-            executable='main_node',
-            output='screen'
-        )]
-    )
 
     x_start_cv_frame = 270 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
     y_start_cv_frame = 150 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
@@ -143,19 +134,6 @@ def generate_launch_description():
 
 
 
-    laser_to_pointcloud_node = Node(
-        package='robonav',
-        executable='laser_to_pointcloud_node',
-        name='laser_to_pointcloud_node',
-        output='screen',  # Output logs to the screen
-        parameters=[
-            {'use_sim_time': True} 
-        ],
-        remappings=[
-            ('scan', '/scan'),  # Remap the LaserScan topic if necessary
-            ('pointcloud', '/pointcloud')  # Remap the PointCloud2 topic if necessary
-        ]
-    )
 
 
 
@@ -177,17 +155,48 @@ def generate_launch_description():
 
 
 
+    main_node_publisher = TimerAction(
+        period=7.0,
+        actions=[Node(
+            package='robonav',
+            executable='main_node',
+            output='screen'
+        )]
+    )
+
+    laser_to_pointcloud_node = TimerAction(
+        period=8.0,  # Add an 8-second delay
+        actions=[Node(
+            package='robonav',
+            executable='laser_to_pointcloud_node',
+            name='laser_to_pointcloud_node',
+            output='screen',  # Output logs to the screen
+            parameters=[
+                {'use_sim_time': True} 
+            ],
+            remappings=[
+                ('scan', '/scan'),  # Remap the LaserScan topic if necessary
+                ('pointcloud', '/pointcloud')  # Remap the PointCloud2 topic if necessary
+            ]
+        )]
+    )
+
+
+
+
+
     # Launch them all!
     return LaunchDescription([
         rsp,
         gazebo,
         spawn_entity,
         start_rviz,
-        cmd_vel_publisher,
         # static_transform_publisher,
         map_server_node,
         amcl_node,
         lifecycle_manager,
-        laser_to_pointcloud_node
+        laser_to_pointcloud_node,
+        main_node_publisher,
+
         # initial_pose_timer
     ])

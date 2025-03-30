@@ -27,28 +27,19 @@
 
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 
+#include "sensor_msgs/msg/point_cloud2.hpp"
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl/search/kdtree.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl_conversions/pcl_conversions.h>
+
+
 using namespace std;
 using namespace ecn;
 
 
 enum RobotState { INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
-
-
-// #include <laser_geometry/laser_geometry.hpp>
-// #include <sensor_msgs/LaserScan.hpp>
-// #include <sensor_msgs/PointCloud2.hpp>
-
-// laser_geometry::LaserProjection projector;
-// rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub;
-
-// void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan_msg)
-// {
-//     sensor_msgs::msg::PointCloud2 cloud;
-//     projector.projectLaser(*scan_msg, cloud); // rechnet /scan in PointCloud2
-//     cloud.header.frame_id = "laser_frame";    // oder base_link, je nach Setup
-//     cloud_pub->publish(cloud);
-// }
-
 
 void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
@@ -119,6 +110,84 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
     publisher->publish(grid);
 }
 
+void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg, Maze& maze)
+{
+    float reduction = 0.15;
+    float min_x     = 0 + reduction;
+    float max_x     = 3 + reduction;
+    float min_y     = 0 - reduction;
+    float max_y     = 2 - reduction;
+
+    // Convert PointCloud2 to PCL PointCloud
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl::fromROSMsg(*cloud_msg, *cloud);
+
+    // Filter points within the desired map area
+    
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    for (const auto& pt : cloud->points) {
+        if (pt.x >= min_x && pt.x <= max_x && pt.y >= min_y && pt.y <= max_y) {
+            cloud_filtered->points.push_back(pt);
+        }
+    }
+    std::cout << "Number of points found: " << cloud_filtered->points.size() << std::endl;
+    // Perform clustering
+    maze.resetIm(); // Reset the maze before processing new points
+
+
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+    tree->setInputCloud(cloud_filtered);
+
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance(0.05); // 5 cm distance of points
+    ec.setMinClusterSize(2);      // Minimum number of points in a cluster
+    ec.setMaxClusterSize(50);
+    ec.setSearchMethod(tree);
+    ec.setInputCloud(cloud_filtered);
+    ec.extract(cluster_indices);
+
+    maze.resetIm(); // Reset the maze before processing new clusters
+
+    // Process each cluster
+    for (const auto& indices : cluster_indices) {
+        for (const auto& idx : indices.indices) {
+            const auto& pt = cloud_filtered->points[idx];
+
+            // Convert point coordinates to maze indices
+            int maze_x = static_cast<int>(pt.x * 100);       // Convert meters to cm
+            int maze_y = static_cast<int>(200 - pt.y * 100); // Convert meters to cm and adjust frame
+
+            // Check bounds and color the maze black with a radius
+            int radius = 20; // Define the radius around the pixel
+            for (int dx = -radius; dx <= radius; ++dx) {
+                for (int dy = -radius; dy <= radius; ++dy) {
+                    int nx = maze_x + dx;
+                    int ny = maze_y + dy;
+
+                    // Ensure the new pixel is within bounds
+                    if (nx >= 0 && nx < maze.im.rows && ny >= 0 && ny < maze.im.cols) {
+                        maze.setPixel(nx, ny, 0); // Set pixel to black
+                    }
+                }
+            }
+        }
+    }
+
+
+    // // Process each point
+    // for (const auto& pt : cloud_filtered->points) {
+    //     // Convert point coordinates to maze indices
+    //     int maze_x = static_cast<int>(pt.x * 100); // Convert meters to cm
+    //     int maze_y = static_cast<int>(200 - pt.y * 100); // Convert meters to cm and adjust frame
+
+    //     // Check bounds and color the maze red
+    //     if (maze_x >= 0 && maze_x < maze.im.rows && maze_y >= 0 && maze_y < maze.im.cols) {
+    //         maze.setPixel(maze_x, maze_y, cv::Vec3b(0, 0, 255)); // Set pixel to red
+    //     }
+    // }
+}
+
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 
@@ -182,21 +251,22 @@ double getDt(const rclcpp::Node::SharedPtr& node)
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node               = rclcpp::Node::make_shared("velocity_publisher");
-    auto velocity_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    auto node               = rclcpp::Node::make_shared("main_node_publisher");
+    auto main_node_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     // USE ODOM FOR POSITION
     auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
     // USE LIDAR AMCL FOR POSITION
     // auto amcl_subscriber    = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/amcl_pose", 10, amclCallback);
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map_viz", 10);
+    auto cloud_subscriber =   node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze); });
 
     last_time = node->now();
 
     //-------------------------------------------------------------------------------------
     RobotState state = INIT;
 
-    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p_interact.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
 
@@ -289,7 +359,7 @@ int main(int argc, char** argv)
     while (rclcpp::ok()) {
         std::cout << "Robot Theta: " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
 
-
+     
         double dt = getDt(node);
         //     loopStartTime = std::chrono::steady_clock::now();
 
@@ -531,14 +601,14 @@ int main(int argc, char** argv)
         msg.linear.x  = robot.getLinearVelocity() /100;  // Replace with your velocity computation
         msg.angular.z = - robot.getAngularVelocity(); // Replace with your rotation computation
         // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
-        velocity_publisher->publish(msg);
+        main_node_publisher->publish(msg);
 
-        static auto last_clone_time = std::chrono::steady_clock::now();
-        auto current_time           = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1) {
-            last_clone_time = current_time;
+        // static auto last_clone_time = std::chrono::steady_clock::now();
+        // auto current_time           = std::chrono::steady_clock::now();
+        // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 0.5) {
+        //     last_clone_time = current_time;
             publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
-        }
+        // }
 
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

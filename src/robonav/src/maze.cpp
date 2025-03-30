@@ -42,7 +42,7 @@ void Maze::load(std::string _filename)
     std::cout << "Image type after: " << im.type() << " ... ";
 
     // Add a 5-pixel border around obstacles
-    const int border_size = 4;
+    const int border_size = 5;
     const cv::Vec3b border_colour(100, 100, 100);
     cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
 
@@ -77,7 +77,7 @@ void Maze::load(std::string _filename)
     }
     std::cout << "Added border of " << border_size << " to permanent(black) obstacles ... ";
 
-    original_im = im.clone();
+    im_original = im.clone();
     out         = im.clone();
 
     cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
@@ -411,7 +411,7 @@ void Maze::renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& imag
                     // Ensure the coordinates are within bounds of the image
                     if (y >= 0 && y < image.rows && x >= 0 && x < image.cols) {
                         // Restore the pixel from the original image (background)
-                        image.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y / scale, x / scale);
+                        image.at<cv::Vec3b>(y, x) = im_original.at<cv::Vec3b>(y / scale, x / scale);
                     }
                 }
             }
@@ -427,7 +427,7 @@ void Maze::renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& imag
                         image.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
                     } else {
                         // If the obstacle is not active, reset the pixel to the original image (background)
-                        image.at<cv::Vec3b>(y, x) = original_im.at<cv::Vec3b>(y / scale, x / scale);
+                        image.at<cv::Vec3b>(y, x) = im_original.at<cv::Vec3b>(y / scale, x / scale);
                     }
                 }
             }

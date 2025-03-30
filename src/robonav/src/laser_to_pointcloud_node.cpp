@@ -18,19 +18,26 @@ public:
 private:
     void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan_msg)
     {
-        if (!tf_buffer_.canTransform("base_link", scan_msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec(0.1))) {
-            RCLCPP_WARN(this->get_logger(), "Transform unavailable");
+        const std::string target_frame = "map";
+
+        if (!tf_buffer_.canTransform(target_frame, scan_msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec(0.2))) {
+            RCLCPP_WARN(this->get_logger(), "Transform unavailable: %s → %s", scan_msg->header.frame_id.c_str(), target_frame.c_str());
             return;
         }
 
         sensor_msgs::msg::PointCloud2 cloud;
         try {
-            projector_.transformLaserScanToPointCloud("base_link", *scan_msg, cloud, tf_buffer_);
+            // ✅ Use current time instead of scan time
+            sensor_msgs::msg::LaserScan scan_copy = *scan_msg;
+            scan_copy.header.stamp                = this->now();
+
+            projector_.transformLaserScanToPointCloud(target_frame, scan_copy, cloud, tf_buffer_);
             cloud_pub_->publish(cloud);
         } catch (tf2::TransformException& ex) {
             RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
         }
     }
+
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_sub_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub_;

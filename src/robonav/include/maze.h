@@ -54,7 +54,11 @@ public:
     Point findStart();
     Point findGoal();
 
-    void setStart(const Point& start);
+    void resetIm() { im = im_original.clone(); }
+    void setPixel(int x, int y, const cv::Vec3b& color) { im.at<cv::Vec3b>(y, x) = color; }
+
+    void
+    setStart(const Point& start);
     void setGoal(const Point& goal);
     void setElasticBandPath(const std::vector<Point>& elasticBandPath);
 
@@ -81,7 +85,7 @@ public:
 
 
 protected:
-    cv::Mat original_im;
+    cv::Mat im_original;
     std::string filename;
     std::vector<cv::Point> path;
     std::vector<cv::Point> path_eb;
