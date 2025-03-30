@@ -123,69 +123,72 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     pcl::fromROSMsg(*cloud_msg, *cloud);
 
     // Filter points within the desired map area
-    
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
     for (const auto& pt : cloud->points) {
         if (pt.x >= min_x && pt.x <= max_x && pt.y >= min_y && pt.y <= max_y) {
             cloud_filtered->points.push_back(pt);
         }
     }
-    std::cout << "Number of points found: " << cloud_filtered->points.size() << std::endl;
+
     // Perform clustering
     maze.resetIm(); // Reset the maze before processing new points
-
 
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
     tree->setInputCloud(cloud_filtered);
 
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(0.05); // 5 cm distance of points
-    ec.setMinClusterSize(2);      // Minimum number of points in a cluster
-    ec.setMaxClusterSize(50);
+    ec.setClusterTolerance(0.08); // 5 cm distance of points
+    ec.setMinClusterSize(3);      // Minimum number of points in a cluster
+    ec.setMaxClusterSize(30);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud_filtered);
     ec.extract(cluster_indices);
 
     maze.resetIm(); // Reset the maze before processing new clusters
 
-    // Process each cluster
+    // Calculate cluster center and average it with the previous cluster center
     for (const auto& indices : cluster_indices) {
+        float sum_x = 0.0, sum_y = 0.0;
         for (const auto& idx : indices.indices) {
             const auto& pt = cloud_filtered->points[idx];
+            sum_x += pt.x;
+            sum_y += pt.y;
+        }
 
-            // Convert point coordinates to maze indices
-            int maze_x = static_cast<int>(pt.x * 100);       // Convert meters to cm
-            int maze_y = static_cast<int>(200 - pt.y * 100); // Convert meters to cm and adjust frame
+        float cluster_center_x = sum_x / indices.indices.size();
+        float cluster_center_y = sum_y / indices.indices.size();
 
-            // Check bounds and color the maze black with a radius
-            int radius = 20; // Define the radius around the pixel
-            for (int dx = -radius; dx <= radius; ++dx) {
-                for (int dy = -radius; dy <= radius; ++dy) {
-                    int nx = maze_x + dx;
-                    int ny = maze_y + dy;
+        // // Average with the previous cluster center
+        // static float prev_center_x = cluster_center_x;
+        // static float prev_center_y = cluster_center_y;
 
-                    // Ensure the new pixel is within bounds
-                    if (nx >= 0 && nx < maze.im.rows && ny >= 0 && ny < maze.im.cols) {
-                        maze.setPixel(nx, ny, 0); // Set pixel to black
-                    }
+        // float avg_center_x = (cluster_center_x + prev_center_x) / 2.0;
+        // float avg_center_y = (cluster_center_y + prev_center_y) / 2.0;
+
+        // prev_center_x = avg_center_x;
+        // prev_center_y = avg_center_y;
+
+        // Convert averaged center to maze indices
+        int maze_x = static_cast<int>(cluster_center_x * 100);   // Convert meters to cm
+        int maze_y = static_cast<int>(200 - cluster_center_y * 100); // Convert meters to cm and adjust frame
+
+        // Check bounds and color the maze black within a circular radius
+        int radius = 30; // Define the radius around the pixel
+        for (int dx = -radius; dx <= radius; ++dx) {
+            for (int dy = -radius; dy <= radius; ++dy) {
+            if (dx * dx + dy * dy <= radius * radius) { // Check if the point is within the circle
+                int nx = maze_x + dx;
+                int ny = maze_y + dy;
+
+                // Ensure the new pixel is within bounds
+                if (nx >= 0 && nx < maze.im.rows && ny >= 0 && ny < maze.im.cols) {
+                maze.setPixel(nx, ny, 0); // Set pixel to black
                 }
+            }
             }
         }
     }
-
-
-    // // Process each point
-    // for (const auto& pt : cloud_filtered->points) {
-    //     // Convert point coordinates to maze indices
-    //     int maze_x = static_cast<int>(pt.x * 100); // Convert meters to cm
-    //     int maze_y = static_cast<int>(200 - pt.y * 100); // Convert meters to cm and adjust frame
-
-    //     // Check bounds and color the maze red
-    //     if (maze_x >= 0 && maze_x < maze.im.rows && maze_y >= 0 && maze_y < maze.im.cols) {
-    //         maze.setPixel(maze_x, maze_y, cv::Vec3b(0, 0, 255)); // Set pixel to red
-    //     }
-    // }
 }
 
 
@@ -279,12 +282,12 @@ int main(int argc, char** argv)
     Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
     Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
 
-    std::vector<Point> goals = { Point(270, 150), Point(40, 40), Point(275, 100) }; // goal points
+    std::vector<Point> goals = { Point(270, 150), Point(40, 40), Point(35, 170), Point(220, 50)}; // goal points
     int current_goal_index   = 1;   // Keep track of which goal the robot is targeting
     start                    = goals[0];
     goal                    = goals[current_goal_index];
     std::vector<double> target_thetas(goals.size(), 0); // Initialize target thetas
-    target_thetas = { 45 *M_PI/180, 0 , -90 *M_PI/180 }; // Set target thetas for each goal
+    target_thetas = { 45 *M_PI/180, 0, 0, 0}; // Set target thetas for each goal
 
     int counter_set_eb_path = 0;
 
@@ -565,7 +568,7 @@ int main(int argc, char** argv)
                     state = TURN_TO_GOAL;
                 }
 
-            } else if (t % static_cast<int>(1 / dt) == 0) {
+            } else if (static_cast<int>(realDuration.count()) % 1 == 0) {
                 state = PATH_PLANNING;
             } else {
                 state = NAVIGATION;
