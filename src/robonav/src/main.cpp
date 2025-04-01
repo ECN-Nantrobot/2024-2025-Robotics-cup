@@ -5,54 +5,57 @@
 #include <elastic_bands.h>
 #include <filesystem>
 #include <fstream>
+#include <iomanip> // For std::fixed and std::setprecision
 #include <iostream>
 #include <maze.h>
 #include <point.h>
 #include <position.h>
-#include <sstream>  // For std::ostringstream
-#include <iomanip>  // For std::fixed and std::setprecision
+#include <sstream> // For std::ostringstream
 
 #include "point.h"
 #include "robot.h"
 
+#include "geometry_msgs/msg/point_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "nav_msgs/msg/odometry.hpp" 
+#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
-#include "geometry_msgs/msg/point_stamped.hpp"
 #include <serial/serial.h>
 
-#include <nav_msgs/msg/occupancy_grid.hpp>
 #include <cv_bridge/cv_bridge.h>
+#include <nav_msgs/msg/occupancy_grid.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <tf2_ros/transform_broadcaster.h>
 #include <vector>
-
+#include <visualization_msgs/msg/marker.hpp>
 
 using namespace std;
 using namespace ecn;
-
 
 enum RobotState { WAITING, INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_TO_PATH, GOAL_REACHED };
 
 RobotState state = WAITING;
 
+Robot robot(Point::maze, 0, 0, 0, 18.5, 5, 25, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
 
-Robot robot(Point::maze, 0, 0, 0, 18.5, 5, 1, 0.01, 0.1); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
+ecn::Point pop;
 
-void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
+
+void publishElasticbandPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
     nav_msgs::msg::Path path_msg;
     path_msg.header.stamp    = node->now();
-    path_msg.header.frame_id = "odom"; 
+    path_msg.header.frame_id = "odom";
 
     for (const auto& point : elastic_path) {
         geometry_msgs::msg::PoseStamped pose;
         pose.header.stamp       = path_msg.header.stamp;
         pose.header.frame_id    = "odom";
-        pose.pose.position.x    = point.x/100.0;  // Convert from cm to m
-        pose.pose.position.y    = 2 - point.y/100.0; // Conversion cm to m and frame change
+        pose.pose.position.x    = point.x / 100.0;     // Convert from cm to m
+        pose.pose.position.y    = 2 - point.y / 100.0; // Conversion cm to m and frame change
         pose.pose.position.z    = 0.0;
         pose.pose.orientation.w = 1.0; // Default orientation
 
@@ -62,24 +65,89 @@ void publishPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher
     path_publisher->publish(path_msg);
 }
 
-double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
-ecn::Point pop;
+// Function to publish A* path as nav_msgs/Path
+void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
+{
+    nav_msgs::msg::Path path_msg;
+    path_msg.header.stamp    = node->now();
+    path_msg.header.frame_id = "odom"; // Set the appropriate frame
 
-#include <tf2_ros/transform_broadcaster.h>
+    path_msg.poses.clear(); // Clear any residual data
 
-void publishPosition(
-    const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher,  
-    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,               
-    const rclcpp::Node::SharedPtr node)                                          
+    for (const auto& position : astar_path) {
+        geometry_msgs::msg::PoseStamped pose;
+        pose.header.stamp    = path_msg.header.stamp;
+        pose.header.frame_id = "odom";
+        pose.pose.position.x = position.x / 100.0; // Convert cm to meters
+        pose.pose.position.y = 2 - position.y / 100.0; // Verify this transformation
+        pose.pose.position.z = 0.0;
+
+        tf2::Quaternion q;
+        q.setRPY(0, 0, -robot_theta); // Verify robot_theta value
+        pose.pose.orientation.x = q.x();
+        pose.pose.orientation.y = q.y();
+        pose.pose.orientation.z = q.z();
+        pose.pose.orientation.w = q.w();
+
+        path_msg.poses.push_back(pose);
+    }
+
+    for (const auto& position : astar_path) {
+        std::cout << "Position: (" << position.x << ", " << position.y << ")" << std::endl;
+    }
+
+    path_publisher->publish(path_msg);
+}
+
+// Function to publish Elastic Band circles as visualization_msgs/Marker
+void publishElasticBandCircles(const std::vector<Point>& eb_path, const rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr& marker_publisher, const rclcpp::Node::SharedPtr& node)
+{
+    visualization_msgs::msg::Marker marker;
+    marker.header.stamp    = node->now();
+    marker.header.frame_id = "odom"; // Set the appropriate frame
+    marker.ns              = "elastic_band_circles";
+    marker.id              = 0;
+    marker.type            = visualization_msgs::msg::Marker::SPHERE_LIST;
+    marker.action          = visualization_msgs::msg::Marker::ADD;
+    marker.color.r         = 1.0;
+    marker.color.g         = 0.0;
+    marker.color.b         = 0.0;
+    marker.color.a         = 0.5; // Fully opaque
+    for (const auto& point : eb_path) {
+        geometry_msgs::msg::Point sphere_center;
+        sphere_center.x = point.x / 100.0; // Convert cm to meters
+        sphere_center.y = 2 - point.y / 100.0;
+        sphere_center.z = 0.0;
+        marker.points.push_back(sphere_center);
+
+        // Set the size of each circle based on point.radius
+        marker.scale.x = point.radius / 100.0; // Convert cm to meters
+        marker.scale.y = point.radius / 100.0;
+        marker.scale.z = point.radius / 100.0;
+
+        // Use the color from point.colour (cv::Scalar(255, 50, 50))
+        std_msgs::msg::ColorRGBA sphere_color;
+        sphere_color.r = point.colour[2] / 255.0; // OpenCV uses BGR, normalize to [0, 1]
+        sphere_color.g = point.colour[1] / 255.0;
+        sphere_color.b = point.colour[0] / 255.0;
+        sphere_color.a = 1.0; // Fully opaque
+        marker.colors.push_back(sphere_color);
+    }
+
+    marker_publisher->publish(marker);
+}
+
+
+void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher, std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster, const rclcpp::Node::SharedPtr node)
 
 {
     nav_msgs::msg::Odometry odom_msg;
     odom_msg.header.stamp    = node->now();
     odom_msg.header.frame_id = "odom";
-    odom_msg.child_frame_id  = "base_link";  // Set the child frame ID
+    odom_msg.child_frame_id  = "base_link"; // Set the child frame ID
 
     // Set robot position
-    odom_msg.pose.pose.position.x = robot_x / 100.0; // cm to meters
+    odom_msg.pose.pose.position.x = robot_x / 100.0;       // cm to meters
     odom_msg.pose.pose.position.y = 2 - (robot_y / 100.0); // Frame transformation
     odom_msg.pose.pose.position.z = 0.0;
 
@@ -96,14 +164,14 @@ void publishPosition(
 
     // ALSO BROADCAST TF TRANSFORM (`odom -> base_link`)
     geometry_msgs::msg::TransformStamped odom_tf;
-    odom_tf.header.stamp = odom_msg.header.stamp;
-    odom_tf.header.frame_id = "odom"; 
-    odom_tf.child_frame_id = "base_link"; 
+    odom_tf.header.stamp    = odom_msg.header.stamp;
+    odom_tf.header.frame_id = "odom";
+    odom_tf.child_frame_id  = "base_link";
 
     odom_tf.transform.translation.x = odom_msg.pose.pose.position.x;
     odom_tf.transform.translation.y = odom_msg.pose.pose.position.y;
     odom_tf.transform.translation.z = 0.0;
-    odom_tf.transform.rotation = odom_msg.pose.pose.orientation;
+    odom_tf.transform.rotation      = odom_msg.pose.pose.orientation;
 
     // Publish the TF transform
     tf_broadcaster->sendTransform(odom_tf);
@@ -116,7 +184,7 @@ void publishPoint(const rclcpp::Publisher<geometry_msgs::msg::PointStamped>::Sha
     point_msg.header.frame_id = "odom"; // Set your frame_id
 
     // Set the coordinates of the point
-    point_msg.point.x = point.x / 100; // X coordinate in meters
+    point_msg.point.x = point.x / 100;       // X coordinate in meters
     point_msg.point.y = 2 - (point.y / 100); // Y coordinate in meters
     point_msg.point.z = 0.0;
 
@@ -131,39 +199,39 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
     cv::flip(image, image, 0); // Flip the image on the horizontal axis
 
     if (image.channels() != 1) {
-        cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);  // Convert to grayscale (if not already)
+        cv::cvtColor(image, image, cv::COLOR_BGR2GRAY); // Convert to grayscale (if not already)
     }
 
     if (image.type() == CV_16U) {
         cv::Mat im_8bit;
-        image.convertTo(im_8bit, CV_8UC1, 1.0 / 256);  // Normalize 16-bit to 8-bit range
+        image.convertTo(im_8bit, CV_8UC1, 1.0 / 256); // Normalize 16-bit to 8-bit range
         image = im_8bit;
     }
 
     // Convert OpenCV image to OccupancyGrid data
     nav_msgs::msg::OccupancyGrid grid;
-    grid.info.resolution = 0.01;  // meters per pixel
-    grid.info.width = image.cols;
-    grid.info.height = image.rows;
-    grid.info.origin.position.x = 0.0;
-    grid.info.origin.position.y = 0.0;
-    grid.info.origin.position.z = 0.0;
+    grid.info.resolution           = 0.01; // meters per pixel
+    grid.info.width                = image.cols;
+    grid.info.height               = image.rows;
+    grid.info.origin.position.x    = 0.0;
+    grid.info.origin.position.y    = 0.0;
+    grid.info.origin.position.z    = 0.0;
     grid.info.origin.orientation.w = 1.0;
-    grid.header.frame_id = "odom";
+    grid.header.frame_id           = "odom";
 
     std::vector<int8_t> data;
     for (int i = 0; i < image.rows; ++i) {
         for (int j = 0; j < image.cols; ++j) {
             uint8_t pixel_value = image.at<uchar>(i, j);
-            if (pixel_value < 120)  // Occupied
+            if (pixel_value < 120) // Occupied
             {
-                data.push_back(100);  // 100 represents occupied
-            } else if (pixel_value >= 120)  // Free
+                data.push_back(100);       // 100 represents occupied
+            } else if (pixel_value >= 120) // Free
             {
-                data.push_back(0);    // 0 represents free space
-            } else  // Unknown area
+                data.push_back(0); // 0 represents free space
+            } else                 // Unknown area
             {
-                data.push_back(-1);   // -1 represents unknown space
+                data.push_back(-1); // -1 represents unknown space
             }
         }
     }
@@ -173,9 +241,9 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
 }
 
 
+void receivePosition(std::string result)
+{
 
-void receivePosition(std::string result) {
-    
     if (sscanf(result.c_str(), "X: %lf, Y: %lf, Theta: %lf", &robot_x, &robot_y, &robot_theta) == 3) {
         // std::cout << "Updated Position -> X: " << robot_x << ", Y: " << robot_y << ", Theta: " << robot_theta << std::endl;
     } else {
@@ -188,7 +256,7 @@ void sendGoals(serial::Serial& ser)
     std::cout << "Sending goals to ESP:" << std::endl;
     string message = "GOALS:";
     for (size_t i = 0; i < robot.goals.size(); i++) {
-        std::ostringstream goal_oss; // stringstream 
+        std::ostringstream goal_oss;                    // stringstream
         goal_oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
 
         goal_oss << robot.goals[i].point.x << "," << robot.goals[i].point.y << "," << robot.goals[i].theta << ";";
@@ -226,9 +294,9 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
         }
 
         message += path_oss.str(); // Add the formatted points to the message
-        message += "\n";      // Add a newline to mark the end of the message
+        message += "\n";           // Add a newline to mark the end of the message
 
-        ser.write(message);                                        // Send the message over serial
+        ser.write(message); // Send the message over serial
         iterations++;
         // std::cout << message;                                      // Print the message to std
         std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Optional: wait before sending the next chunk
@@ -272,13 +340,19 @@ void processCommand(const std::string& command)
 
     } else if (command.rfind("CurrenState: ", 0) == 0) {
         std::cout << "Current State: " << command.substr(13) << std::endl;
-    }
-    else if (command.rfind("POP:", 0) == 0) {
+    } else if (command.rfind("POP:", 0) == 0) {
         std::string popStr = command.substr(4);
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char** argv)
 {
@@ -290,7 +364,11 @@ int main(int argc, char** argv)
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
     auto point_publisher    = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map", 10);
-    auto tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(node);
+    auto tf_broadcaster     = std::make_shared<tf2_ros::TransformBroadcaster>(node);
+
+    auto elastic_band_path_pub    = node->create_publisher<nav_msgs::msg::Path>("/elastic_band_path", 10);
+    auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
+    auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
 
 
     serial::Serial ser;
@@ -309,7 +387,7 @@ int main(int argc, char** argv)
                 port_opened = true;
                 break;
             }
-        } catch (serial::IOException &e) {
+        } catch (serial::IOException& e) {
             std::cout << "Unable to open port " << port << std::endl;
         }
     }
@@ -331,14 +409,14 @@ int main(int argc, char** argv)
 
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
-    
-    robot.goals             = { Pose(60, 50, 90), Pose(130, 70, 90), Pose(60, 50, 90) };
-    
+
+    robot.goals = { Pose(60, 50, 90), Pose(200, 180, 90), Pose(60, 50, 90) };
+
     robot.setPose(robot.goals[0].point.x, robot.goals[0].point.y, robot.goals[0].theta * M_PI / 180);
     robot.setTargetTheta(robot.goals[0].theta);
 
-    Point start                   = robot.goals[0];
-    Point goal                    = robot.goals[1];
+    Point start = robot.goals[0];
+    Point goal  = robot.goals[1];
     std::cout << "Initial Robot Pose: (" << robot.goals[0].point.x << ", " << robot.goals[0].point.y << ", " << robot.goals[0].theta << ")" << std::endl;
     std::cout << "Start Point: (" << start.x << ", " << start.y << ")" << std::endl;
     std::cout << "Goal Point: (" << goal.x << ", " << goal.y << ")" << std::endl;
@@ -355,16 +433,16 @@ int main(int argc, char** argv)
     elastic_band.resetOptimization(); // Setzt die Optimierung zurück
 
     float distance_to_goal                = robot.distanceToGoal(goal);
-    int counter_set_eb_path = 0;
+    int counter_set_eb_path               = 0;
     int set_eb_path_counter_limit_default = 1;
     int set_eb_path_counter_limit         = set_eb_path_counter_limit_default;
     int eb_comp_inarow_default            = 1;
     int eb_comp_inarow                    = eb_comp_inarow_default;
-    double path_difference_front = 0.0;
-    double path_difference_end   = 0.0;
-    double path_difference       = 0.0;
-    double path_difference_check_limit = 0.0;
-    
+    double path_difference_front          = 0.0;
+    double path_difference_end            = 0.0;
+    double path_difference                = 0.0;
+    double path_difference_check_limit    = 0.0;
+
     // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
     start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
@@ -394,12 +472,10 @@ int main(int argc, char** argv)
     std::cout << std::endl; // Move to the next line after the loop ends
 
 
-
-
-    publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+    publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
-    sendSpeedAndPID(ser, 12.0, 25, 0.01, 0.5);
+    sendSpeedAndPID(ser, 5.0, 25, 0.01, 0.5);
     sendGoals(ser);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -416,11 +492,11 @@ int main(int argc, char** argv)
     int navigation_counter = 0;
 
     rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
-    
+
     int send_path_counter = 0;
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
-        
+
         int max_reads = 15;
 
         while (ser.available() && max_reads > 0) {
@@ -432,10 +508,7 @@ int main(int argc, char** argv)
         robot.setPose(robot_x, robot_y, robot_theta);
 
         switch (state) {
-        case WAITING:
-            std::cout << "State: WAITING" << std::endl;
-
-            break;
+        case WAITING: std::cout << "State: WAITING" << std::endl; break;
 
         case INIT:
             std::cout << "State: INIT" << std::endl;
@@ -451,17 +524,21 @@ int main(int argc, char** argv)
                 astar_path.back()  = goal_p;
             }
 
+            for (const auto& position : astar_path) {
+                std::cout << "A***** Path Position: (" << position.x << ", " << position.y << ")" << std::endl;
+            }
+
             elastic_band.updatePath(astar_path);
             elastic_band.runFullOptimization(robot.getPosition(), goal);
 
-            publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+            publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
             sendPath(ser, elastic_band.getSmoothedPath());
 
 
             state = WAITING;
 
 
-        break;
+            break;
 
         case PATH_PLANNING:
             std::cout << "State: PATH_PLANNING-------" << std::endl;
@@ -541,7 +618,6 @@ int main(int argc, char** argv)
             }
 
 
-
             elastic_band.updatePath(astar_path);
 
 
@@ -573,10 +649,9 @@ int main(int argc, char** argv)
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
 
-                    send_path_counter ++;
-                     if (send_path_counter >= 5)
-                    {
-                        publishPath(elastic_band.getSmoothedPath(), path_publisher, node);
+                    send_path_counter++;
+                    if (send_path_counter >= 5) {
+                        publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
                         sendPath(ser, elastic_band.getSmoothedPath());
                         send_path_counter = 0;
                     }
@@ -588,7 +663,7 @@ int main(int argc, char** argv)
             navigation_counter++;
 
             if (navigation_counter >= 15) {
-                state = PATH_PLANNING;
+                state              = PATH_PLANNING;
                 navigation_counter = 0;
             }
 
@@ -612,7 +687,7 @@ int main(int argc, char** argv)
         }
 
         static auto last_clone_time = std::chrono::steady_clock::now();
-        auto current_time = std::chrono::steady_clock::now();
+        auto current_time           = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
             last_clone_time = current_time;
             publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
@@ -620,12 +695,13 @@ int main(int argc, char** argv)
 
         publishPosition(odom_publisher, tf_broadcaster, node);
         publishPoint(point_publisher, node, pop);
-
+        publishAStarPath(astar_path, astar_path_pub, node);
+        publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
 
         loop_rate.sleep();
 
         // std::this_thread::sleep_for(std::chrono::milliseconds(10));
-   }
+    }
 
     rclcpp::shutdown();
 

@@ -3,7 +3,6 @@
 
 #include "point.h" // Include point.h to get the full definition of Point
 #include <iostream>
-#include <obstacle.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
@@ -46,7 +45,7 @@ public:
     void clear();
 
     void save();
-    void saveSolution(std::string suffix, const std::vector<Point>& astar_path, const std::vector<Point>& eb_path, const std::vector<Obstacle>& obstacles);
+    void saveSolution(std::string suffix, const std::vector<Point>& astar_path, const std::vector<Point>& eb_path);
 
     Point getStart() const;
     Point getGoal() const;
@@ -63,8 +62,6 @@ public:
 
     void setIm(const cv::Mat& image) { im = image; }
     void setOut(const cv::Mat& output) { out = output; }
-
-    void renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale = 1);
 
     void computeDistanceTransform();
     float getDistanceToObstacle(const Point& p) const;

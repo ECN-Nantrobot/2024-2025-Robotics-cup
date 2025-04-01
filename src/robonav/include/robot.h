@@ -11,28 +11,10 @@
 namespace ecn
 {
 
-struct ObstaclePoint {
-    Point position; // Position of the point
-    bool isFree;    // True if the point is free, false if blocked
-};
 class Robot
 {
 public:
     Robot(const Maze& maze, float x, float y, float theta, float wheelBase, float speed, float kp, float ki, float kd);
-
-    // Update the robot's position using PID control
-    void followPath(const std::vector<Point>& path, const Maze& maze, float dt);
-
-    void draw(cv::Mat& image,
-              const std::vector<Point>& path,
-              int scale,
-              const std::vector<Point>& astar_path,
-              const std::vector<Point>& goals,
-              const std::vector<Point>& eb_path,
-              const std::vector<Position>& astar_path_new) const;
-
-    // Update the robot's position based on wheel speeds
-    void updatePosition(float dt);
 
     float getX() const { return x_; }
     float getY() const { return y_; }
@@ -53,10 +35,6 @@ public:
     void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta * M_PI / 180.0f; }
     float getTargetTheta() const { return targetTheta_; }
 
-    bool turnToGoalOrientation(float dt);
-    bool turnToPathOrientation(float dt, const std::vector<Point>& path);
-
-    float distanceToClosestObstacleInFront(float searchRadius, float coneAngle);
 
 
     float distanceToGoal(const Point& p) const { return std::hypot(p.x - x_, p.y - y_); };
@@ -81,8 +59,8 @@ private:
 
     
 
-    std::vector<ObstaclePoint> forwardConePoints_; // Member variable to store the points
-    void checkForwardObstacles(float searchRadius, float coneAngle, int resolution_radial, int resolution_angle);
+    // std::vector<ObstaclePoint> forwardConePoints_; // Member variable to store the points
+    // void checkForwardObstacles(float searchRadius, float coneAngle, int resolution_radial, int resolution_angle);
 
 
     float leftSpeed_;  // Speed of the left wheel
@@ -108,8 +86,6 @@ private:
     float prevError_;
     float integral_;
 
-    // Compute the PID control signal
-    float computePID(float targetAngle, float dt);
 };
 
 } // namespace ecn

@@ -99,31 +99,46 @@ namespace ecn
 
     bool Robot::turnToGoalOrientation()
     {
-        float angleError = targetTheta_ - theta_;
+        float angle_error = goals[current_goal_index].theta - theta_;
 
-        while (angleError > M_PI)
-            angleError -= 2 * M_PI;
-        while (angleError < -M_PI)
-            angleError += 2 * M_PI;
+        while (angle_error > M_PI)
+            angle_error -= 2 * M_PI;
+        while (angle_error < -M_PI)
+            angle_error += 2 * M_PI;
         
-            Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (targetTheta_): " + String(targetTheta_) + ", Angle Error: " + String(angleError));
+        Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (target theta): " + String(goals[current_goal_index].theta) + ", Angle Error: " + String(angle_error));
 
-                if (std::abs(angleError) < 0.02)
+        float turnsignal = computePID(angle_error);
+
+        if (start_turning == true)
+        {
+            if (turnsignal > turnsignal_limit)
+            {
+                reducing_factor += 1.0/20.0;
+                leftSpeed_ = turnsignal * reducing_factor;
+                rightSpeed_ = -turnsignal * reducing_factor;
+                Serial.println("reducing_factor: " + String(reducing_factor));
+                if(reducing_factor > 1)
+                {
+                    reducing_factor = 0;
+                    start_turning = false;
+                }
+            }            
+        }
+        else if (std::abs(angle_error) < 0.02)
         {
             leftSpeed_ = 0;
             rightSpeed_ = 0;
         }
         else
         {
-            float turnSignal = computePID(angleError);
-            leftSpeed_ = -turnSignal;
-            rightSpeed_ = turnSignal;
-            Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+            leftSpeed_ = -turnsignal;
+            rightSpeed_ = turnsignal;
         }
 
-        // setMotorSpeeds(leftSpeed_, rightSpeed_);
-        // updatePosition();
-        return (std::abs(angleError) < 0.02);
+        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+
+        return (std::abs(angle_error) < 0.02);
     }
 
     bool Robot::turnToPathOrientation()
@@ -132,6 +147,24 @@ namespace ecn
 
         float angle_error = calcAngleError(target_index);
 
+        float turnsignal = computePID(angle_error);
+
+        if (start_turning == true)
+        {
+            if (turnsignal > turnsignal_limit)
+            {
+                reducing_factor += 1.0f / 20.0f;
+                leftSpeed_ = turnsignal * reducing_factor;
+                rightSpeed_ = -turnsignal * reducing_factor;
+                Serial.println("reducing_factor: " + String(reducing_factor));
+
+                if (reducing_factor > 1)
+                {
+                    reducing_factor = 0;
+                    start_turning = false;
+                }
+            }
+        }
         if (std::abs(angle_error) < 0.02)
         {
             leftSpeed_ = 0;
@@ -139,14 +172,12 @@ namespace ecn
         }
         else
         {
-            float turnSignal = computePID(angle_error);
-            leftSpeed_ = -turnSignal;
-            rightSpeed_ = turnSignal;
-            Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+            leftSpeed_ = -turnsignal;
+            rightSpeed_ = turnsignal;
         }
-
-        // setMotorSpeeds(leftSpeed_, rightSpeed_);
-        // updatePosition();
+        
+        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+        
         return (std::abs(angle_error) < 0.02);
     }
 
@@ -215,29 +246,29 @@ namespace ecn
             float controlSignal = computePID(angle_error);
 
             // Adjust speed based on proximity to obstacles and goal
-            float speed_closetogoal = maxSpeed_;
-            float distanceToGoal = std::hypot(path_.back().x - x_, path_.back().y - y_);
+            float speed_to_set = target_speed_;
+
+            float distanceToGoal = std::min(
+                std::hypot(path_.back().x - x_, path_.back().y - y_),
+                std::hypot(goals[current_goal_index].point.x - x_, goals[current_goal_index].point.y - y_)
+            );
 
             // Slow speed if the robot is close to a goal
             if (distanceToGoal < 15.0f)
             {
-                speed_closetogoal = std::max(0.5f, distanceToGoal / 10.0f * maxSpeed_);
+                speed_to_set = std::max(0.5f, distanceToGoal / 10.0f * target_speed_);
             }
             // Slow speed if the robot is starting
             else if (isStarting_)
             {
-                speed_closetogoal += 0.2f;
-                if (speed_closetogoal >= maxSpeed_)
+                speed_to_set += 0.2f;
+                if (speed_to_set >= target_speed_)
                 {
-                    speed_closetogoal = maxSpeed_;
+                    speed_to_set = target_speed_;
                     isStarting_ = false;
                 }
             }
-            // Normal speed
-            else
-            {
-                speed_closetogoal = maxSpeed_;
-            }
+
 
             // If close to the goal: stop
             if (distanceToGoal < 0.02f)
@@ -248,16 +279,14 @@ namespace ecn
             // Normal speed
             else
             {
-                leftSpeed_ = target_speed_ - controlSignal;
-                rightSpeed_ = target_speed_ + controlSignal;
+                leftSpeed_ = speed_to_set - controlSignal;
+                rightSpeed_ = speed_to_set + controlSignal;
 
                 Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
             }
 
-            // setMotorSpeeds(leftSpeed_, rightSpeed_);
         }
 
-        // updatePosition();
     }
 
 } // namespace ecn

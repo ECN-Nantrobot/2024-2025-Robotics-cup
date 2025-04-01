@@ -28,7 +28,6 @@ unsigned long startTime = 0;
 
 const int internalLed = 2; // eingebaute LED auf GPIO 2
 
-int current_goal_index = 1;
 float distance_to_goal = 0.0;
 
 enum RobotState
@@ -340,7 +339,7 @@ void loop()
             case INIT:
                 Serial.println("CurrentState: INIT");
 
-                Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+                Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
 
                 state = TURN_TO_PATH;
                 [[fallthrough]];
@@ -359,6 +358,7 @@ void loop()
                 {
                     Serial.println("Robot is aligned to path orientation!");
                     robot.setIsStarting(true);
+                    robot.start_turning = true;
                     state = NAVIGATION;
                 }
 
@@ -375,14 +375,14 @@ void loop()
                 robot.followPath();
 
                 // float start = Point(robot.getX(), robot.getY());
-                distance_to_goal = robot.distanceToGoal(robot.goals[current_goal_index].point);
+                distance_to_goal = robot.distanceToGoal(robot.goals[robot.getCurrentGoalindex()].point);
                 if (distance_to_goal < 5.0)
                 {
                     std::cout << "Distance to goal: " << distance_to_goal << std::endl;
 
                     if (distance_to_goal < 0.5)
                     {
-                        Serial.printf("Goal reached: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+                        Serial.printf("Goal reached: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
                         std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
                         state = TURN_TO_GOAL;
                     }
@@ -403,30 +403,32 @@ void loop()
                 if (robot.turnToGoalOrientation())
                 {
                     std::cout << "Robot is aligned to goal orientation!" << std::endl;
+                    robot.start_turning = true;
                     state = GOAL_REACHED;
                 }
 
-                break;
+                    break;
 
             case GOAL_REACHED:
 
                 Serial.println("CurrentState: GOAL_REACHED");
                 Serial.print("STATE:GOAL_REACHED\n");
+                Serial.print("current_goal_index: ");
+                Serial.println(robot.getCurrentGoalindex());
 
-                if (current_goal_index + 1 < robot.goals.size()) {
+                if (robot.getCurrentGoalindex() < robot.goals.size() -1) {
 
-                    current_goal_index++;
+                    robot.incrementCurrentGoalIndex();
 
-                    Serial.print("current_goal_index: ");
-                    Serial.println(current_goal_index);
-                    Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[current_goal_index].point.x, robot.goals[current_goal_index].point.y, robot.goals[current_goal_index].theta);
+                    Serial.print("New current_goal_index: ");
+                    Serial.println(robot.getCurrentGoalindex());
+                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
                     
-
                     delay(1000);
 
-                    robot.setTargetTheta(robot.goals[current_goal_index].theta);
+                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
 
-                    std::cout << "Set Target theta to: " << robot.goals[current_goal_index].theta  << std::endl;
+                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta  << std::endl;
 
                     state = INIT;
                 }

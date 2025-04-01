@@ -74,20 +74,26 @@ namespace ecn
         std::vector<Point> path_;
 
         std::vector<Pose> goals;
+        int getCurrentGoalindex() const { return current_goal_index; }
+        void incrementCurrentGoalIndex() { current_goal_index += 1; }
 
         float getLeftSpeed() { return leftSpeed_; }
         float getRightSpeed() { return rightSpeed_; }
 
         float distanceToGoal(const Point &p) const { return std::hypot(p.x - x_, p.y - y_); };
 
+        bool start_turning = true;
+
     private :
+        float turnsignal_limit = 1.0;
+        float reducing_factor = 0;
+        int current_goal_index = 1;
 
         volatile float x_;
         volatile float y_;
         volatile float theta_;
 
         float targetTheta_;
-
 
         float target_speed_;
 
@@ -100,7 +106,6 @@ namespace ecn
         float dt_ = 0.05; //in seconds
         float dt_inms_ = dt_ * 1000.0;
 
-        float maxSpeed_ = 6.0;
         bool isStarting_ = true;
 
         // PID parameters
