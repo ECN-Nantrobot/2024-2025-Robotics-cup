@@ -80,9 +80,9 @@ namespace ecn
         bool start_turning = true;
 
     private :
-        float turnsignal_limit = 1.0;
+        float turnsignal_limit = 2.0;
         float reducing_factor = 0;
-        float max_control_output_ = 8.0;  // (also max wheel speed for turnig)
+        float max_control_output_ = 16.0;  // (also max wheel speed for turnig)
 
         int current_goal_index = 1;
 
@@ -94,7 +94,7 @@ namespace ecn
 
         float target_speed_;
 
-        float wheelBase_ = 18.5;
+        float wheelBase_ = 37.3;
         float robot_diameter_ = wheelBase_;
 
         

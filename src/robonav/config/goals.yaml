@@ -1,18 +1,18 @@
 robot:
-  wheel_distance: 18.5
-  speed: 8.0
+  wheel_distance: 37.3
+  speed: 10.0
   pid:
-    kp: 25
-    ki: 0.01
+    kp: 28
+    ki: 0.02
     kd: 0.5
 
 goals:
-  - x: 60
-    y: 50
+  - x: 55
+    y: 55
     theta: 90
-  - x: 250
-    y: 160
+  - x: 260
+    y: 165
     theta: 90
-  - x: 60
-    y: 50
+  - x: 55
+    y: 55
     theta: 90

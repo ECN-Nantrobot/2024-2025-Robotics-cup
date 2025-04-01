@@ -154,7 +154,7 @@ namespace ecn
         }
 
         // Determine the lookahead distance and find the corresponding target point on the path
-        const float lookaheadDistance = robot_diameter_ * 0.9f + 0.0f;
+        const float lookaheadDistance = 10.0f;
         int targetIdx = closestIdx;
 
         for (int i = closestIdx + 1; i < path_.size(); ++i)

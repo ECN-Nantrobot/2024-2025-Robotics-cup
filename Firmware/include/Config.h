@@ -21,8 +21,8 @@
 #define motorInterfaceType 1
 
 // Dimensions of robot
-const float wheelDiameter = 0.0675;   // meters
-const float trackWidth = 0.185;       // meters
+const float wheelDiameter = 0.0808;   // meters
+const float trackWidth = 0.373;       // meters
 const int stepsPerRevolution = 3200;
 
 // robot position
