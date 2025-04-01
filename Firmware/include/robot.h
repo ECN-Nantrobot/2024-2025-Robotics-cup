@@ -18,8 +18,12 @@ namespace ecn
         int findClosestPointOnPath();
         float calcAngleError(int target_index);
 
-        void setIsStarting(bool isStarting) { isStarting_ = isStarting; }
+        void turn(float angle_error);
 
+        void setIsStarting(bool value)
+        {
+            is_starting_ = value;
+        }
 
         float getLeftSpeed() const { return leftSpeed_; }
         float getRightSpeed() const { return rightSpeed_; }
@@ -62,15 +66,6 @@ namespace ecn
             theta_ = theta;
         }
 
-        // void updatePositionFromMotors(volatile float d_center, volatile float thetaMid, volatile float dTheta)
-        // {
-        //     x_ += d_center * cos(thetaMid);
-        //     y_ += d_center * sin(thetaMid);
-        //     theta_ += dTheta;
-        // }
-
-        void updatePosition();
-
         std::vector<Point> path_;
 
         std::vector<Pose> goals;
@@ -87,6 +82,8 @@ namespace ecn
     private :
         float turnsignal_limit = 1.0;
         float reducing_factor = 0;
+        float max_control_output_ = 8.0;  // (also max wheel speed for turnig)
+
         int current_goal_index = 1;
 
         volatile float x_;
@@ -100,16 +97,20 @@ namespace ecn
         float wheelBase_ = 18.5;
         float robot_diameter_ = wheelBase_;
 
+        
+
         float leftSpeed_;
         float rightSpeed_;
 
         float dt_ = 0.05; //in seconds
         float dt_inms_ = dt_ * 1000.0;
 
-        bool isStarting_ = true;
+        bool is_starting_ = true;
+        float starting_speed_ = 0;
 
-        // PID parameters
-        float kp_, ki_, kd_;
+            // PID parameters
+            float kp_,
+            ki_, kd_;
         float prevError_;
         float integral_;
 

@@ -21,6 +21,14 @@ public:
     Point getPosition() const { return Point{x_, y_}; }
     float getTheta() const { return theta_; }
 
+    void setPID(float kp, float ki, float kd) 
+    { 
+        kp_ = kp; 
+        ki_ = ki; 
+        kd_ = kd; 
+    }
+    void setWheelBase(float wheelBase) { wheelBase_ = wheelBase; }
+
     void setSpeed(float speed) { speed_ = speed; }
     void setMaxSpeed(float maxSpeed) { max_speed_ = maxSpeed; }
     void setPose(float x, float y, float theta)
@@ -29,13 +37,6 @@ public:
         y_     = y;
         theta_ = theta;
     }
-
-    void setIsStarting(bool isStarting) { isStarting_ = isStarting; }
-
-    void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta * M_PI / 180.0f; }
-    float getTargetTheta() const { return targetTheta_; }
-
-
 
     float distanceToGoal(const Point& p) const { return std::hypot(p.x - x_, p.y - y_); };
 
@@ -69,12 +70,8 @@ private:
     float speed_; // Current Speed of the robot
     float max_speed_;
 
-    float targetTheta_ = 0.0f; // Target orientation at the goal (default to 0)
-
     const float sensor_zero_offset_ = robot_diameter_ / 2 + 2;
 
-
-    bool isStarting_ = true; // Flag to check if the robot is in the start phase
 
     const Maze& maze_; // Reference to the maze object
 

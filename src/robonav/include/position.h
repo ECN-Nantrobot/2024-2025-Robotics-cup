@@ -66,6 +66,11 @@ public:
     bool operator==(const Position& other) const { return x == other.x && y == other.y; }
 
     bool operator!=(const Position& other) const { return !(*this == other); }
+
+    // Overload the * operator for scalar multiplication
+    Position operator*(float scalar) const {
+        return Position(static_cast<int>(x * scalar), static_cast<int>(y * scalar));
+    }
 };
 } // namespace ecn
 #endif // POSITION_H

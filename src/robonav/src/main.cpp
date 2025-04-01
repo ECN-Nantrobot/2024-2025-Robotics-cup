@@ -11,6 +11,7 @@
 #include <point.h>
 #include <position.h>
 #include <sstream> // For std::ostringstream
+#include <yaml-cpp/yaml.h> // Include the YAML library
 
 #include "point.h"
 #include "robot.h"
@@ -31,6 +32,11 @@
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 
+
+#include "std_msgs/msg/float64.hpp"
+#include <csignal>
+#include <vector>
+
 using namespace std;
 using namespace ecn;
 
@@ -38,7 +44,7 @@ enum RobotState { WAITING, INIT, PATH_PLANNING, NAVIGATION, TURN_TO_GOAL, TURN_T
 
 RobotState state = WAITING;
 
-Robot robot(Point::maze, 0, 0, 0, 18.5, 5, 25, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
+Robot robot(Point::maze, 0, 0, 0, 18.5, 8, 25, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 ecn::Point pop;
@@ -92,10 +98,6 @@ void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Pub
         path_msg.poses.push_back(pose);
     }
 
-    for (const auto& position : astar_path) {
-        std::cout << "Position: (" << position.x << ", " << position.y << ")" << std::endl;
-    }
-
     path_publisher->publish(path_msg);
 }
 
@@ -130,7 +132,7 @@ void publishElasticBandCircles(const std::vector<Point>& eb_path, const rclcpp::
         sphere_color.r = point.colour[2] / 255.0; // OpenCV uses BGR, normalize to [0, 1]
         sphere_color.g = point.colour[1] / 255.0;
         sphere_color.b = point.colour[0] / 255.0;
-        sphere_color.a = 1.0; // Fully opaque
+        sphere_color.a = 0.04; // opacity
         marker.colors.push_back(sphere_color);
     }
 
@@ -269,8 +271,10 @@ void sendGoals(serial::Serial& ser)
 
 void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
 {
-    int path_sending_limit = 2; // Send x points at a time
-    size_t path_size       = std::min(path.size(), static_cast<size_t>(44));
+    auto path_send_start_time = std::chrono::steady_clock::now(); // Start timing
+
+    int path_sending_limit = 3; // Send x points at a time
+    size_t path_size       = std::min(path.size(), static_cast<size_t>(32)); //total points to save
 
     int iterations = 0;
     // Loop through the entire path in chunks (in this case, 2 points at a time)
@@ -299,10 +303,22 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
         ser.write(message); // Send the message over serial
         iterations++;
         // std::cout << message;                                      // Print the message to std
-        std::this_thread::sleep_for(std::chrono::milliseconds(8)); // Optional: wait before sending the next chunk
+        std::this_thread::sleep_for(std::chrono::milliseconds(6)); // Optional: wait before sending the next chunk
     }
     // std::cout << std::endl;
     std::cout << iterations << " of " << path_size / path_sending_limit << " PATH chunks sent" << std::endl;
+
+    auto path_send_end_time = std::chrono::steady_clock::now(); // End timing
+    double path_send_duration = std::chrono::duration_cast<std::chrono::milliseconds>(path_send_end_time - path_send_start_time).count();
+        std::cout << "" << std::endl;
+    std::cout << "" << std::endl;
+    std::cout << "" << std::endl;
+
+    std::cout << "Path sending time: " << path_send_duration << " ms" << std::endl;
+    std::cout << "" << std::endl;
+        std::cout << "" << std::endl;
+
+        std::cout << "" << std::endl;
 }
 
 void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, double D)
@@ -354,6 +370,23 @@ void processCommand(const std::string& command)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void loadGoalsFromFile(const std::string& filename, std::vector<ecn::Pose>& goals, double& wheel_distance, double& speed, double& kp, double& ki, double& kd) {
+    YAML::Node yaml_config = YAML::LoadFile(filename);
+
+    // Load robot parameters
+    wheel_distance = yaml_config["robot"]["wheel_distance"].as<double>();
+    speed = yaml_config["robot"]["speed"].as<double>();
+    kp = yaml_config["robot"]["pid"]["kp"].as<double>();
+    ki = yaml_config["robot"]["pid"]["ki"].as<double>();
+    kd = yaml_config["robot"]["pid"]["kd"].as<double>();
+
+    // Load goals
+    goals.clear();
+    for (const auto& goal : yaml_config["goals"]) {
+        goals.emplace_back(goal["x"].as<float>(), goal["y"].as<float>(), goal["theta"].as<float>());
+    }
+}
+
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
@@ -369,6 +402,7 @@ int main(int argc, char** argv)
     auto elastic_band_path_pub    = node->create_publisher<nav_msgs::msg::Path>("/elastic_band_path", 10);
     auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
     auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
+    auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
 
 
     serial::Serial ser;
@@ -410,18 +444,26 @@ int main(int argc, char** argv)
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
 
-    robot.goals = { Pose(60, 50, 90), Pose(200, 180, 90), Pose(60, 50, 90) };
+    double wheel_distance, speed, kp, ki, kd;
 
-    robot.setPose(robot.goals[0].point.x, robot.goals[0].point.y, robot.goals[0].theta * M_PI / 180);
-    robot.setTargetTheta(robot.goals[0].theta);
+    try {
+        loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading configuration: " << e.what() << std::endl;
+        return 1;
+    }
+
+    robot.setSpeed(speed);
+    robot.setPID(kp, ki, kd);
+    robot.setWheelBase(wheel_distance);
+    robot.setPose(robot.goals[0].x(), robot.goals[0].y(), robot.goals[0].theta * M_PI / 180);
 
     Point start = robot.goals[0];
-    Point goal  = robot.goals[1];
     std::cout << "Initial Robot Pose: (" << robot.goals[0].point.x << ", " << robot.goals[0].point.y << ", " << robot.goals[0].theta << ")" << std::endl;
     std::cout << "Start Point: (" << start.x << ", " << start.y << ")" << std::endl;
-    std::cout << "Goal Point: (" << goal.x << ", " << goal.y << ")" << std::endl;
-    Position start_p = Position(static_cast<int>(start.x * Point::maze.resize_for_astar), static_cast<int>(start.y * Point::maze.resize_for_astar));
-    Position goal_p  = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
+    Position start_p = Position(static_cast<int>(start.x), static_cast<int>(start.y));
+    Position goal_p = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+    Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
 
     robot_x     = robot.getX();
     robot_y     = robot.getY();
@@ -432,7 +474,7 @@ int main(int argc, char** argv)
     ElasticBand elastic_band(astar_path, Point::maze);
     elastic_band.resetOptimization(); // Setzt die Optimierung zurück
 
-    float distance_to_goal                = robot.distanceToGoal(goal);
+    float distance_to_goal                = robot.distanceToGoal(robot.goals[robot.goal_index]);
     int counter_set_eb_path               = 0;
     int set_eb_path_counter_limit_default = 1;
     int set_eb_path_counter_limit         = set_eb_path_counter_limit_default;
@@ -445,18 +487,16 @@ int main(int argc, char** argv)
 
     // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-    start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
-    goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-    astar_path = Astar(start_p, goal_p);
-
+    astar_path = Astar(start_p* Point::maze.resize_for_astar, goal_p* Point::maze.resize_for_astar);
     for (auto& position : astar_path) {
         position           = position * (1 / Point::maze.resize_for_astar);
         astar_path.front() = start_p;
         astar_path.back()  = goal_p;
     }
 
+
     elastic_band.updatePath(astar_path);
-    elastic_band.runFullOptimization(robot.getPosition(), goal);
+    elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
 
 
     std::cout << "Waiting for ESP reset ... " << std::endl;
@@ -475,7 +515,7 @@ int main(int argc, char** argv)
     publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
-    sendSpeedAndPID(ser, 5.0, 25, 0.01, 0.5);
+    sendSpeedAndPID(ser, speed, kp, ki, kd);
     sendGoals(ser);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
@@ -497,6 +537,9 @@ int main(int argc, char** argv)
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
 
+        auto loop_start_time = std::chrono::steady_clock::now(); // Initialize loop start time
+
+
         int max_reads = 15;
 
         while (ser.available() && max_reads > 0) {
@@ -508,15 +551,19 @@ int main(int argc, char** argv)
         robot.setPose(robot_x, robot_y, robot_theta);
 
         switch (state) {
-        case WAITING: std::cout << "State: WAITING" << std::endl; break;
+        case WAITING: 
+        
+            std::cout << "State: WAITING" << std::endl; 
+        
+            break;
 
         case INIT:
             std::cout << "State: INIT" << std::endl;
 
             cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-            start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
-            goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-            astar_path = Astar(start_p, goal_p);
+            start_p    = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
+            goal_p     = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+            astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
 
             for (auto& position : astar_path) {
                 position           = position * (1 / Point::maze.resize_for_astar);
@@ -524,12 +571,9 @@ int main(int argc, char** argv)
                 astar_path.back()  = goal_p;
             }
 
-            for (const auto& position : astar_path) {
-                std::cout << "A***** Path Position: (" << position.x << ", " << position.y << ")" << std::endl;
-            }
 
             elastic_band.updatePath(astar_path);
-            elastic_band.runFullOptimization(robot.getPosition(), goal);
+            elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
 
             publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
             sendPath(ser, elastic_band.getSmoothedPath());
@@ -546,9 +590,10 @@ int main(int argc, char** argv)
             // Recalculate A* path
             // Point::maze.computeDistanceTransform();
             cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-            start_p    = Position(static_cast<int>(robot.getX() * Point::maze.resize_for_astar), static_cast<int>(robot.getY() * Point::maze.resize_for_astar));
-            goal_p     = Position(static_cast<int>(goal.x * Point::maze.resize_for_astar), static_cast<int>(goal.y * Point::maze.resize_for_astar));
-            astar_path = Astar(start_p, goal_p);
+            start_p    = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
+            goal_p     = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+            
+            astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
 
             for (auto& position : astar_path) {
                 position           = position * (1 / Point::maze.resize_for_astar);
@@ -626,10 +671,10 @@ int main(int argc, char** argv)
 
 
         case NAVIGATION:
-            std::cout << "State: NAVIGATION to: (" << goal.x << ", " << goal.y << ")" << std::endl;
+            std::cout << "State: NAVIGATION to: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
 
 
-            elastic_band.optimize(robot.getPosition(), goal);
+            elastic_band.optimize(robot.getPosition(), robot.goals[robot.goal_index]);
 
             if (elastic_band.errorCheck() == true) {
                 // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
@@ -644,7 +689,7 @@ int main(int argc, char** argv)
                 elastic_band.resetOptimization();
 
                 if (counter_set_eb_path > set_eb_path_counter_limit) {
-                    elastic_band.generateSmoothedPath(2.5f, 21, 1.2f); // 0.08 ms
+                    elastic_band.generateSmoothedPath(3.0f, 21, 1.2f); // 0.08 ms
 
                     set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                     eb_comp_inarow            = eb_comp_inarow_default;
@@ -674,8 +719,7 @@ int main(int argc, char** argv)
 
             if (robot.goal_index < robot.goals.size() - 1) {
                 robot.goal_index++;
-                goal = robot.goals[robot.goal_index];
-                std::cout << "New goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+                std::cout << "New goal: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
             } else {
                 std::cout << "All goals reached!" << std::endl;
             }
@@ -697,6 +741,55 @@ int main(int argc, char** argv)
         publishPoint(point_publisher, node, pop);
         publishAStarPath(astar_path, astar_path_pub, node);
         publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
+
+
+
+        std::vector<double> loop_times; // Vector to store loop execution times
+
+        // Measure loop execution time
+        auto loop_end_time = std::chrono::steady_clock::now();
+        double loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time - loop_start_time).count();
+        loop_times.push_back(loop_duration);
+
+        std_msgs::msg::Float64 loop_time_msg;
+        loop_time_msg.data = loop_duration;
+        loop_time_publisher->publish(loop_time_msg);
+            // std::cout << "" << std::endl;
+        // std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
+        //             std::cout << "" << std::endl;
+
+                            
+        // Calculate and print average execution time
+        static double total_loop_time = 0.0;
+        static int loop_count = 0;
+        static int above_50_count = 0;
+        static double total_above_50 = 0.0;
+
+        total_loop_time += loop_duration;
+        loop_count++;
+
+        if (loop_duration > 50.0) {
+            above_50_count++;
+            total_above_50 += (loop_duration - 50.0);
+        }
+
+        if (loop_count % 100 == 0) { // Print every 100 iterations
+            double average_time = total_loop_time / loop_count;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "Average loop execution time: " << average_time << " ms" << std::endl;
+            std::cout << "Number of loops above 50 ms: " << above_50_count << std::endl;
+            std::cout << "Total time above 50 ms: " << total_above_50 << " ms" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+        }
+
 
         loop_rate.sleep();
 

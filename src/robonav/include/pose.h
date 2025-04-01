@@ -13,6 +13,14 @@ struct Pose {
 
     // Add a method to access position
     operator Point() const { return point; }
+
+    // Getter methods for x and y
+    float x() const { return point.x; }
+    float y() const { return point.y; }
+
+    // Setter methods for x and y
+    void setX(float _x) { point.x = _x; }
+    void setY(float _y) { point.y = _y; }
 };
 
 } // namespace ecn

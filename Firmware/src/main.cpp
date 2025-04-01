@@ -341,6 +341,8 @@ void loop()
 
                 Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
 
+                robot.setIsStarting(true);
+
                 state = TURN_TO_PATH;
                 [[fallthrough]];
 
@@ -392,10 +394,10 @@ void loop()
 
             case TURN_TO_GOAL:
                 Serial.println("CurrentState: TURN_TO_GOAL");
-                Serial.print("STATE:GOAL_REACHED\n");
+                Serial.print("STATE:TURN_TO_GOAL\n");
 
                 if (last_sent_state != WAIT) {
-                    Serial.println("STATE:WAIT");
+                    Serial.print("STATE:WAIT\n");
                     last_sent_state = WAIT;
                     // delay(1000);
                 }

@@ -47,54 +47,51 @@ namespace ecn
         //                " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
         //                String(output));
 
-        const float maxTurnRate = 10.0;
-        if (output > maxTurnRate)
-            output = maxTurnRate;
-        else if (output < -maxTurnRate)
-            output = -maxTurnRate;
+        if (output > max_control_output_)
+            output = max_control_output_;
+        else if (output < -max_control_output_)
+            output = -max_control_output_;
 
         return output;
     }
 
-    void Robot::updatePosition()
+    void Robot::turn(float angle_error)
     {
-        // double v = (leftSpeed_ + rightSpeed_) / 2.0f;
-        // double omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+        float turnsignal = computePID(angle_error);
 
-        // Euler integration
-        //  x_ += v * std::cos(theta_) * dt_;
-        //  y_ += v * std::sin(theta_) * dt_;
-        //  theta_ += omega * dt_;
+        Serial.println("turnsignal: " + String(turnsignal));
 
-        // Runge Kutta 4th order
-        float v = (leftSpeed_ + rightSpeed_) / 2.0f;
-        float omega = (rightSpeed_ - leftSpeed_) / wheelBase_;
+        leftSpeed_ = -turnsignal;
+        rightSpeed_ = turnsignal;
+        
+        Serial.println("start_turning: " + String(start_turning));
+        Serial.println("turnsignal: " + String(turnsignal) + ", turnsignal_limit: " + String(turnsignal_limit));
 
-        // RK4 calculations
-        float k1_x = v * std::cos(theta_);
-        float k1_y = v * std::sin(theta_);
-        float k1_theta = omega;
+        if (start_turning == true)
+        {
+            if (turnsignal > turnsignal_limit || turnsignal < -turnsignal_limit)
+            {
+                reducing_factor += 1.0 / 30.0;
+                leftSpeed_ = -turnsignal * reducing_factor;
+                rightSpeed_ = turnsignal * reducing_factor;
+                Serial.println("reducing_factor: " + String(reducing_factor));
+                if (reducing_factor > 1)
+                {
+                    reducing_factor = 0;
+                    start_turning = false;
+                }
+                Serial.println("Reduced turnsignal: " + String(turnsignal));
+            }
+        }
+        
+        if (std::abs(angle_error) < 0.02)
+        {
+            leftSpeed_ = 0;
+            rightSpeed_ = 0;
+        }
 
-        float k2_x = v * std::cos(theta_ + k1_theta * dt_ / 2.0f);
-        float k2_y = v * std::sin(theta_ + k1_theta * dt_ / 2.0f);
-        float k2_theta = omega;
 
-        float k3_x = v * std::cos(theta_ + k2_theta * dt_ / 2.0f);
-        float k3_y = v * std::sin(theta_ + k2_theta * dt_ / 2.0f);
-        float k3_theta = omega;
-
-        float k4_x = v * std::cos(theta_ + k3_theta * dt_);
-        float k4_y = v * std::sin(theta_ + k3_theta * dt_);
-        float k4_theta = omega;
-
-        x_ += (dt_ / 6.0f) * (k1_x + 2.0f * k2_x + 2.0f * k3_x + k4_x);
-        y_ += (dt_ / 6.0f) * (k1_y + 2.0f * k2_y + 2.0f * k3_y + k4_y);
-        theta_ += (dt_ / 6.0f) * (k1_theta + 2.0f * k2_theta + 2.0f * k3_theta + k4_theta);
-
-        while (theta_ > M_PI)
-            theta_ -= 2 * M_PI;
-        while (theta_ < -M_PI)
-            theta_ += 2 * M_PI;
+        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
     }
 
     bool Robot::turnToGoalOrientation()
@@ -108,35 +105,7 @@ namespace ecn
         
         Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (target theta): " + String(goals[current_goal_index].theta) + ", Angle Error: " + String(angle_error));
 
-        float turnsignal = computePID(angle_error);
-
-        if (start_turning == true)
-        {
-            if (turnsignal > turnsignal_limit)
-            {
-                reducing_factor += 1.0/20.0;
-                leftSpeed_ = turnsignal * reducing_factor;
-                rightSpeed_ = -turnsignal * reducing_factor;
-                Serial.println("reducing_factor: " + String(reducing_factor));
-                if(reducing_factor > 1)
-                {
-                    reducing_factor = 0;
-                    start_turning = false;
-                }
-            }            
-        }
-        else if (std::abs(angle_error) < 0.02)
-        {
-            leftSpeed_ = 0;
-            rightSpeed_ = 0;
-        }
-        else
-        {
-            leftSpeed_ = -turnsignal;
-            rightSpeed_ = turnsignal;
-        }
-
-        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+        turn(angle_error);
 
         return (std::abs(angle_error) < 0.02);
     }
@@ -147,37 +116,10 @@ namespace ecn
 
         float angle_error = calcAngleError(target_index);
 
-        float turnsignal = computePID(angle_error);
+        Serial.println("Current Angle (theta_): " + String(theta_) + ", Angle Error: " + String(angle_error));
 
-        if (start_turning == true)
-        {
-            if (turnsignal > turnsignal_limit)
-            {
-                reducing_factor += 1.0f / 20.0f;
-                leftSpeed_ = turnsignal * reducing_factor;
-                rightSpeed_ = -turnsignal * reducing_factor;
-                Serial.println("reducing_factor: " + String(reducing_factor));
+        turn(angle_error);
 
-                if (reducing_factor > 1)
-                {
-                    reducing_factor = 0;
-                    start_turning = false;
-                }
-            }
-        }
-        if (std::abs(angle_error) < 0.02)
-        {
-            leftSpeed_ = 0;
-            rightSpeed_ = 0;
-        }
-        else
-        {
-            leftSpeed_ = -turnsignal;
-            rightSpeed_ = turnsignal;
-        }
-        
-        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
-        
         return (std::abs(angle_error) < 0.02);
     }
 
@@ -259,16 +201,23 @@ namespace ecn
                 speed_to_set = std::max(0.5f, distanceToGoal / 10.0f * target_speed_);
             }
             // Slow speed if the robot is starting
-            else if (isStarting_)
+            
+            Serial.print("Control Signal: " + String(controlSignal) + ", ");
+            
+            if (is_starting_)
             {
-                speed_to_set += 0.2f;
+                starting_speed_ += 0.5f;
+                speed_to_set = starting_speed_;
+                Serial.print("is_starting == true, ");
+                Serial.println("Starting speed: " + String(starting_speed_));
+
                 if (speed_to_set >= target_speed_)
                 {
                     speed_to_set = target_speed_;
-                    isStarting_ = false;
+                    starting_speed_ = 0;
+                    is_starting_ = false;
                 }
             }
-
 
             // If close to the goal: stop
             if (distanceToGoal < 0.02f)
