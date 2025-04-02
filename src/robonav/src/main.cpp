@@ -328,7 +328,7 @@ int main(int argc, char** argv)
     //     // Obstacle(350, 80, 65, 10, Obstacle::MOVABLE, "lightgray", 0, -4 * dt, 1 * dt)
     // };
 
-    bool vizualize_opencv = true; // Set to false to disable OpenCV visualization
+    bool vizualize_opencv = false; // Set to false to disable OpenCV visualization
     cv::Mat simulation;
     const int scale       = 20; // size up visualization for better quality
     const int display_res = 600;
