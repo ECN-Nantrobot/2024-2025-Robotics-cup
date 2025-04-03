@@ -76,7 +76,7 @@ void Maze::load(std::string _filename)
     }
     std::cout << "Added border of " << border_size << " to permanent(black) obstacles ... ";
 
-    original_im = im.clone();
+    im_original = im.clone();
     out         = im.clone();
 
     cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
