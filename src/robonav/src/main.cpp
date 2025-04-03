@@ -628,6 +628,8 @@ int main(int argc, char** argv)
 
     bool dont_move = false;
 
+    bool switch_sim_movoment = false;
+
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
         auto loop_start_time = std::chrono::steady_clock::now(); // Initialize loop start time
@@ -836,24 +838,20 @@ int main(int argc, char** argv)
             publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
 
 
+            if(robot_x >= 13.0) {
+                switch_sim_movoment = true;
+            }
+            if (robot_x <= 10.0) {
+                switch_sim_movoment = false;
+            }
+
+            if(switch_sim_movoment)
+                robot_x -= 0.1;
+            else
+                robot_x += 0.1;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            std::cout << "Robot Position x: " << robot_x << std::endl;
 
 
             std::vector<double> loop_times; // Vector to store loop execution times
