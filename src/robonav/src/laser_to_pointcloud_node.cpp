@@ -18,7 +18,7 @@ public:
 private:
     void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan_msg)
     {
-        const std::string target_frame = "map";
+        const std::string target_frame = "base_link";
 
         if (!tf_buffer_.canTransform(target_frame, scan_msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec(0.5))) {
             RCLCPP_WARN(this->get_logger(), "Transform unavailable: %s → %s", scan_msg->header.frame_id.c_str(), target_frame.c_str());

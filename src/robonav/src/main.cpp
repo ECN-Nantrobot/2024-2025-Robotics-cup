@@ -866,9 +866,7 @@ int main(int argc, char** argv)
             std_msgs::msg::Float64 loop_time_msg;
             loop_time_msg.data = loop_duration;
             loop_time_publisher->publish(loop_time_msg);
-            // std::cout << "" << std::endl;
-            // std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
-            //             std::cout << "" << std::endl;
+            std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
 
 
             // Calculate and print average execution time
@@ -890,13 +888,9 @@ int main(int argc, char** argv)
                 std::cout << "" << std::endl;
                 std::cout << "" << std::endl;
                 std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
                 std::cout << "Average loop execution time: " << average_time << " ms" << std::endl;
                 std::cout << "Number of loops above 50 ms: " << above_50_count << std::endl;
                 std::cout << "Total time above 50 ms: " << total_above_50 << " ms" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
                 std::cout << "" << std::endl;
                 std::cout << "" << std::endl;
                 std::cout << "" << std::endl;
