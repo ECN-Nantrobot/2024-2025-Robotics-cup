@@ -213,9 +213,6 @@ void sendPositionUpdate()
 {
     if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
     {
-        // currentX = robot.getX();
-        // currentY = robot.getY();
-        // currentTheta = robot.getTheta();
         robot.setPose(_robotX, _robotY, _robotTheta);
         xSemaphoreGive(robotXMutex);
 
@@ -227,9 +224,7 @@ void sendPositionUpdate()
         Serial.print(", Theta: ");
         Serial.println(robot.getTheta());
         digitalWrite(internalLed, LOW);
-
-        // display.updatePointsDisplay(robotY);
-    }
+   }
 }
 
 void setup()
@@ -446,26 +441,7 @@ void loop()
             {
                 setMotorSpeeds(robot.getLeftSpeed()/100, robot.getRightSpeed()/100);
                 // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
-
-                if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
-                {
-                    robot.setPose(_robotX, _robotY, _robotTheta);
-                    xSemaphoreGive(robotXMutex);
-
-                    digitalWrite(internalLed, HIGH);
-                    Serial.print("X: ");
-                    Serial.print(robot.getX());
-                    Serial.print(", Y: ");
-                    Serial.print(robot.getY());
-                    Serial.print(", Theta: ");
-                    Serial.println(robot.getTheta());
-                    digitalWrite(internalLed, LOW);
-
-                    // display.updatePointsDisplay(robotY);
-                }
-
-                // robot.setPose(_robotX, _robotY, _robotTheta);
-                // sendPositionUpdate();
+                sendPositionUpdate();
             }
 
             display.updatePointsDisplay(0);

@@ -23,7 +23,7 @@
 // Dimensions of robot
 const float wheelDiameter = 0.0808;   // meters
 const float trackWidth = 0.373;       // meters
-const int stepsPerRevolution = 3200;
+const int stepsPerRevolution = 200;
 
 // robot position
 extern volatile float robotX;
