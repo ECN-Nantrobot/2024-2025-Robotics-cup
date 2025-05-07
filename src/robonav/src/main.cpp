@@ -691,6 +691,7 @@ int main(int argc, char** argv)
                     if (send_path_counter >= 5) {
                         publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
                         sendPath(ser, elastic_band.getSmoothedPath());
+                        elastic_band.savePathToFile("pathfromelasticband");
                         send_path_counter = 0;
                     }
 
