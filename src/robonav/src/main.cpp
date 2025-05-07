@@ -218,24 +218,10 @@ void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     robot_theta = - yaw; // Now theta (yaw) is correct
 
     RCLCPP_INFO(rclcpp::get_logger("Odometry"), "Odom: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
+    std::cout << "Updating robot pose with odometry data: x=" << robot_x << ", y=" << robot_y << ", theta=" << robot_theta << std::endl;
 }
 
-void amclCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
-{
-    // Get `x` and `y`, convert from meters to cm
-    robot_x = msg->pose.pose.position.x * 100;
-    robot_y = 200 - msg->pose.pose.position.y * 100;
 
-    // Correctly Convert Quaternion to Yaw (Theta)
-    tf2::Quaternion q(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-    tf2::Matrix3x3 m(q);
-    double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw); // Extract yaw angle
-
-    robot_theta = -yaw; // Now theta (yaw) is correct
-
-    RCLCPP_INFO(rclcpp::get_logger("AMCL"), "AMCL: x=%.2f, y=%.2f, theta=%.2f°", robot_x, robot_y, robot_theta * 180 / M_PI);
-}
 
 // ROS dt 
 rclcpp::Time last_time;
@@ -267,14 +253,13 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     auto node               = rclcpp::Node::make_shared("main_node_publisher");
-    auto main_node_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    auto main_node_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/waffle2/cmd_vel", 10);
     auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     // USE ODOM FOR POSITION
-    auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
+    auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/waffle2/odom", 10, odomCallback);
     // USE LIDAR AMCL FOR POSITION
-    // auto amcl_subscriber    = node->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("/amcl_pose", 10, amclCallback);
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("map_viz", 10);
-    auto cloud_subscriber =   node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze); });
+    // auto cloud_subscriber =   node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze); });
 
     last_time = node->now();
 
@@ -350,30 +335,17 @@ int main(int argc, char** argv)
     int path_difference_check_limit = 0;
 
 
-
     tf2_ros::Buffer tf_buffer(node->get_clock());
     tf2_ros::TransformListener tf_listener(tf_buffer);
-
-    // Wait for robot to be spawned
-    RCLCPP_INFO(node->get_logger(), "Waiting for robot to be spawned in Gazebo...");
-
-    while (rclcpp::ok()) {
-        try {
-            // Try to lookup transform from 'odom' to 'base_link' (i.e., check if the robot exists)
-            auto transform = tf_buffer.lookupTransform("odom", "base_link", tf2::TimePointZero);
-            RCLCPP_INFO(node->get_logger(), "Robot spawn confirmed! Starting loop...");
-            break;
-        } catch (tf2::TransformException& ex) {
-            RCLCPP_WARN(node->get_logger(), "Robot not spawned yet... waiting.");
-        }
-        rclcpp::sleep_for(std::chrono::milliseconds(500)); // Wait before retrying
-    }
-    rclcpp::sleep_for(std::chrono::seconds(2));
 
 
     realStartTime = std::chrono::steady_clock::now();
 
     bool dont_move = false;
+
+
+    auto cmd_vel_msg = geometry_msgs::msg::Twist();
+
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     
@@ -526,6 +498,7 @@ int main(int argc, char** argv)
 
             case NAVIGATION:
                 std::cout << "State: NAVIGATION, goal: (" << goal.x << ", " << goal.y << ")" << std::endl;
+                std::cout << "Robot Position: x = " << robot.getX() << ", y = " << robot.getY() << ", theta = " << robot.getTheta() * 180 / M_PI << "°" << std::endl;
 
                 // elasticStartTime = std::chrono::steady_clock::now();
 
@@ -571,6 +544,11 @@ int main(int argc, char** argv)
 
 
                 robot.followPath(elastic_band.getSmoothedPath(), Point::maze, dt);
+
+                cmd_vel_msg.linear.x = robot.getLinearVelocity() / 100; // Convert cm/s to m/s
+                cmd_vel_msg.angular.z = -robot.getAngularVelocity();     // Use the computed angular velocity
+                main_node_publisher->publish(cmd_vel_msg);
+
 
                 start = Point(robot.getX(), robot.getY());
 
@@ -628,6 +606,7 @@ int main(int argc, char** argv)
             // RCLCPP_INFO(node->get_logger(), "Publishing velocity: linear.x = %f, angular.z = %f", msg.linear.x, msg.angular.z);
         
             
+            
             main_node_publisher->publish(msg);
 
             // static auto last_clone_time = std::chrono::steady_clock::now();
@@ -640,9 +619,12 @@ int main(int argc, char** argv)
         rclcpp::spin_some(node); // Allow ROS 2 callbacks to be processed
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
+
+
         // robot.updatePosition(dt); // Update robot position with integration
         
-        robot.setPose(robot_x, robot_y, robot_theta); // Update robot position with odometry from gazebo
+        robot.setPose(robot_x +20, robot_y+20, robot_theta); // Update robot position with odometry from gazebo
+        
 
         if (vizualize_opencv) {
             // Vizualize with OpenCV 2 of 2

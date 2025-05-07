@@ -63,7 +63,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY launch worlds include description config scripts maps
+install(DIRECTORY launch worlds include description config maps
   DESTINATION share/${PROJECT_NAME}/
 )
 

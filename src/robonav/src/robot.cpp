@@ -358,6 +358,8 @@ void Robot::followPath(const std::vector<Point>& path, const Maze& maze, float d
     // Store the target index for visualization
     targetIdx_ = targetIdx;
 
+    
+
 }
 
 
