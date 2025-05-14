@@ -136,7 +136,7 @@ def generate_launch_description():
         rsp,
         # static_tf_pub
         map_server_node,
-        amcl_node,
+        # amcl_node,
         lifecycle_manager,
         rplidar_launch,
         laser_to_pointcloud_node,
