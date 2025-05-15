@@ -1,0 +1,20 @@
+[Unit]
+Description=ROS2 launch
+After=network.target
+ConditionPathExists=/home/pi
+
+[Service]
+ExecStart=/home/pi/2024-2025-Robotics-cup/auto_start/one_go.sh
+WorkingDirectory=/home/pi
+User=pi
+Group=pi
+Restart=on-failure
+StartLimitInterval=60
+StartLimitBurst=3
+KillMode=mixed
+Type=simple
+Environment=DISPLAY=:0
+
+
+[Install]
+WantedBy=multi-user.target
