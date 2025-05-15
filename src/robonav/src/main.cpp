@@ -59,6 +59,23 @@ ecn::Point pop;
 
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg, Maze& maze)
 {
+    // // Transform the cloud to the map frame
+    // static tf2_ros::Buffer tf_buffer(node->get_clock());
+    // static tf2_ros::TransformListener tf_listener(tf_buffer);
+
+    // geometry_msgs::msg::TransformStamped transform_stamped;
+    // try {
+    //     transform_stamped = tf_buffer.lookupTransform("map", cloud_msg->header.frame_id, tf2::TimePointZero);
+    // } catch (tf2::TransformException& ex) {
+    //     RCLCPP_WARN(node->get_logger(), "Could not transform cloud to map frame: %s", ex.what());
+    //     return;
+    // }
+
+    // Apply the transformation to the point cloud
+    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+    pcl_ros::transformPointCloud(*cloud, *transformed_cloud, transform_stamped);
+    cloud = transformed_cloud;
+
     float reduction = 0.25;
     float min_x     = 0 + reduction;
     float max_x     = 3 - reduction;
@@ -148,6 +165,8 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     }
 
     first_time = false; // Set first_time to false after the first iteration
+
+    std::cout << "PUT OBSTACLE ON THE MAP !!!!!!!!!!!!" << std::endl;
 }
 
 
@@ -489,10 +508,10 @@ void loadGoalsFromFile(const std::string& filename, std::vector<ecn::Pose>& goal
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node               = rclcpp::Node::make_shared("main_publisher");
+    auto node           = rclcpp::Node::make_shared("main_publisher");
     auto main_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/main", 10);
-    auto path_publisher     = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
-    auto odom_publisher     = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+    auto path_publisher = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
+    auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
     auto point_publisher    = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_viz", 10);
@@ -502,7 +521,7 @@ int main(int argc, char** argv)
     auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
     auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
     auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
-
+    auto cloud_subscriber = node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze); });
 
     serial::Serial ser;
     bool port_opened = false;
@@ -635,7 +654,6 @@ int main(int argc, char** argv)
         auto loop_start_time = std::chrono::steady_clock::now(); // Initialize loop start time
 
         if (dont_move == false) {
-
 
 
             // int max_reads = 15;
@@ -825,82 +843,84 @@ int main(int argc, char** argv)
             }
         }
 
-            static auto last_clone_time = std::chrono::steady_clock::now();
-            auto current_time           = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
-                last_clone_time = current_time;
-                publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
-            }
-
-            publishPosition(odom_publisher, tf_broadcaster, node);
-            publishPoint(point_publisher, node, pop);
-            publishAStarPath(astar_path, astar_path_pub, node);
-            publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
-
-
-            // if(robot_x >= 13.0) {
-            //     switch_sim_movoment = true;
-            // }
-            // if (robot_x <= 10.0) {
-            //     switch_sim_movoment = false;
-            // }
-
-            // if(switch_sim_movoment)
-            //     robot_x -= 0.1;
-            // else
-            //     robot_x += 0.1;
-
-
-            // std::cout << "Robot Position x: " << robot_x << std::endl;
-
-
-            std::vector<double> loop_times; // Vector to store loop execution times
-
-            // Measure loop execution time
-            auto loop_end_time   = std::chrono::steady_clock::now();
-            double loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time - loop_start_time).count();
-            loop_times.push_back(loop_duration);
-
-            std_msgs::msg::Float64 loop_time_msg;
-            loop_time_msg.data = loop_duration;
-            loop_time_publisher->publish(loop_time_msg);
-            std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
-
-
-            // Calculate and print average execution time
-            static double total_loop_time = 0.0;
-            static int loop_count         = 0;
-            static int above_50_count     = 0;
-            static double total_above_50  = 0.0;
-
-            total_loop_time += loop_duration;
-            loop_count++;
-
-            if (loop_duration > 50.0) {
-                above_50_count++;
-                total_above_50 += (loop_duration - 50.0);
-            }
-
-            if (loop_count % 100 == 0) { // Print every 100 iterations
-                double average_time = total_loop_time / loop_count;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "Average loop execution time: " << average_time << " ms" << std::endl;
-                std::cout << "Number of loops above 50 ms: " << above_50_count << std::endl;
-                std::cout << "Total time above 50 ms: " << total_above_50 << " ms" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
-                std::cout << "" << std::endl;
-            }
-
-        
-
-
-            loop_rate.sleep();
-
-            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        static auto last_clone_time = std::chrono::steady_clock::now();
+        auto current_time           = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1) {
+            last_clone_time = current_time;
+            publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+            std::cout << "Occupancy grid published!!!!" << std::endl;
         }
+
+        publishPosition(odom_publisher, tf_broadcaster, node);
+        publishPoint(point_publisher, node, pop);
+        publishAStarPath(astar_path, astar_path_pub, node);
+        publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
+
+
+        // if(robot_x >= 13.0) {
+        //     switch_sim_movoment = true;
+        // }
+        // if (robot_x <= 10.0) {
+        //     switch_sim_movoment = false;
+        // }
+
+        // if(switch_sim_movoment)
+        //     robot_x -= 0.1;
+        // else
+        //     robot_x += 0.1;
+
+
+        // std::cout << "Robot Position x: " << robot_x << std::endl;
+
+
+        std::vector<double> loop_times; // Vector to store loop execution times
+
+        // Measure loop execution time
+        auto loop_end_time   = std::chrono::steady_clock::now();
+        double loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time - loop_start_time).count();
+        loop_times.push_back(loop_duration);
+
+        std_msgs::msg::Float64 loop_time_msg;
+        loop_time_msg.data = loop_duration;
+        loop_time_publisher->publish(loop_time_msg);
+
+        rclcpp::spin_some(node);
+
+         std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
+
+
+        // Calculate and print average execution time
+        static double total_loop_time = 0.0;
+        static int loop_count         = 0;
+        static int above_50_count     = 0;
+        static double total_above_50  = 0.0;
+
+        total_loop_time += loop_duration;
+        loop_count++;
+
+        if (loop_duration > 50.0) {
+            above_50_count++;
+            total_above_50 += (loop_duration - 50.0);
+        }
+
+        if (loop_count % 100 == 0) { // Print every 100 iterations
+            double average_time = total_loop_time / loop_count;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "Average loop execution time: " << average_time << " ms" << std::endl;
+            std::cout << "Number of loops above 50 ms: " << above_50_count << std::endl;
+            std::cout << "Total time above 50 ms: " << total_above_50 << " ms" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+            std::cout << "" << std::endl;
+        }
+
+
+        loop_rate.sleep();
+
+        // std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     rclcpp::shutdown();
 

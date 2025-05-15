@@ -69,13 +69,24 @@ def generate_launch_description():
         )]
     )
 
-    amcl_node = Node(
-        package='nav2_amcl',
-        executable='amcl',
-        name='amcl',
+
+    static_tf_node = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_transform_publisher',
         output='screen',
-        parameters=[amcl_param_file, {'use_sim_time': False}]
+        arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
     )
+
+
+
+    # amcl_node = Node(
+    #     package='nav2_amcl',
+    #     executable='amcl',
+    #     name='amcl',
+    #     output='screen',
+    #     parameters=[amcl_param_file, {'use_sim_time': False}]
+    # )
 
     lifecycle_manager = TimerAction(
         period=6.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
@@ -87,7 +98,8 @@ def generate_launch_description():
             parameters=[{
                 'use_sim_time': False,
                 'autostart': True,
-                'node_names': ['map_server', 'amcl']
+                # 'node_names': ['map_server', 'amcl']
+                'node_names': ['map_server']
             }]
         )]
     )
@@ -124,11 +136,11 @@ def generate_launch_description():
             output='screen',  # Output logs to the screen
             parameters=[
                 {'use_sim_time': False} 
-            ],
-            remappings=[
-                ('scan', '/scan'),  # Remap the LaserScan topic if necessary
-                ('pointcloud', '/pointcloud')  # Remap the PointCloud2 topic if necessary
             ]
+            # remappings=[
+            #     ('scan', '/scan'),  # Remap the LaserScan topic if necessary
+            #     ('pointcloud', '/pointcloud')  # Remap the PointCloud2 topic if necessary
+            # ]
         )]
     )
 
@@ -136,6 +148,7 @@ def generate_launch_description():
         rsp,
         # static_tf_pub
         map_server_node,
+        static_tf_node,
         # amcl_node,
         lifecycle_manager,
         rplidar_launch,
