@@ -233,7 +233,7 @@ namespace ecn
             DisplayHandler* instance = static_cast<DisplayHandler*>(pvParameters);
             while (true) {
                 instance->_updateDisplay();
-                Serial.println("update display");
+                // Serial.println("update display");
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
             }
         }

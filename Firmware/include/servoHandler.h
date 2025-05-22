@@ -4,6 +4,6 @@
 
 void initServo();
 void setServo(int servo, int value);
-void testServo(void *pvParameters);
+void testServo();
 
 #endif

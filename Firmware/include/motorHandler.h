@@ -3,8 +3,10 @@
 #include "Arduino.h"
 
 void initMotor();
-void initialize_X_axis();
+void initialize_Z_axis();
 void setMotorSpeeds(float leftSpeed, float rightSpeed);
 void allRunSpeed(void *pvParameters);
+void moveAxeZ(int position, bool wait);
+void go(int distance);
 
 #endif

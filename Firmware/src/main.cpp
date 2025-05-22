@@ -6,11 +6,19 @@
 #include "displayHandler.h"
 #include "powerSensorHandler.h"
 #include "fileHandling.h"  // Our file-handling module
+#include "pumpHandler.h"
+#include "servoHandler.h"
+#include "debug.h"
+#include "stacking.h"
+#include "controlPanelHandler.h"
 
 #include "Wire.h"
 #include <math.h>
+
 TwoWire myWire(0);
 TwoWire wireDisplay(1);
+
+SemaphoreHandle_t i2cMutex = xSemaphoreCreateMutex();
 
 using namespace ecn;
 
@@ -153,54 +161,108 @@ void purePursuitUpdate() {
   }
 }
 
+
 void setup() {
   Serial.begin(9600);
-  while (!Serial) { delay(10); }
+
   delay(500);
+
+  SerialTitle("Initialisation du système");
+
+  SerialInfo("1/6 Initialisation de la pompe...");
+  initPump();
+
+  SerialInfo("2/6 Initialisation du servo...");
+  initServo();
+
+  SerialInfo("3/6 Initialisation du capteur de puissance...");
+  // initPowerSensor();
+
+  SerialInfo("4/6 Initialisation du moteur...");
+  // initMotor();
+
+  SerialInfo("5/6 Initialisation de l'afficheur...");
+  display.initDisplay(true, false);
+
+  SerialInfo("6/6 Initialisation de l'afficheur...");
+  initControlPanel();
+
+  SerialInfo("Initialisation terminée avec succès !");
+  
+
+
+  // delay(1000);
+
+  // resetStackingPosition();
+  
+  // delay(1000);
+
+  // loadPlanks();
+
+  // delay(1000);
+
+  // setMotorSpeeds(0.08, 0.08);
+  // go(80*4);
+  
+  // delay(1000);
+
+  // stack();
+
+
+
+  // initControlPanel();
 
 
   // Load path file from SPIFFS
-  if (loadPathFromFile("/sinus_path.txt", loadedPath)) {
-    Serial.println("Loaded path points:");
-  } else {
-    Serial.println("Failed to load path file.");
-  }
+  // if (loadPathFromFile("/straight_line_path.txt", loadedPath)) {
+  //   Serial.println("Loaded path points:");
+  // } else {
+  //   Serial.println("Failed to load path file.");
+  // }
   
-  // Initialize robot state from the first two points (convert from cm to m)
-  if (loadedPath.size() >= 2) {
-    robotX = loadedPath[0].x / 100.0;
-    robotY = loadedPath[0].y / 100.0;
-    float secondX = loadedPath[1].x / 100.0;
-    float secondY = loadedPath[1].y / 100.0;
-    robotTheta = atan2(secondY - robotY, secondX - robotX);
-    _robotX = robotX;
-    _robotY = robotY;
-    _robotTheta = robotTheta;
-  } else {
-    Serial.println("Path too short to initialize robot state.");
-  }
+  // // Initialize robot state from the first two points (convert from cm to m)
+  // if (loadedPath.size() >= 2) {
+  //   robotX = loadedPath[0].x / 100.0;
+  //   robotY = loadedPath[0].y / 100.0;
+  //   float secondX = loadedPath[1].x / 100.0;
+  //   float secondY = loadedPath[1].y / 100.0;
+  //   robotTheta = atan2(secondY - robotY, secondX - robotX);
+  //   _robotX = robotX;
+  //   _robotY = robotY;
+  //   _robotTheta = robotTheta;
+  // } else {
+  //   Serial.println("Path too short to initialize robot state.");
+  // }
   
-  // Initialize the other modules (motors, display, power sensor)
-  initMotor();
-
-  // For testing, we start with a low constant speed; pure pursuit will adjust individual wheel speeds.
-  setMotorSpeeds(0, 0);
-  display.initDisplay(false, false);
-  initPowerSensor();
-  
-  // Reset timer for control loop
-  lastUpdateTime = millis();
-  startTime = millis();
+  // // Reset timer for control loop
+  // lastUpdateTime = millis();
+  // startTime = millis();
 }
 
 
 float position = 1;
 void loop() {
-     // Run the pure pursuit update every controlInterval (50 ms)
-    if (millis() - lastUpdateTime >= controlInterval) {
-      lastUpdateTime = millis();
-      purePursuitUpdate();
-      display.updatePointsDisplay(robotY);
-    } 
+  // for(int i=0; i<=180; i=i+15){
+  //   setServo(0, i);
+  //   delay(1000);
+  // }
 
+    //  Run the pure pursuit update every controlInterval (50 ms)
+    // if (millis() - lastUpdateTime >= controlInterval) { lastUpdateTime = millis();
+    //   purePursuitUpdate();
+    //   display.updatePointsDisplay(robotY);
+    // } 
+
+    // go(1000);
+
+    // setServo(1, 90);
+    // setServo(4, 90);
+    // delay(2000);
+    // setServo(4, 65);
+    // delay(2000);
+    // setServo(4, 110);
+    // delay(2000);
+
+
+  
 }
