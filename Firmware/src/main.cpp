@@ -246,7 +246,7 @@ void setup()
 
     // For testing, we start with a low constant speed; pure pursuit will adjust individual wheel speeds.
     setMotorSpeeds(0, 0);
-    display.initDisplay(false, false);
+    // display.initDisplay(false, false); /// !!!!! Same as motor 
     initPowerSensor();
 
     pinMode(internalLed, OUTPUT);

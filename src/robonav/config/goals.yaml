@@ -7,12 +7,12 @@ robot:
     kd: 0.5
 
 goals:
-  - x: 10
-    y: 60
+  - x: 50
+    y: 70
     theta: 0
-  - x: 260
-    y: 165
+  - x: 250
+    y: 150
     theta: 90
-  - x: 55
-    y: 55
-    theta: 90
+  - x: 50
+    y: 70
+    theta: 0

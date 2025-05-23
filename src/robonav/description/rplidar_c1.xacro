@@ -28,7 +28,7 @@
     <joint name="rplidar_joint" type="fixed">
         <parent link="base_link"/>
         <child link="lidar_link"/>
-        <origin xyz="0.1 0.0 0.365" rpy="0 0 0"/>  <!-- Lidar is on top of the Chassis -->
+        <origin xyz="-0.053 0.0 0.365" rpy="0 0 0"/>  <!-- Lidar is on top of the Chassis -->
     </joint>
 
 

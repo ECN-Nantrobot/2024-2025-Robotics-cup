@@ -4,6 +4,8 @@
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
+#include <tf2_sensor_msgs/tf2_sensor_msgs.hpp>
+
 
 class LaserToPointCloudNode : public rclcpp::Node
 {
@@ -18,23 +20,29 @@ public:
 private:
     void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr scan_msg)
     {
-        const std::string target_frame = "base_link";
-
-        if (!tf_buffer_.canTransform(target_frame, scan_msg->header.frame_id, tf2::TimePointZero, tf2::durationFromSec(0.5))) {
-            RCLCPP_WARN(this->get_logger(), "Transform unavailable: %s → %s", scan_msg->header.frame_id.c_str(), target_frame.c_str());
-            return;
-        }
+        const std::string target_frame = "map";
 
         sensor_msgs::msg::PointCloud2 cloud;
+       
         try {
-            // ✅ Use current time instead of scan time
-            sensor_msgs::msg::LaserScan scan_copy = *scan_msg;
-            scan_copy.header.stamp                = this->now();
+            projector_.transformLaserScanToPointCloud("lidar_link", *scan_msg, cloud, tf_buffer_);
 
-            projector_.transformLaserScanToPointCloud(target_frame, scan_copy, cloud, tf_buffer_);
-            cloud_pub_->publish(cloud);
-        } catch (tf2::TransformException& ex) {
-            RCLCPP_WARN(this->get_logger(), "Transform error: %s", ex.what());
+        } catch (const tf2::TransformException& ex) {
+            RCLCPP_WARN(this->get_logger(), "LasertoPointcloud Transform failed !!: %s", ex.what());
+        }
+
+        // Transform the point cloud from "lidar_link" frame to "map" frame
+        sensor_msgs::msg::PointCloud2 transformed_cloud;
+        try {
+            geometry_msgs::msg::TransformStamped transform = tf_buffer_.lookupTransform(target_frame, scan_msg->header.frame_id,
+                                                                                        tf2::TimePointZero, // Use the most recent available transform
+                                                                                        tf2::durationFromSec(0.3));
+        
+            tf2::doTransform(cloud, transformed_cloud, transform);
+            transformed_cloud.header.frame_id = target_frame; // Update the frame ID to "map"
+            cloud_pub_->publish(transformed_cloud);
+        } catch (const tf2::TransformException& ex) {
+            RCLCPP_WARN(this->get_logger(), "PointCloud to map transform failed: %s", ex.what());
         }
     }
 

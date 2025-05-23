@@ -17,6 +17,9 @@ find_package(visualization_msgs REQUIRED)
 find_package(laser_geometry REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
+
 
 # Library für Maze-Funktionalität
 add_library(maze_lib SHARED 
@@ -56,8 +59,8 @@ target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${PCL_INCLUDE_DIRS})
 
 add_executable(laser_to_pointcloud_node src/laser_to_pointcloud_node.cpp)
-ament_target_dependencies(laser_to_pointcloud_node rclcpp sensor_msgs tf2 tf2_ros laser_geometry)
-
+ament_target_dependencies(laser_to_pointcloud_node rclcpp sensor_msgs tf2 tf2_ros laser_geometry tf2_sensor_msgs)
+ 
 install(TARGETS
   main_node
   maze_lib  

@@ -54,7 +54,7 @@ def generate_launch_description():
     )
 
     map_server_node = TimerAction(
-        period=2.0,
+        period=0.01,
         actions=[Node(
             package='nav2_map_server',
             executable='map_server',
@@ -89,7 +89,7 @@ def generate_launch_description():
     # )
 
     lifecycle_manager = TimerAction(
-        period=6.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
+        period=2.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
         actions=[Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',
@@ -105,7 +105,7 @@ def generate_launch_description():
     )
 
     main_node = TimerAction(
-        period=3.0,
+        period=1.0,
         actions=[Node(
             package='robonav',
             executable='main_node',
@@ -128,7 +128,7 @@ def generate_launch_description():
     # )
 
     laser_to_pointcloud_node = TimerAction(
-        period=8.0,  # Add an 8-second delay
+        period=4.0,  # Add an 8-second delay
         actions=[Node(
             package='robonav',
             executable='laser_to_pointcloud_node',

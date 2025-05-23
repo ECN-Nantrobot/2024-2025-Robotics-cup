@@ -32,18 +32,19 @@
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 
-
 #include "std_msgs/msg/float64.hpp"
 #include <csignal>
 #include <vector>
 
 #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
+#include <pcl/common/transforms.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_conversions/pcl_conversions.h>
+// #include <pcl_ros/transforms.hpp> // Provides pcl_ros::transformPointCloud
 
 using namespace std;
 using namespace ecn;
@@ -57,54 +58,65 @@ Robot robot(Point::maze, 0, 0, 0, 18.5, 8, 25, 0.01, 0.5); // Maze, initial posi
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
 ecn::Point pop;
 
-void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg, Maze& maze)
+void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
+                       Maze& maze,
+                       float robot_pos_x,
+                       float robot_pos_y,
+                       const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_publisher,
+                       const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_notused_publisher,
+                       const rclcpp::Node::SharedPtr& node)
 {
-    // // Transform the cloud to the map frame
-    // static tf2_ros::Buffer tf_buffer(node->get_clock());
-    // static tf2_ros::TransformListener tf_listener(tf_buffer);
-
-    // geometry_msgs::msg::TransformStamped transform_stamped;
-    // try {
-    //     transform_stamped = tf_buffer.lookupTransform("map", cloud_msg->header.frame_id, tf2::TimePointZero);
-    // } catch (tf2::TransformException& ex) {
-    //     RCLCPP_WARN(node->get_logger(), "Could not transform cloud to map frame: %s", ex.what());
-    //     return;
-    // }
-
-    // Apply the transformation to the point cloud
-    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    pcl_ros::transformPointCloud(*cloud, *transformed_cloud, transform_stamped);
-    cloud = transformed_cloud;
-
+    robot_pos_x = robot_x / 100.0;
+    robot_pos_y = 2 - (robot_y / 100.0);
     float reduction = 0.25;
     float min_x     = 0 + reduction;
     float max_x     = 3 - reduction;
     float min_y     = 0 + reduction;
     float max_y     = 2 - reduction;
+    float radius_around_robot = 0.3;
 
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::fromROSMsg(*cloud_msg, *cloud);
 
-    // Filter points within the desired map area
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+    // Filter points within the desired map area and exclude points within a radius of 30cm from the robot
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_notused(new pcl::PointCloud<pcl::PointXYZRGB>());
     for (const auto& pt : cloud->points) {
-        if (pt.x >= min_x && pt.x <= max_x && pt.y >= min_y && pt.y <= max_y) {
-            cloud_filtered->points.push_back(pt);
+        float distance_to_robot = std::sqrt(std::pow(pt.x - robot_pos_x, 2) + std::pow(pt.y - robot_pos_y, 2));
+        if (pt.x >= min_x && pt.x <= max_x && pt.y >= min_y && pt.y <= max_y && distance_to_robot > radius_around_robot) {
+            pcl::PointXYZRGB colored_pt;
+            colored_pt.x = pt.x;
+            colored_pt.y = pt.y;
+            colored_pt.z = pt.z;
+            colored_pt.r = 255;
+            colored_pt.g = 255;
+            colored_pt.b = 255; 
+            cloud_filtered->points.push_back(colored_pt);
+        }
+        else{
+            pcl::PointXYZRGB colored_pt_notused;
+            colored_pt_notused.x = pt.x;
+            colored_pt_notused.y = pt.y;
+            colored_pt_notused.z = pt.z;
+            colored_pt_notused.r = 50;
+            colored_pt_notused.g = 50;
+            colored_pt_notused.b = 50; 
+            cloud_filtered_notused->points.push_back(colored_pt_notused);
         }
     }
 
     // Perform clustering
     maze.resetIm(); // Reset the maze before processing new points
 
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>());
     tree->setInputCloud(cloud_filtered);
 
     std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance(0.1); // 5 cm distance of points
+    pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+    ec.setClusterTolerance(0.1); // minimum distance of points in a cluster
     ec.setMinClusterSize(3);     // Minimum number of points in a cluster
-    ec.setMaxClusterSize(30);
+    ec.setMaxClusterSize(80);
     ec.setSearchMethod(tree);
     ec.setInputCloud(cloud_filtered);
     ec.extract(cluster_indices);
@@ -114,7 +126,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     // Map to store smoothed centers for each cluster
     static std::unordered_map<int, std::pair<float, float>> smoothed_centers;
     static bool first_time = true;
-    const float alpha      = 0.75; // Smoothing factor (0 < alpha < 1) higher is less smoothing
+    const float alpha      = 0.85; // Smoothing factor (0 < alpha < 1) higher is less smoothing
 
     // Process each cluster
     int cluster_id = 0;
@@ -166,7 +178,16 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
 
     first_time = false; // Set first_time to false after the first iteration
 
-    std::cout << "PUT OBSTACLE ON THE MAP !!!!!!!!!!!!" << std::endl;
+
+    sensor_msgs::msg::PointCloud2 cloud_filtered_msg;
+    pcl::toROSMsg(*cloud_filtered, cloud_filtered_msg);
+    cloud_filtered_msg.header = cloud_msg->header;
+    cloud_publisher->publish(cloud_filtered_msg);
+
+    sensor_msgs::msg::PointCloud2 cloud_filtered_notused_msg;
+    pcl::toROSMsg(*cloud_filtered_notused, cloud_filtered_notused_msg);
+    cloud_filtered_notused_msg.header = cloud_msg->header;
+    cloud_notused_publisher->publish(cloud_filtered_notused_msg);
 }
 
 
@@ -261,7 +282,7 @@ void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr
 
 {
     nav_msgs::msg::Odometry odom_msg;
-    odom_msg.header.stamp    = node->now();
+    odom_msg.header.stamp    = node->get_clock()->now();
     odom_msg.header.frame_id = "odom";
     odom_msg.child_frame_id  = "base_link"; // Set the child frame ID
 
@@ -509,6 +530,17 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     auto node           = rclcpp::Node::make_shared("main_publisher");
+
+    auto cloud_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_used", 10);
+
+    auto cloud_notused_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_notused", 10);
+
+
+    auto cloud_subscriber = 
+    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node); });
+
+
+
     auto main_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/main", 10);
     auto path_publisher = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
     auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
@@ -521,7 +553,7 @@ int main(int argc, char** argv)
     auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
     auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
     auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
-    auto cloud_subscriber = node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze); });
+
 
     serial::Serial ser;
     bool port_opened = false;
@@ -801,7 +833,7 @@ int main(int argc, char** argv)
                     elastic_band.resetOptimization();
 
                     if (counter_set_eb_path > set_eb_path_counter_limit) {
-                        elastic_band.generateSmoothedPath(3.0f, 21, 1.2f); // 0.08 ms
+                        elastic_band.generateSmoothedPath(4.0f, 21, 1.2f); // 0.08 ms
 
                         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                         eb_comp_inarow            = eb_comp_inarow_default;
@@ -851,6 +883,9 @@ int main(int argc, char** argv)
             std::cout << "Occupancy grid published!!!!" << std::endl;
         }
 
+        rclcpp::spin_some(node);
+
+
         publishPosition(odom_publisher, tf_broadcaster, node);
         publishPoint(point_publisher, node, pop);
         publishAStarPath(astar_path, astar_path_pub, node);
@@ -884,7 +919,6 @@ int main(int argc, char** argv)
         loop_time_msg.data = loop_duration;
         loop_time_publisher->publish(loop_time_msg);
 
-        rclcpp::spin_some(node);
 
          std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
 
