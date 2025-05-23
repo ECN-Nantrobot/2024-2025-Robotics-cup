@@ -1,0 +1,188 @@
+robot:
+  wheel_distance: 37.3
+  speed: 10.0
+  pid:
+    kp: 28
+    ki: 0.02
+    kd: 0.5
+
+goals:
+  # Goal 1
+  - x: 350
+    y: 1750
+    theta: 0
+
+  # Goal 2
+  - x: 750
+    y: 50
+    theta: 180
+
+  # Goal 3
+  - x: 1200
+    y: 50
+    theta: 180
+
+  # Goal 4
+  - x: 1200
+    y: 250
+    theta: 180
+
+  # Goal 5
+  - x: 2700
+    y: 50
+    theta: 180
+
+  # Goal 6
+  - x: 2850
+    y: 825
+    theta: 90
+
+  # Goal 7
+  - x: 2700
+    y: 825
+    theta: 90
+
+  # Goal 8
+  - x: 150
+    y: 1250
+    theta: -90
+
+  # Goal 9
+  - x: 1050
+    y: 1000
+    theta: 180
+
+  # Goal 10
+  - x: 1050
+    y: 800
+    theta: 0
+
+  # Goal 11
+  - x: 1800
+    y: 1000
+    theta: 180
+
+  # Goal 12
+  - x: 1800
+    y: 800
+    theta: 0
+
+  # Goal 13
+  - x: 2650
+    y: 1250
+    theta: 90
+
+  # Goal 14
+  - x: 150
+    y: 375
+    theta: -90
+
+  # Goal 15
+  - x: 750
+    y: 325
+    theta: 180
+
+  # Goal 16
+  - x: 2125
+    y: 325
+    theta: 180
+
+  # Goal 17
+  - x: 2675
+    y: 375
+    theta: 90
+
+  # Goal 18
+  - x: 775
+    y: 1525
+    theta: 0
+
+  # Goal 19
+  - x: 2500
+    y: 1750
+    theta: 0
+
+  # Goal 20
+  - x: 125
+    y: 825
+    theta: -90
+
+  # Goal 21
+  - x: 275
+    y: 825
+    theta: -90
+
+  # Goal 22
+  - x: 215
+    y: 50
+    theta: 180
+
+  # Goal 23
+  - x: 1675
+    y: 50
+    theta: 180
+
+  # Goal 24
+  - x: 1675
+    y: 275
+    theta: 180
+
+  # Goal 25
+  - x: 2115
+    y: 50
+    theta: 180
+
+  # Goal 26
+  - x: 150
+    y: 1250
+    theta: -90
+
+  # Goal 27
+  - x: 1050
+    y: 1000
+    theta: 180
+
+  # Goal 28
+  - x: 1050
+    y: 800
+    theta: 0
+
+  # Goal 29
+  - x: 1800
+    y: 1000
+    theta: 180
+
+  # Goal 30
+  - x: 1800
+    y: 800
+    theta: 0
+
+  # Goal 31
+  - x: 2650
+    y: 1250
+    theta: 90
+
+  # Goal 32
+  - x: 150
+    y: 375
+    theta: -90
+
+  # Goal 33
+  - x: 750
+    y: 325
+    theta: 180
+
+  # Goal 34
+  - x: 2125
+    y: 325
+    theta: 180
+
+  # Goal 35
+  - x: 2675
+    y: 375
+    theta: 90
+
+  # Goal 36
+  - x: 2050
+    y: 1525
+    theta: 0
