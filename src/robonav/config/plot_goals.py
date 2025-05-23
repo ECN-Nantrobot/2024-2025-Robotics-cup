@@ -15,8 +15,39 @@ def draw_goals_on_map(yaml_path, image_path=None, image_width=300, image_height=
         if image is None:
             raise FileNotFoundError(f"Image file not found: {image_path}")
         image_height, image_width, _ = image.shape
-    else:
-        image = np.ones((image_height, image_width, 3), dtype=np.uint8) * 255
+        # Add a border around obstacles
+        border_size = 22 ###################
+
+        border_color = (200, 100, 100)  # Gray color for the border
+        obstacle_threshold = 120  # Threshold for detecting dark gray obstacles
+
+        # Create a mask for all pixels below the threshold
+        obstacle_mask = np.zeros((image_height, image_width), dtype=np.uint8)
+        for y in range(image_height):
+            for x in range(image_width):
+                pixel_color = image[y, x]
+                if pixel_color[0] == pixel_color[1] == pixel_color[2]:  # Check if the color is gray
+                    if pixel_color[0] < obstacle_threshold:  # Check if it's darker than the threshold
+                        obstacle_mask[y, x] = 255  # Mark obstacle in the mask
+
+        # Dilate the obstacle mask (make the mask bigger) to include the border
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2 * border_size + 1, 2 * border_size + 1))
+        dilated_mask = cv2.dilate(obstacle_mask, kernel)
+
+        # Subtract the original obstacle mask from the dilated mask to isolate the border
+        border_mask = cv2.subtract(dilated_mask, obstacle_mask)
+
+        # Color each pixel of the image where the mask is the border color
+        for y in range(image_height):
+            for x in range(image_width):
+                if border_mask[y, x] == 255:
+                    image[y, x] = border_color
+
+        print(f"Added border of {border_size} pixels to permanent (dark gray) obstacles.")
+        # Ensure the original image is preserved after adding the border
+        pass
+
+
 
     for idx, goal in enumerate(goals):
         x_cm = goal['x']
@@ -47,8 +78,7 @@ def draw_goals_on_map(yaml_path, image_path=None, image_width=300, image_height=
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
-# Example usage
-if _name_ == "_main_":
+if __name__ == "__main__":
     yaml_file = "/home/ferdinand/2024-2025-Robotics-cup/src/robonav/config/goals_all.yaml"  # Replace with the path to your YAML file
     image_file = "/home/ferdinand/2024-2025-Robotics-cup/src/robonav/maps/Eurobot_map_real_bw_10_p.png"  # Replace with the path to your image file
     draw_goals_on_map(yaml_file, image_path=image_file)
