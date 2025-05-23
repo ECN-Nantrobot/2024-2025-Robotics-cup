@@ -578,7 +578,7 @@ int main(int argc, char** argv)
             break;
 
         case PATH_PLANNING:
-            std::cout << "State: PATH_PLANNING-------" << std::endl;
+            std::cout << "State: PATH_PLANNING-------" << std::endl; 
 
             // Recalculate A* path
             // Point::maze.computeDistanceTransform();
@@ -586,7 +586,13 @@ int main(int argc, char** argv)
             start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
             goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
 
-            astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+            try {
+                astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+            } catch (const std::exception& e) {
+                std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+                astar_path.clear(); // Clear the path to avoid using invalid data
+                break; 
+            }
 
             for (auto& position : astar_path) {
                 position           = position * (1 / Point::maze.resize_for_astar);

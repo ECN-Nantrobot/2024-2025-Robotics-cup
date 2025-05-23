@@ -264,6 +264,7 @@ void loop()
 
         while (Serial.available())
         {
+            Serial.println("Reading...");
             String command = Serial.readStringUntil('\n');
             processCommand(command);
 
@@ -329,6 +330,11 @@ void loop()
             case WAIT:
 
                 Serial.println("CurrentState: WAIT");
+                if (Serial.available())
+                {
+                    String command = Serial.readStringUntil('\n');
+                    processCommand(command);
+                }
 
                 break;
             case INIT:
