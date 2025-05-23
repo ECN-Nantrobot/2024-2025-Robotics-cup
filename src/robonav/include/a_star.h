@@ -230,6 +230,7 @@ template <class Node> std::vector<Node> Astar(Node start, Node goal)
     // while loop exit means no solutions
     std::cout << "No solutions " << std::endl;
     std::cout << created << " nodes created, " << evaluated << " evaluated, " << shortcut << " shortcuts found" << std::endl;
+    throw std::runtime_error("No path found by A*");
     return {};
 }
 

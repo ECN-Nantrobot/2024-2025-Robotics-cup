@@ -688,13 +688,13 @@ int main(int argc, char** argv)
         if (dont_move == false) {
 
 
-            // int max_reads = 15;
+            int max_reads = 15;
 
-            // while (ser.available() && max_reads > 0) {
-            //     std::string command = ser.readline();
-            //     processCommand(command);
-            //     max_reads--;
-            // }
+            while (ser.available() && max_reads > 0) {
+                std::string command = ser.readline();
+                processCommand(command);
+                max_reads--;
+            }
 
             robot.setPose(robot_x, robot_y, robot_theta);
 
@@ -737,7 +737,13 @@ int main(int argc, char** argv)
                 start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
                 goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
 
-                astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+                try {
+                    astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+                } catch (const std::exception& e) {
+                    std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+                    astar_path.clear(); // Clear the path to handle the error gracefully
+                    break;
+                }
 
                 for (auto& position : astar_path) {
                     position           = position * (1 / Point::maze.resize_for_astar);
