@@ -10,15 +10,7 @@ import math
 
 def generate_launch_description():
 
-    # Declare an argument for the custom Gazebo world
-    # world_file_arg = DeclareLaunchArgument(
-    #     'world',
-    #     default_value='draft.world',  # Default world file
-    #     description='empty.world'
-    # )
-
     package_name = 'robonav'  # <--- CHANGE ME
-
 
     map_file = PathJoinSubstitution([
         get_package_share_directory(package_name),
@@ -35,7 +27,6 @@ def generate_launch_description():
     # Ensure the files exist
     assert os.path.exists(map_file.perform({})), f"Map file not found: {map_file.perform({})}"
     assert os.path.exists(amcl_param_file.perform({})), f"AMCL parameter file not found: {amcl_param_file.perform({})}"
-
 
 
     # Include the robot_state_publisher launch file
@@ -69,7 +60,6 @@ def generate_launch_description():
         )]
     )
 
-
     static_tf_node = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -77,8 +67,6 @@ def generate_launch_description():
         output='screen',
         arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
     )
-
-
 
     # amcl_node = Node(
     #     package='nav2_amcl',
@@ -113,20 +101,6 @@ def generate_launch_description():
         )]
     )
 
-    x_start_cv_frame = 10 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
-    y_start_cv_frame = 10 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE 
-    theta_start_cv_frame = 0 # <--- CHANGE MEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-
-    x_start = x_start_cv_frame/100
-    y_start = 2 - y_start_cv_frame/100
-    theta = math.radians(-theta_start_cv_frame)
-
-    # static_tf_pub = Node(
-    #     package='tf2_ros',
-    #     executable='static_transform_publisher',
-    #     arguments=['0', '0', '0', '0', '0', '0', '1', 'odom', 'base_link']
-    # )
-
     laser_to_pointcloud_node = TimerAction(
         period=4.0,  # Add an 8-second delay
         actions=[Node(
@@ -146,7 +120,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         rsp,
-        # static_tf_pub
         map_server_node,
         static_tf_node,
         # amcl_node,

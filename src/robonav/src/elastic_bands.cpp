@@ -279,7 +279,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
         // Calculate the distance to the previous point
         float distanceToPrev = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
-        if (distanceToPrev > 15) {
+        if (distanceToPrev > 20) {
             std::cout << "Distance to previous point exceeds threshold. Exiting optimization." << std::endl;
             optimization_complete = true;
             return optimization_complete;

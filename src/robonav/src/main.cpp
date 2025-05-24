@@ -56,6 +56,9 @@ RobotState state = INIT;
 Robot robot(Point::maze, 0, 0, 0, 18.5, 8, 25, 0.01, 0.5); // Maze, initial position (x, y, theta), wheelbase, speed in cm/s, P, I, D
 
 double robot_x = 0.0, robot_y = 0.0, robot_theta = 0.0;
+
+bool team_colour = 0;
+
 ecn::Point pop;
 
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
@@ -165,10 +168,10 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
                     int nx = maze_x + dx;
                     int ny = maze_y + dy;
 
-                    // Ensure the new pixel is within bounds
-                    if (nx >= 0 && nx < maze.im.cols && ny >= 0 && ny < maze.im.rows) {
-                        maze.setPixel(nx, ny, 0); // Set pixel to black
-                    }
+                    // // Ensure the new pixel is within bounds
+                    // if (nx >= 0 && nx < maze.im.cols && ny >= 0 && ny < maze.im.rows) {
+                    //     maze.setPixel(nx, ny, 0); // Set pixel to black
+                    // }
                 }
             }
         }
@@ -380,7 +383,6 @@ void publishOccupancyGrid(rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::Share
     publisher->publish(grid);
 }
 
-
 void receivePosition(std::string result)
 {
 
@@ -498,6 +500,13 @@ void processCommand(const std::string& command)
         std::string popStr = command.substr(4);
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     }
+    else if (command.rfind("RESET!", 0) == 0) {
+        std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
+        // rclcpp::shutdown();                         // Clean shutdown
+        // std::system("ros2 run robonav main_node &"); // Restart
+        // std::exit(0);     
+        //                           // Kill current process
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -573,15 +582,55 @@ int main(int argc, char** argv)
         return 1;
     }
 
-
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give ESP time to start
 
     // ser.write("RESET\n");
     // std::cout << "Sent RESET command" << std::endl;
 
+    // Wait for the START and COLOUR! command from ESP
+    auto start_time = std::chrono::steady_clock::now();
+    while (rclcpp::ok()) {
+        auto current_time = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
+            std::cout << "Waiting for START! command from ESP..." << std::endl;
+            start_time = current_time;
+        }
+        if (ser.available()) {
+            std::string command = ser.readline();
+            if (command.find("START!") != std::string::npos) {
+                std::cout << "Received START! command from ESP. Continuing..." << std::endl;
+
+                // Wait for the COLOUR command after START!
+                while (ser.available()) {
+                    std::string colour_command = ser.readline();
+                    if (colour_command.find("COLOUR:") != std::string::npos) {
+                        std::string colour = colour_command.substr(8); // Extract the colour name
+                        colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
+                        std::cout << "Received COLOUR: " << colour << std::endl;
+                        if (colour == "yellow") {
+                            team_colour = 1;
+                        } else if (colour == "blue") {
+                            team_colour = 0;
+                        } else {
+                            std::cerr << "Unknown colour: " << colour << std::endl;
+                        }
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
     //-------------------------------------------------------------------------------------
 
-    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    // TODO: Change the map for yellow or blue
+    if(team_colour == 0) {
+        std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    } elseif(team_colour == 1) {
+        std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    }
 
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform

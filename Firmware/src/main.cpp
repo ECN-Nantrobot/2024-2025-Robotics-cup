@@ -252,7 +252,27 @@ void setup()
     lastUpdateTime = millis();
     startTime = millis();
 
+    pinMode(starter, INPUT_PULLDOWN);
+    pinMode(colour, INPUT_PULLDOWN);
+
     Serial.println("ESP Initialized!");
+
+    while(digitalRead(starter) == LOW)
+    {
+        Serial.println("Waiting for START button to be pressed...");
+        delay(100);
+    }
+
+    Serial.println("START!");
+
+    if (digitalRead(colour) == HIGH)
+    {
+        Serial.println("COLOUR: yellow");
+    }
+    else
+    {
+        Serial.println("COLOUR: blue");
+    }
 }
 
 RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand
@@ -328,6 +348,12 @@ void loop()
             switch (state)
             {
             case WAIT:
+
+                while (Serial.available())
+                {
+                    String command = Serial.readStringUntil('\n');
+                    processCommand(command);
+                }
 
                 Serial.println("CurrentState: WAIT");
 
@@ -428,6 +454,15 @@ void loop()
 
                     std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta  << std::endl;
 
+                    // TODO: STACKING CODE ////////////////////////////////////////////////////////////////////////////////77
+                    // robot.leftSpeed_ =
+                    // robot.rightSpeed_ =
+
+
+
+
+
+
                     state = INIT;
                 }
                 else
@@ -441,7 +476,7 @@ void loop()
             case WAITFORPATH:
                 Serial.println("CurrentState: WAITFORPATH");
                 
-                robot.stop();
+                // robot.stop();
 
                 break;
             }

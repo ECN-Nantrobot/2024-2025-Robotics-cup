@@ -59,13 +59,13 @@ namespace ecn
     {
         float turnsignal = computePID(angle_error);
 
-        Serial.println("turnsignal: " + String(turnsignal));
+        // Serial.println("turnsignal: " + String(turnsignal));
 
         leftSpeed_ = -turnsignal;
         rightSpeed_ = turnsignal;
         
-        Serial.println("start_turning: " + String(start_turning));
-        Serial.println("turnsignal: " + String(turnsignal) + ", turnsignal_limit: " + String(turnsignal_limit));
+        // Serial.println("start_turning: " + String(start_turning));
+        // Serial.println("turnsignal: " + String(turnsignal) + ", turnsignal_limit: " + String(turnsignal_limit));
 
         if (start_turning == true)
         {
@@ -74,13 +74,13 @@ namespace ecn
                 reducing_factor += 1.0 / 30.0;
                 leftSpeed_ = -turnsignal * reducing_factor;
                 rightSpeed_ = turnsignal * reducing_factor;
-                Serial.println("reducing_factor: " + String(reducing_factor));
+                // Serial.println("reducing_factor: " + String(reducing_factor));
                 if (reducing_factor > 1)
                 {
                     reducing_factor = 0;
                     start_turning = false;
                 }
-                Serial.println("Reduced turnsignal: " + String(turnsignal));
+                // Serial.println("Reduced turnsignal: " + String(turnsignal));
             }
         }
         
@@ -91,7 +91,7 @@ namespace ecn
         }
 
 
-        Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+        // Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
     }
 
     bool Robot::turnToGoalOrientation()
@@ -103,7 +103,7 @@ namespace ecn
         while (angle_error < -M_PI)
             angle_error += 2 * M_PI;
         
-        Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (target theta): " + String(goals[current_goal_index].theta) + ", Angle Error: " + String(angle_error));
+        // Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (target theta): " + String(goals[current_goal_index].theta) + ", Angle Error: " + String(angle_error));
 
         turn(angle_error);
 
@@ -116,7 +116,7 @@ namespace ecn
 
         float angle_error = calcAngleError(target_index);
 
-        Serial.println("Current Angle (theta_): " + String(theta_) + ", Angle Error: " + String(angle_error));
+        // Serial.println("Current Angle (theta_): " + String(theta_) + ", Angle Error: " + String(angle_error));
 
         turn(angle_error);
 
@@ -154,7 +154,7 @@ namespace ecn
         }
 
         // Determine the lookahead distance and find the corresponding target point on the path
-        const float lookaheadDistance = 10.0f;
+        const float lookaheadDistance = 15.0f;
         int targetIdx = closestIdx;
 
         for (int i = closestIdx + 1; i < path_.size(); ++i)
@@ -171,7 +171,7 @@ namespace ecn
         if (targetIdx == closestIdx && closestIdx < path_.size() - 1)
             targetIdx = path_.size() - 1;
 
-        // Serial.println("POP:" + String(path_[targetIdx].x) + "," + String(path_[targetIdx].y));
+        Serial.println("POP:" + String(path_[targetIdx].x) + "," + String(path_[targetIdx].y));
 
         return targetIdx;
     }
@@ -208,8 +208,8 @@ namespace ecn
             {
                 starting_speed_ += 0.5f;
                 speed_to_set = starting_speed_;
-                Serial.print("is_starting == true, ");
-                Serial.println("Starting speed: " + String(starting_speed_));
+                // Serial.print("is_starting == true, ");
+                // Serial.println("Starting speed: " + String(starting_speed_));
 
                 if (speed_to_set >= target_speed_)
                 {
@@ -231,7 +231,7 @@ namespace ecn
                 leftSpeed_ = speed_to_set - controlSignal;
                 rightSpeed_ = speed_to_set + controlSignal;
 
-                Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
+                // Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
             }
 
         }

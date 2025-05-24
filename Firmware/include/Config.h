@@ -17,11 +17,14 @@
 #define SDAPin 23
 #define SLCPin 22
 
+#define starter 4
+#define colour 13
+
 // Define motor interface type for AccelStepper
 #define motorInterfaceType 1
 
 // Dimensions of robot
-const float wheelDiameter = 0.0808;   // meters
+const float wheelDiameter = 0.0804;   // meters
 const float trackWidth = 0.376;       // meters
 const int stepsPerRevolution = 200;
 
