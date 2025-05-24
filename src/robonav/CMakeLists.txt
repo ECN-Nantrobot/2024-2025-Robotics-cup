@@ -19,6 +19,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 # find_package(message_filters REQUIRED)
 # find_package(tf2_eigen REQUIRED)
 
@@ -31,6 +32,7 @@ add_library(maze_lib SHARED
     include/position.h
     include/robot.h
     include/pose.h
+    include/obstacle.h
     src/maze.cpp
     src/point.cpp
     src/elastic_bands.cpp
@@ -60,7 +62,7 @@ target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${PCL_INCLUDE_DIRS})
 
 add_executable(laser_to_pointcloud_node src/laser_to_pointcloud_node.cpp)
-ament_target_dependencies(laser_to_pointcloud_node rclcpp sensor_msgs tf2 tf2_ros tf2_sensor_msgs laser_geometry)
+ament_target_dependencies(laser_to_pointcloud_node rclcpp sensor_msgs tf2 tf2_ros tf2_sensor_msgs laser_geometry tf2_geometry_msgs)
  
 install(TARGETS
   main_node

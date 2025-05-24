@@ -257,22 +257,22 @@ void setup()
 
     Serial.println("ESP Initialized!");
 
-    while(digitalRead(starter) == LOW)
-    {
-        Serial.println("Waiting for START button to be pressed...");
-        delay(100);
-    }
+    // while(digitalRead(starter) == LOW)
+    // {
+    //     Serial.println("Waiting for START button to be pressed...");
+    //     delay(100);
+    // }
 
-    Serial.println("START!");
+    // Serial.println("START!");
 
-    if (digitalRead(colour) == HIGH)
-    {
-        Serial.println("COLOUR: yellow");
-    }
-    else
-    {
-        Serial.println("COLOUR: blue");
-    }
+    // if (digitalRead(colour) == HIGH)
+    // {
+    //     Serial.println("COLOUR: yellow");
+    // }
+    // else
+    // {
+    //     Serial.println("COLOUR: blue");
+    // }
 }
 
 RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand

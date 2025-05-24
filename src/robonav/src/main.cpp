@@ -584,44 +584,43 @@ int main(int argc, char** argv)
 
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give ESP time to start
 
-    // ser.write("RESET\n");
-    // std::cout << "Sent RESET command" << std::endl;
+
 
     // Wait for the START and COLOUR! command from ESP
-    auto start_time = std::chrono::steady_clock::now();
-    while (rclcpp::ok()) {
-        auto current_time = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
-            std::cout << "Waiting for START! command from ESP..." << std::endl;
-            start_time = current_time;
-        }
-        if (ser.available()) {
-            std::string command = ser.readline();
-            if (command.find("START!") != std::string::npos) {
-                std::cout << "Received START! command from ESP. Continuing..." << std::endl;
+    // auto start_time = std::chrono::steady_clock::now();
+    // while (rclcpp::ok()) {
+    //     auto current_time = std::chrono::steady_clock::now();
+    //     if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
+    //         std::cout << "Waiting for START! command from ESP..." << std::endl;
+    //         start_time = current_time;
+    //     }
+    //     if (ser.available()) {
+    //         std::string command = ser.readline();
+    //         if (command.find("START!") != std::string::npos) {
+    //             std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
-                // Wait for the COLOUR command after START!
-                while (ser.available()) {
-                    std::string colour_command = ser.readline();
-                    if (colour_command.find("COLOUR:") != std::string::npos) {
-                        std::string colour = colour_command.substr(8); // Extract the colour name
-                        colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
-                        std::cout << "Received COLOUR: " << colour << std::endl;
-                        if (colour == "yellow") {
-                            team_colour = 1;
-                        } else if (colour == "blue") {
-                            team_colour = 0;
-                        } else {
-                            std::cerr << "Unknown colour: " << colour << std::endl;
-                        }
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    //             // Wait for the COLOUR command after START!
+    //             while (ser.available()) {
+    //                 std::string colour_command = ser.readline();
+    //                 if (colour_command.find("COLOUR:") != std::string::npos) {
+    //                     std::string colour = colour_command.substr(8); // Extract the colour name
+    //                     colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
+    //                     std::cout << "Received COLOUR: " << colour << std::endl;
+    //                     if (colour == "yellow") {
+    //                         team_colour = 1;
+    //                     } else if (colour == "blue") {
+    //                         team_colour = 0;
+    //                     } else {
+    //                         std::cerr << "Unknown colour: " << colour << std::endl;
+    //                     }
+    //                     break;
+    //                 }
+    //             }
+    //             break;
+    //         }
+    //     }
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
 
     //-------------------------------------------------------------------------------------
 
@@ -641,11 +640,18 @@ int main(int argc, char** argv)
     double wheel_distance, speed, kp, ki, kd;
 
     try {
-        loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+        if (team_colour == 0) {
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+            std::cout << "Using blue goals configuration" << std::endl;
+        } else if (team_colour == 1) {
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+            std::cout << "Using yellow goals configuration" << std::endl;
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error loading configuration: " << e.what() << std::endl;
         return 1;
     }
+    
 
     robot.setSpeed(speed);
     robot.setPID(kp, ki, kd);
@@ -679,6 +685,13 @@ int main(int argc, char** argv)
     double path_difference                = 0.0;
     double path_difference_check_limit    = 0.0;
 
+
+    std::vector<Obstacle> obstacles = {
+        Obstacle(77, 175, 40, 20, Obstacle::FIXED, "lightgray"),
+        Obstacle(77, 150, 40, 20, Obstacle::FIXED, "lightgray")
+    };
+
+
     // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
@@ -693,17 +706,17 @@ int main(int argc, char** argv)
     elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
 
 
-    // std::cout << "Waiting for ESP reset ... " << std::endl;
-    // while (true) {
-    //     if (ser.available()) {
-    //         std::string result = ser.readline();
-    //         if (result.find("ESP Initialized!") != std::string::npos) {
-    //             std::cout << "ESP Initialization confirmed!" << std::endl;
-    //             break;
-    //         }
-    //     }
-    // }
-    // std::cout << std::endl; // Move to the next line after the loop ends
+    std::cout << "Waiting for ESP reset ... " << std::endl;
+    while (true) {
+        if (ser.available()) {
+            std::string result = ser.readline();
+            if (result.find("ESP Initialized!") != std::string::npos) {
+                std::cout << "ESP Initialization confirmed!" << std::endl;
+                break;
+            }
+        }
+    }
+    std::cout << std::endl; // Move to the next line after the loop ends
 
 
     publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
@@ -747,6 +760,13 @@ int main(int argc, char** argv)
                 processCommand(command);
                 max_reads--;
             }
+
+            // // Updating the Obstacles
+            // for (auto& obstacle : obstacles) {
+            //     obstacle.update();
+            // }
+            Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
+
 
             robot.setPose(robot_x, robot_y, robot_theta);
 

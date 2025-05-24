@@ -3,12 +3,12 @@
 
 #include "point.h" // Include point.h to get the full definition of Point
 #include <iostream>
+#include <obstacle.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <vector>
-
 
 namespace ecn
 {
@@ -69,6 +69,8 @@ public:
     void computeDistanceTransform();
     float getDistanceToObstacle(const Point& p) const;
     void visualizeDistanceTransform() const;
+
+    void renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale = 1);
 
 
     cv::Mat im;

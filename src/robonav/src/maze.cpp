@@ -41,7 +41,7 @@ void Maze::load(std::string _filename)
     std::cout << "Image type after: " << im.type() << " ... ";
 
     // Add a 5-pixel border around obstacles
-    const int border_size = 15;
+    const int border_size = 5;
     const cv::Vec3b border_colour(100, 100, 100);
     cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
     
@@ -402,6 +402,46 @@ void Maze::setElasticBandPath(const std::vector<Point>& elasticBandPath)
     for (const auto& pos : elasticBandPath) {
         path_eb.emplace_back(pos.x, pos.y);
     }
+}
+
+void Maze::renderObstacles(const std::vector<Obstacle>& obstacles, cv::Mat& image, int scale)
+{
+    // Iterate over each obstacle
+    for (const auto& obstacle : obstacles) {
+        // // If the obstacle is movable, we should first remove its previous position
+        // if (obstacle.getType() == Obstacle::MOVABLE) {
+        //     // Reset the previous position of the obstacle
+        //     for (int y = (obstacle.getYPrev() - obstacle.getHeight() / 2) * scale; y < (obstacle.getYPrev() + obstacle.getHeight() / 2) * scale; ++y) {
+        //         for (int x = (obstacle.getXPrev() - obstacle.getWidth() / 2) * scale; x < (obstacle.getXPrev() + obstacle.getWidth() / 2) * scale; ++x) {
+        //             // Ensure the coordinates are within bounds of the image
+        //             if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
+        //                 // Restore the pixel from the original image (background)
+        //                 im.at<cv::Vec3b>(y, x) = im_original.at<cv::Vec3b>(y / scale, x / scale);
+        //             }
+        //         }
+        //     }
+        // }
+
+        // Render the obstacle at its current position (scaled)
+        for (int y = (obstacle.getY() - obstacle.getHeight() / 2) * scale; y < (obstacle.getY() + obstacle.getHeight() / 2) * scale; ++y) {
+            for (int x = (obstacle.getX() - obstacle.getWidth() / 2) * scale; x < (obstacle.getX() + obstacle.getWidth() / 2) * scale; ++x) {
+                // Ensure the coordinates are within bounds of the image
+                if (y >= 0 && y < im.rows && x >= 0 && x < im.cols) {
+                    if (obstacle.isActive()) {
+                        // Render the obstacle with its color if it's active (scaled)
+                        im.at<cv::Vec3b>(y, x) = cv::Vec3b(obstacle.getColor()[0], obstacle.getColor()[1], obstacle.getColor()[2]);
+                    } else {
+                        // If the obstacle is not active, reset the pixel to the original image (background)
+                        im.at<cv::Vec3b>(y, x) = im_original.at<cv::Vec3b>(y / scale, x / scale);
+                    }
+                }
+            }
+        }
+    }
+
+    cv::resize(im, im_lowres, cv::Size(), resize_for_astar, resize_for_astar, cv::INTER_AREA);
+    
+    std::cout << "Changed obstacles" << std::endl;
 }
 
 
