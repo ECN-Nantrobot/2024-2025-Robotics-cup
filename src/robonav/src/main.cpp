@@ -166,7 +166,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
                     int ny = maze_y + dy;
 
                     // Ensure the new pixel is within bounds
-                    if (nx >= 0 && nx < maze.im.rows && ny >= 0 && ny < maze.im.cols) {
+                    if (nx >= 0 && nx < maze.im.cols && ny >= 0 && ny < maze.im.rows) {
                         maze.setPixel(nx, ny, 0); // Set pixel to black
                     }
                 }

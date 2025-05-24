@@ -171,7 +171,7 @@ namespace ecn
         if (targetIdx == closestIdx && closestIdx < path_.size() - 1)
             targetIdx = path_.size() - 1;
 
-        Serial.println("POP:" + String(path_[targetIdx].x) + "," + String(path_[targetIdx].y));
+        // Serial.println("POP:" + String(path_[targetIdx].x) + "," + String(path_[targetIdx].y));
 
         return targetIdx;
     }
@@ -202,7 +202,7 @@ namespace ecn
             }
             // Slow speed if the robot is starting
             
-            Serial.print("Control Signal: " + String(controlSignal) + ", ");
+            // Serial.print("Control Signal: " + String(controlSignal) + ", ");
             
             if (is_starting_)
             {

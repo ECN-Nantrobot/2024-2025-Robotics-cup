@@ -25,6 +25,13 @@ namespace ecn
             is_starting_ = value;
         }
 
+        void stop()
+        {
+            leftSpeed_ = 0;
+            rightSpeed_ = 0;
+            is_starting_ = true;
+        }
+
         float getLeftSpeed() const { return leftSpeed_; }
         float getRightSpeed() const { return rightSpeed_; }
 

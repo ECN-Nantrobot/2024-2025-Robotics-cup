@@ -38,7 +38,8 @@ enum RobotState
     TURN_TO_GOAL,
     TURN_TO_PATH,
     GOAL_REACHED,
-    PATH_PLANNING
+    PATH_PLANNING,
+    WAITFORPATH
 };
 RobotState state = WAIT;
 RobotState last_sent_state = WAIT;
@@ -375,7 +376,7 @@ void loop()
                 distance_to_goal = robot.distanceToGoal(robot.goals[robot.getCurrentGoalindex()].point);
                 if (distance_to_goal < 5.0)
                 {
-                    std::cout << "Distance to goal: " << distance_to_goal << std::endl;
+                    // std::cout << "Distance to goal: " << distance_to_goal << std::endl;
 
                     if (distance_to_goal < 0.5)
                     {
@@ -432,8 +433,16 @@ void loop()
                 else
                 {
                     std::cout << "All goals have been reached. Mission complete!" << std::endl;
+                    state = WAIT;
                     // End simulation
                 }
+                break;
+
+            case WAITFORPATH:
+                Serial.println("CurrentState: WAITFORPATH");
+                
+                robot.stop();
+
                 break;
             }
 
