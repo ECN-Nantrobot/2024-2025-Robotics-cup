@@ -626,10 +626,13 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------------------
 
     // TODO: Change the map for yellow or blue
+    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png");
     if(team_colour == 0) {
         std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
-    } elseif(team_colour == 1) {
+        std::cout << "Using blue maze: " << std::endl;
+    } else if (team_colour == 1) {
         std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+        std::cout << "Using yellow maze: " << std::endl;
     }
 
     Point::maze.load(filename_maze);
