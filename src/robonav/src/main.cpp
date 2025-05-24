@@ -535,6 +535,24 @@ void loadGoalsFromFile(const std::string& filename, std::vector<ecn::Pose>& goal
     }
 }
 
+// Function to load obstacles from a YAML file
+void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& obstacles) {
+    YAML::Node yaml_config = YAML::LoadFile(filename);
+
+    obstacles.clear();
+    for (const auto& obstacle : yaml_config["obstacles"]) {
+        int x = obstacle["x"].as<int>();
+        int y = obstacle["y"].as<int>();
+        int width = obstacle["width"].as<int>();
+        int height = obstacle["height"].as<int>();
+        std::string type = obstacle["type"].as<std::string>();
+        std::string color = obstacle["color"].as<std::string>();
+
+        Obstacle::Type obstacle_type = (type == "FIXED") ? Obstacle::FIXED : Obstacle::MOVABLE;
+        obstacles.emplace_back(x, y, width, height, obstacle_type, color);
+    }
+}
+
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
@@ -686,10 +704,16 @@ int main(int argc, char** argv)
     double path_difference_check_limit    = 0.0;
 
 
-    std::vector<Obstacle> obstacles = {
-        Obstacle(77, 175, 40, 20, Obstacle::FIXED, "lightgray"),
-        Obstacle(77, 150, 40, 20, Obstacle::FIXED, "lightgray")
-    };
+    // Load obstacles from a YAML file
+    std::string obstacles_filename = "/home/pi/2024-2025-Robotics-cup/src/robonav/config/obstacles.yaml";
+    std::vector<Obstacle> obstacles;
+    try {
+        loadObstaclesFromFile(obstacles_filename, obstacles);
+        std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading obstacles: " << e.what() << std::endl;
+        return 1;
+    }
 
 
     // Point::maze.computeDistanceTransform();

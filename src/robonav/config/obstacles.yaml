@@ -1,0 +1,13 @@
+obstacles:
+  - x: 77
+    y: 175
+    width: 40
+    height: 20
+    type: "FIXED"
+    color: "lightgray"
+  - x: 50
+    y: 150
+    width: 50
+    height: 30
+    type: "MOVABLE"
+    color: "lightgray"

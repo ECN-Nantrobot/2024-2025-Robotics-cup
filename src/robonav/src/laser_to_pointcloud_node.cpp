@@ -29,11 +29,14 @@ private:
         sensor_msgs::msg::PointCloud2 cloud_lidar;
         projector_.projectLaser(*scan_msg, cloud_lidar);
 
+        cloud_lidar.header.frame_id = scan_msg->header.frame_id;
+        cloud_lidar.header.stamp    = scan_msg->header.stamp;
+
         // 2. Lookup transform from lidar_link to map
         geometry_msgs::msg::TransformStamped transform;
         try {
             transform = tf_buffer_.lookupTransform("map", scan_msg->header.frame_id, // from lidar_link to map
-                                                   scan_msg->header.stamp, rclcpp::Duration::from_seconds(0.1));
+                                                   scan_msg->header.stamp, rclcpp::Duration::from_seconds(0.2));
         } catch (tf2::TransformException& ex) {
             RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
             return;
@@ -47,6 +50,8 @@ private:
         // 4. Publish the transformed point cloud
         cloud_pub_->publish(cloud_map);
         RCLCPP_INFO(this->get_logger(), "Published transformed point cloud to 'map' frame.");
+
+     
     }
 };
 
