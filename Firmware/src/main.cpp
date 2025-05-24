@@ -213,9 +213,6 @@ void sendPositionUpdate()
 {
     if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
     {
-        // currentX = robot.getX();
-        // currentY = robot.getY();
-        // currentTheta = robot.getTheta();
         robot.setPose(_robotX, _robotY, _robotTheta);
         xSemaphoreGive(robotXMutex);
 
@@ -227,8 +224,6 @@ void sendPositionUpdate()
         Serial.print(", Theta: ");
         Serial.println(robot.getTheta());
         digitalWrite(internalLed, LOW);
-
-        // display.updatePointsDisplay(robotY);
     }
 }
 

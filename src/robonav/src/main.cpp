@@ -742,6 +742,8 @@ int main(int argc, char** argv)
                 } catch (const std::exception& e) {
                     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
                     astar_path.clear(); // Clear the path to handle the error gracefully
+                    ser.write("STATE:WAITFORPATH\n");
+                    std::cout << "Sent WAITFORPATH state" << std::endl;
                     break;
                 }
 

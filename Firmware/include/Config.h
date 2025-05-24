@@ -7,8 +7,8 @@
 // Define pins for motors
 #define stepPin1 26
 #define dirPin1 25
-#define stepPin2 33
-#define dirPin2 32
+#define stepPin2 14
+#define dirPin2 27
 
 // Define pins for i2c
 #define displaySDA 19
