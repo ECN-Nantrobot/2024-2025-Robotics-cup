@@ -1,5 +1,5 @@
 robot:
-  wheel_distance: 37.3
+  wheel_distance: 37.6
   speed: 10.0
   pid:
     kp: 28

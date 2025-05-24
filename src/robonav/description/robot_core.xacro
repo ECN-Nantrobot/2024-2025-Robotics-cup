@@ -2,23 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
     <xacro:include filename="inertial_macros.xacro"/>
-
-    <!-- Define Colors -->
-    <material name="white">
-        <color rgba="1 1 1 1"/>
-    </material>
-
-    <material name="orange">
-        <color rgba="1 0.25 0.1 1"/>
-    </material>
-
-    <material name="blue">
-        <color rgba="0.2 0.2 1 1"/>
-    </material>
-
-    <material name="black">
-        <color rgba="0 0 0 1"/>
-    </material>
+    <!-- <xacro:include filename="materials.xacro"/> -->
 
     <!-- Base Footprint
     <link name="base_footprint"/>
@@ -41,13 +25,13 @@
 
     <!-- xyz = 172 of box dimesions, x is forward, y is to the sides -->
     <link name="chassis">
-        <visual>
+        <!-- <visual>
             <origin xyz="0.1775 0 0.175" rpy="0 0 0"/>
             <geometry>
                 <box size="0.4 0.355 0.350"/>
             </geometry>
             <material name="white"/>
-        </visual>
+        </visual> -->
         <collision>
             <origin xyz="0.1775 0 0.175" rpy="0 0 0"/>
             <geometry>
@@ -67,73 +51,73 @@
     <joint name="left_wheel_joint" type="fixed">
         <parent link="base_link"/>
         <child link="left_wheel"/>
-        <origin xyz="0 0.1865 0" rpy="-${pi/2} 0 0"/>
+        <origin xyz="0 0.188 0" rpy="-${pi/2} 0 0"/>
         <axis xyz="0 0 1"/>   
     </joint>
 
     <link name="left_wheel">
         <visual>
             <geometry>
-                <cylinder radius="0.044" length="0.01"/>
+                <cylinder radius="0.044" length="0.02"/>
             </geometry>
-            <material name="blue"/>
+            <material name="orange"/>
         </visual>
         <collision>
             <geometry>
-                <cylinder radius="0.044" length="0.01"/>
+                <cylinder radius="0.044" length="0.02"/>
             </geometry>
         </collision>
-        <xacro:inertial_cylinder mass="0.1" length="0.01" radius="0.044"/>
+        <xacro:inertial_cylinder mass="0.1" length="0.02" radius="0.044"/>
     </link>
 
     <gazebo reference="left_wheel">
-        <material>Gazebo/Blue</material>
+        <material>Gazebo/Orange</material>
     </gazebo>
 
     <!-- Right Wheel -->
     <joint name="right_wheel_joint" type="fixed">
         <parent link="base_link"/>
         <child link="right_wheel"/>
-        <origin xyz="0 -0.1865 0" rpy="${pi/2} 0 0"/>
+        <origin xyz="0 -0.188 0" rpy="${pi/2} 0 0"/>
         <axis xyz="0 0 -1"/>   
     </joint>
 
     <link name="right_wheel">
         <visual>
             <geometry>
-                <cylinder radius="0.044" length="0.01"/>
+                <cylinder radius="0.044" length="0.02"/>
             </geometry>
-            <material name="blue"/>
+            <material name="orange"/>
         </visual>
         <collision>
             <geometry>
-                <cylinder radius="0.044" length="0.01"/>
+                <cylinder radius="0.044" length="0.02"/>
             </geometry>
         </collision>
-        <xacro:inertial_cylinder mass="0.1" length="0.01" radius="0.044"/>
+        <xacro:inertial_cylinder mass="0.1" length="0.02" radius="0.044"/>
     </link>
 
     <gazebo reference="right_wheel">
-        <material>Gazebo/Blue</material>
+        <material>Gazebo/Orange</material>
     </gazebo>
 
     <!-- Caster Wheel -->
     <joint name="caster_wheel_joint" type="fixed">
         <parent link="chassis"/>
         <child link="caster_wheel"/>
-        <origin xyz="0.3 0 0" rpy="0 0 0"/>
+        <origin xyz="-0.11 0 0" rpy="0 0 0"/>
     </joint>
 
     <link name="caster_wheel">
         <visual>
             <geometry>
-                <sphere radius="0.044"/>
+                <sphere radius="0.02"/>
             </geometry>
-            <material name="black"/>
+            <material name="orange"/>
         </visual>
         <collision>
             <geometry>
-                <sphere radius="0.044"/>
+                <sphere radius="0.02"/>
             </geometry>
             <surface>
                 <friction>
@@ -144,11 +128,11 @@
                 </friction>
             </surface>
         </collision>
-        <xacro:inertial_sphere mass="0.1" radius="0.044"/>
+        <xacro:inertial_sphere mass="0.1" radius="0.02"/>
     </link>
 
     <gazebo reference="caster_wheel">
-        <material>Gazebo/Black</material>
+        <material>Gazebo/Orange</material>
         <mu1 value="0.0001"/>
         <mu2 value="0.0001"/>
     </gazebo> 

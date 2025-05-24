@@ -101,7 +101,7 @@ namespace ecn
 
         float target_speed_;
 
-        float wheelBase_ = 37.3;
+        float wheelBase_ = 37.6;
         float robot_diameter_ = wheelBase_;
 
         
