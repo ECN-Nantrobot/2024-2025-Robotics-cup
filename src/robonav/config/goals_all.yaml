@@ -7,182 +7,197 @@ robot:
     kd: 0.5
 
 goals:
-  # Goal 1
-  - x: 350
-    y: 1750
+  # Goal 0
+  - x: 37
+    y: 182
     theta: 0
 
+  # Goal 1
+  - x: 77
+    y: 15
+    theta: 180
+
   # Goal 2
-  - x: 750
-    y: 50
+  - x: 122
+    y: 15
     theta: 180
 
   # Goal 3
-  - x: 1200
-    y: 50
+  - x: 122
+    y: 45
     theta: 180
 
   # Goal 4
-  - x: 1200
-    y: 250
+  - x: 277
+    y: 15
     theta: 180
 
   # Goal 5
-  - x: 2700
-    y: 50
-    theta: 180
+  - x: 285
+    y: 87
+    theta: 90
 
   # Goal 6
-  - x: 2850
-    y: 825
+  - x: 255
+    y: 87
     theta: 90
 
   # Goal 7
-  - x: 2700
-    y: 825
-    theta: 90
+  - x: 36
+    y: 132
+    theta: -90
 
   # Goal 8
-  - x: 150
-    y: 1250
-    theta: -90
+  - x: 110
+    y: 124
+    theta: 180
 
   # Goal 9
-  - x: 1050
-    y: 1000
-    theta: 180
+  - x: 110
+    y: 66
+    theta: 0
 
   # Goal 10
-  - x: 1050
-    y: 800
-    theta: 0
-
-  # Goal 11
-  - x: 1800
-    y: 1000
+  - x: 190
+    y: 124
     theta: 180
 
-  # Goal 12
-  - x: 1800
-    y: 800
+  # Goal 11
+  - x: 190
+    y: 66
     theta: 0
 
-  # Goal 13
-  - x: 2650
-    y: 1250
+  # Goal 12
+  - x: 263
+    y: 132
     theta: 90
 
-  # Goal 14
-  - x: 150
-    y: 375
+  # Goal 13
+  - x: 36
+    y: 40
     theta: -90
 
+  # Goal 14
+  - x: 77
+    y: 54
+    theta: 180
+
   # Goal 15
-  - x: 750
-    y: 325
+  - x: 222
+    y: 54
     theta: 180
 
   # Goal 16
-  - x: 2125
-    y: 325
-    theta: 180
-
-  # Goal 17
-  - x: 2675
-    y: 375
+  - x: 263
+    y: 40
     theta: 90
 
+  # Goal 17
+  - x: 82
+    y: 144
+    theta: 0
+
   # Goal 18
-  - x: 775
-    y: 1525
+  - x: 262
+    y: 182
     theta: 0
 
   # Goal 19
-  - x: 2500
-    y: 1750
-    theta: 0
+  - x: 15
+    y: 87
+    theta: -90
 
   # Goal 20
-  - x: 125
-    y: 825
+  - x: 45
+    y: 87
     theta: -90
 
   # Goal 21
-  - x: 275
-    y: 825
-    theta: -90
+  - x: 22
+    y: 15
+    theta: 180
 
   # Goal 22
-  - x: 215
-    y: 50
+  - x: 177
+    y: 15
     theta: 180
 
   # Goal 23
-  - x: 1675
-    y: 50
+  - x: 177
+    y: 45
     theta: 180
 
   # Goal 24
-  - x: 1675
-    y: 275
+  - x: 222
+    y: 15
     theta: 180
 
   # Goal 25
-  - x: 2115
-    y: 50
-    theta: 180
+  - x: 36
+    y: 132
+    theta: -90
 
   # Goal 26
-  - x: 150
-    y: 1250
-    theta: -90
+  - x: 110
+    y: 124
+    theta: 180
 
   # Goal 27
-  - x: 1050
-    y: 1000
-    theta: 180
+  - x: 110
+    y: 66
+    theta: 0
 
   # Goal 28
-  - x: 1050
-    y: 800
-    theta: 0
-
-  # Goal 29
-  - x: 1800
-    y: 1000
+  - x: 190
+    y: 124
     theta: 180
 
-  # Goal 30
-  - x: 1800
-    y: 800
+  # Goal 29
+  - x: 190
+    y: 66
     theta: 0
 
-  # Goal 31
-  - x: 2650
-    y: 1250
+  # Goal 30
+  - x: 263
+    y: 132
     theta: 90
 
-  # Goal 32
-  - x: 150
-    y: 375
+  # Goal 31
+  - x: 36
+    y: 40
     theta: -90
 
+  # Goal 32
+  - x: 77
+    y: 54
+    theta: 180
+
   # Goal 33
-  - x: 750
-    y: 325
+  - x: 222
+    y: 54
     theta: 180
 
   # Goal 34
-  - x: 2125
-    y: 325
-    theta: 180
-
-  # Goal 35
-  - x: 2675
-    y: 375
+  - x: 263
+    y: 40
     theta: 90
 
-  # Goal 36
-  - x: 2050
-    y: 1525
+  # Goal 35
+  - x: 217
+    y: 144
     theta: 0
+
+  #   # Goal test
+  # - x: 0
+  #   y: 0
+  #   theta: 0
+
+  #   # Goal test
+  # - x: 300
+  #   y: 200
+  #   theta: 0
+
+    # Goal test
+  # - x: 150
+  #   y: 100
+  #   theta: 0

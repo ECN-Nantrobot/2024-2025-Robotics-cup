@@ -53,20 +53,28 @@ def draw_goals_on_map(yaml_path, image_path=None, image_width=300, image_height=
         x_cm = goal['x']
         y_cm = goal['y']
 
-        # Convert cm to image pixels (assuming 10 cm = 1 pixel)
-        x_px = int(x_cm / 10)
-        y_px = int(y_cm / 10)
-
+        # Convert cm to image pixels (1 cm = 1 pixel)
+        x_px = x_cm
+        y_px = y_cm
+        
         # Flip Y to match image coordinates (origin top-left)
-        y_px = image_height - y_px
+        y_px = image_height - y_px - 1
 
         if 0 <= x_px < image_width and 0 <= y_px < image_height:
+            if idx <= 17:
+                team = (0, 255, 255)  # yellow team
+            else:
+                team = (255, 0, 0)    # blue team
             # Draw the goal point
             cv2.circle(image, (x_px, y_px), 2, (0, 0, 255), -1)  # Red dot
-            cv2.putText(image, str(idx + 1), (x_px + 2, y_px - 2),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 0), 1)
+            if idx in [25, 26, 27, 28, 29, 30, 31, 32, 33, 34]:
+                cv2.putText(image, str(idx), (x_px - 10, y_px - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.3, team, 1)   
+            else:
+                cv2.putText(image, str(idx), (x_px + 2, y_px - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.3, team, 1)
         else:
-            print(f"⚠️ Goal {idx + 1} is out of image bounds: x={x_px}, y={y_px}")
+            print(f"⚠️ Goal {idx} is out of image bounds: x={x_px}, y={y_px}")
 
     if save_path:
         cv2.imwrite(save_path, image)
@@ -79,6 +87,6 @@ def draw_goals_on_map(yaml_path, image_path=None, image_width=300, image_height=
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    yaml_file = "/home/ferdinand/2024-2025-Robotics-cup/src/robonav/config/goals_all.yaml"  # Replace with the path to your YAML file
-    image_file = "/home/ferdinand/2024-2025-Robotics-cup/src/robonav/maps/Eurobot_map_real_bw_10_p.png"  # Replace with the path to your image file
+    yaml_file = "/home/baschi777/nantrobot/2024-2025-Robotics-cup/src/robonav/config/goals_all.yaml"  # Replace with the path to your YAML file
+    image_file = "/home/baschi777/nantrobot/2024-2025-Robotics-cup/src/robonav/maps/Eurobot_map_real_bw_10_p.png"  # Replace with the path to your image file
     draw_goals_on_map(yaml_file, image_path=image_file)
