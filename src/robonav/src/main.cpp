@@ -168,10 +168,10 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
                     int nx = maze_x + dx;
                     int ny = maze_y + dy;
 
-                    // // Ensure the new pixel is within bounds
-                    // if (nx >= 0 && nx < maze.im.cols && ny >= 0 && ny < maze.im.rows) {
-                    //     maze.setPixel(nx, ny, 0); // Set pixel to black
-                    // }
+                    // Ensure the new pixel is within bounds
+                    if (nx >= 0 && nx < maze.im.cols && ny >= 0 && ny < maze.im.rows) {
+                        maze.setPixel(nx, ny, 0); // Set pixel to black
+                    }
                 }
             }
         }
@@ -711,7 +711,7 @@ int main(int argc, char** argv)
         loadObstaclesFromFile(obstacles_filename, obstacles);
         std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
     } catch (const std::exception& e) {
-        std::cerr << "Error loading obstacles: " << e.what() << std::endl;
+        std::cerr << "Error loading obstacles from yaml file: " << e.what() << std::endl;
         return 1;
     }
 

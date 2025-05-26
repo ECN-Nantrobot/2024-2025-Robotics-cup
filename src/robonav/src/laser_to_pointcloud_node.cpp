@@ -13,7 +13,7 @@ public:
     {
         scan_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 10, std::bind(&LidarTransformNode::scanCallback, this, std::placeholders::_1));
 
-        cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("scan_cloud", 10);
+        cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud", 10);
     }
 
 private:

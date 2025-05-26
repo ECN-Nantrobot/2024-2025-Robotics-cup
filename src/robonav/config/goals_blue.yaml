@@ -1,6 +1,6 @@
 robot:
   wheel_distance: 37.3
-  speed: 10.0
+  speed: 6.0
   pid:
     kp: 28
     ki: 0.02
