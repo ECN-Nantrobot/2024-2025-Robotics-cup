@@ -16,16 +16,17 @@ robot:
 # goal 3 - drop off cans
 # goal 0 - final position
 
+
 goals:
-  - x: 124
-    y: 23
-    theta: 0
+  - x: 125
+    y: 170
+    theta: -90
 
   # Goal 9
   - x: 60
-    y: 140
+    y: 60
     theta: 0
 
-  - x: 124
-    y: 23
-    theta: 0
+  - x: 125
+    y: 170
+    theta: -90

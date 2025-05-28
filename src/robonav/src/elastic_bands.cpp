@@ -237,13 +237,13 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     const float total_change_threshold = 0.03; //(total distanc of movement of points)
     float total_change                 = 0;
 
-    const float spring_weight_default = 20.5;
+    const float spring_weight_default = 16.5;
     const int spring_radius           = 1; // Radius of the spring force (average Point of neighbors in radius)
     int dynamic_spring_radius         = spring_radius;
-    float rep_to_spring_radius_factor = 0.3;
+    float rep_to_spring_radius_factor = 0.4;
 
     const float repulsive_strength = 6;
-    const int min_rep_radius       = 5;
+    const int min_rep_radius       = 6;
     const int max_rep_radius       = 16;
     float dynamic_rep_radius       = min_rep_radius;
     const int repel_raduis         = 24;

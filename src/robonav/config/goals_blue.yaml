@@ -35,14 +35,14 @@ robot:
 
 goals:
   - x: 125
-    y: 175
+    y: 170
     theta: -90
 
   # Goal 9
-  - x: 110
-    y: 135
+  - x: 220
+    y: 90
     theta: 0
 
   - x: 125
-    y: 175
+    y: 170
     theta: -90

@@ -42,6 +42,10 @@ float no_path_counter = 1.0;
 bool starter = false;
 bool is_blue = true;
 
+bool emergencystop = false;
+
+int emergency_counter = 0;
+
 enum RobotState
 {
     WAIT,
@@ -209,7 +213,11 @@ void processCommand(String command)
         Serial.print("ACK:STATE_RECEIVED: ");
         Serial.println(stateStr);
     }
-    
+
+    if (command == "EMERGENCYSTOP"){
+        emergencystop = true;
+        Serial.println("EMERGENCYSTOP_RECEIVED");
+    }
     else if (command == "RESET")
     {
         Serial.println("ESP32 restarting...");
@@ -295,7 +303,7 @@ void setup()
     //     vTaskDelay(100);
     // }
 
-    while (digitalRead(colour_button) == LOW)
+    while (digitalRead(colour_button) == HIGH)
     {
         Serial.println("Waiting for START button to be pressed...");
         vTaskDelay(100);
@@ -305,14 +313,14 @@ void setup()
 
     Serial.println("START!");
 
-    if (digitalRead(colour_button) == LOW)
-    {
-        Serial.println("COLOUR: blue");
-    }
-    else
-    {
-        Serial.println("COLOUR: yellow");
-    }
+    // if (digitalRead(colour_button) == LOW)
+    // {
+    //     Serial.println("COLOUR: blue");
+    // }
+    // else
+    // {
+    //     Serial.println("COLOUR: yellow");
+    // }
 }
 
 RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand
@@ -323,6 +331,15 @@ void loop()
     {
         lastUpdateTime = millis();
 
+        if (emergencystop == true){
+            emergency_counter++;
+            if (emergency_counter > 100)
+            {
+                emergencystop = false;
+                emergency_counter = 0;
+            }
+        }
+        
         while (Serial.available())
         {
             String command = Serial.readStringUntil('\n');
@@ -530,6 +547,11 @@ void loop()
                 break;
             }
 
+            if (emergencystop == true)
+            {
+                robot.stop();
+            }
+
             if (state != WAIT)
             {
                 setMotorSpeeds(robot.getLeftSpeed()/100 /no_path_counter , robot.getRightSpeed()/100 /no_path_counter);
@@ -555,6 +577,8 @@ void loop()
                 // robot.setPose(_robotX, _robotY, _robotTheta);
                 // sendPositionUpdate();
             }
+
+        
 
             // display.updatePointsDisplay(0);
 

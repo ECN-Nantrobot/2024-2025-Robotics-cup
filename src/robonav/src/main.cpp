@@ -61,6 +61,9 @@ bool team_colour = 0;
 
 ecn::Point pop;
 
+double close_obstacle_threshold = 0.30;
+bool emergencystate             = false;
+
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
                        Maze& maze,
                        float robot_pos_x,
@@ -81,6 +84,8 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     pcl::fromROSMsg(*cloud_msg, *cloud);
+
+    int count_close_points = 0;
 
     // Filter points within the desired map area and exclude points within a radius of 30cm from the robot
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
@@ -107,6 +112,20 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
             colored_pt_notused.b = 50; 
             cloud_filtered_notused->points.push_back(colored_pt_notused);
         }
+
+        if (distance_to_robot <= close_obstacle_threshold) {
+            count_close_points++;
+        }
+    }
+
+
+    emergencystate = false;
+
+    if (count_close_points > 0) {
+        emergencystate = true;
+        std::cout << "⚠️ Emergency state activated! Close points detected: " << count_close_points << std::endl;
+    } else {
+        emergencystate = false;
     }
 
     // Perform clustering
@@ -501,13 +520,13 @@ void processCommand(const std::string& command)
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     }
     else if (command.rfind("RESET!", 0) == 0) {
-        std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
-        pid_t ppid = getppid();
-        std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
-        kill(ppid, SIGINT);
+        // std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
+        // pid_t ppid = getppid();
+        // std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
+        // kill(ppid, SIGINT);
 
-        // Optionally, shutdown this node as well
-        rclcpp::shutdown();
+        // // Optionally, shutdown this node as well
+        // rclcpp::shutdown();
         // return 1;
     }
 }
@@ -617,27 +636,27 @@ int main(int argc, char** argv)
         }
         if (ser.available()) {
             std::string command = ser.readline();
-            // std::cout << "Received from serial: " << command << std::endl;
-            if (command.find("START!") != std::string::npos) {
+            std::cout << "Received from serial: " << command << std::endl;
+            if (command.rfind("START!", 0) == 0) {
                 std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
-                // Wait for the COLOUR command after START!
-                while (ser.available()) {
-                    std::string colour_command = ser.readline();
-                    if (colour_command.find("COLOUR:") != std::string::npos) {
-                        std::string colour = colour_command.substr(8); // Extract the colour name
-                        colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
-                        std::cout << "Received COLOUR: " << colour << std::endl;
-                        if (colour == "yellow") {
-                            team_colour = 1;
-                        } else if (colour == "blue") {
-                            team_colour = 0;
-                        } else {
-                            std::cerr << "Unknown colour: " << colour << std::endl;
-                        }
-                        break;
-                    }
-                }
+                // // Wait for the COLOUR command after START!
+                // while (ser.available()) {
+                //     std::string colour_command = ser.readline();
+                //     if (colour_command.find("COLOUR:") != std::string::npos) {
+                //         std::string colour = colour_command.substr(8); // Extract the colour name
+                //         colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
+                //         std::cout << "Received COLOUR: " << colour << std::endl;
+                //         if (colour == "yellow") {
+                //             team_colour = 1;
+                //         } else if (colour == "blue") {
+                //             team_colour = 0;
+                //         } else {
+                //             std::cerr << "Unknown colour: " << colour << std::endl;
+                //         }
+                //         break;
+                //     }
+                // }
                 break;
             }
         }
@@ -709,15 +728,15 @@ int main(int argc, char** argv)
 
 
     // Load obstacles from a YAML file
-    std::string obstacles_filename = "/home/pi/2024-2025-Robotics-cup/src/robonav/config/obstacles.yaml";
-    std::vector<Obstacle> obstacles;
-    try {
-        loadObstaclesFromFile(obstacles_filename, obstacles);
-        std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading obstacles from yaml file: " << e.what() << std::endl;
-        return 1;
-    }
+    // std::string obstacles_filename = "/home/pi/2024-2025-Robotics-cup/src/robonav/config/obstacles.yaml";
+    // std::vector<Obstacle> obstacles;
+    // try {
+    //     loadObstaclesFromFile(obstacles_filename, obstacles);
+    //     std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
+    // } catch (const std::exception& e) {
+    //     std::cerr << "Error loading obstacles from yaml file: " << e.what() << std::endl;
+    //     return 1;
+    // }
 
 
     // Point::maze.computeDistanceTransform();
@@ -793,7 +812,7 @@ int main(int argc, char** argv)
             // for (auto& obstacle : obstacles) {
             //     obstacle.update();
             // }
-            Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
+            // Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
 
 
             robot.setPose(robot_x, robot_y, robot_theta);
@@ -807,8 +826,15 @@ int main(int argc, char** argv)
                 cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
                 start_p    = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
                 goal_p     = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
-                astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
-
+                try {
+                    astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+                } catch (const std::exception& e) {
+                    std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+                    astar_path.clear(); // Clear the path to handle the error gracefully
+                    // ser.write("STATE:WAITFORPATH\n");
+                    // std::cout << "Sent WAITFORPATH state" << std::endl;
+                    break;
+                }
                 for (auto& position : astar_path) {
                     position           = position * (1 / Point::maze.resize_for_astar);
                     astar_path.front() = start_p;
@@ -941,7 +967,8 @@ int main(int argc, char** argv)
                     elastic_band.resetOptimization();
 
                     if (counter_set_eb_path > set_eb_path_counter_limit) {
-                        elastic_band.generateSmoothedPath(3.0f, 21, 1.2f); // 0.08 ms
+                        elastic_band.generateSmoothedPath(2.5f, 21, 1.2f); // 0.08 ms
+                        std::cout << "generated EB Path" << std::endl;
 
                         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                         eb_comp_inarow            = eb_comp_inarow_default;
@@ -1056,6 +1083,11 @@ int main(int argc, char** argv)
             std::cout << "" << std::endl;
             std::cout << "" << std::endl;
             std::cout << "" << std::endl;
+        }
+
+        if (emergencystate == true) {
+            ser.write("EMERGENCYSTOP\n");
+            std::cout << "send emergencystopppppppppppppp" << std::endl;
         }
 
 
