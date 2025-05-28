@@ -10,6 +10,8 @@
 #include "stacking.h"
 #include "servoHandler.h"
 
+#include <chrono>
+
 #include "Wire.h"
 #include <math.h>
 
@@ -39,8 +41,17 @@ float distance_to_goal = 0.0;
 
 float no_path_counter = 1.0;
 
-bool starter = false;
+// float exec_time = 0.0;
+
+bool emergencystop = false;
+
+    bool starter = false;
 bool is_blue = true;
+
+bool start_timer = false;
+
+                    auto start_time = std::chrono::steady_clock::now();
+
 
 enum RobotState
 {
@@ -51,8 +62,7 @@ enum RobotState
     TURN_TO_PATH,
     GOAL_REACHED,
     PATH_PLANNING,
-    WAITFORPATH,
-    EMERGENCYSTOP
+    WAITFORPATH
 };
 RobotState state = WAIT;
 RobotState last_sent_state = WAIT;
@@ -199,8 +209,6 @@ void processCommand(String command)
         String stateStr = command.substring(6);
         if (stateStr == "INIT")
             state = INIT;
-        if (stateStr == "EMERGENCYSTOP")
-            state = EMERGENCYSTOP;
         // else if (stateStr == "NAVIGATION")
         //     state = NAVIGATION;
         // else if (stateStr == "TURN_TO_GOAL")
@@ -209,9 +217,13 @@ void processCommand(String command)
         //     state = TURN_TO_PATH;
         // else if (stateStr == "GOAL_REACHED")
         //     state = GOAL_REACHED;
-        Serial.print("ACK:STATE_RECEIVED: ");
-        Serial.println(stateStr);
+        Serial.print("ACK:STATE_RECEIVED:_");
+        Serial.print(stateStr);
+        Serial.println("_");
     }
+
+    if(command == "EMERGENCYSTOP")
+        emergencystop = true;
     
     else if (command == "RESET")
     {
@@ -298,33 +310,38 @@ void setup()
     //     vTaskDelay(100);
     // }
 
-    while (digitalRead(colour_button) == LOW)
-    {
-        Serial.println("Waiting for START button to be pressed...");
-        vTaskDelay(100);
-    }
+    // while (digitalRead(colour_button) == LOW)
+    // {
+    //     Serial.println("Waiting for START button to be pressed...");
+    //     vTaskDelay(100);
+    // }
 
     Serial.println("ESP Initialized!");
 
-    Serial.println("START!");
+    // Serial.println("START!");
 
-    if (digitalRead(colour_button) == LOW)
-    {
-        Serial.println("COLOUR: blue");
-    }
-    else
-    {
-        Serial.println("COLOUR: yellow");
-    }
+    // if (digitalRead(colour_button) == LOW)
+    // {
+    //     Serial.println("COLOUR: blue");
+    // }
+    // else
+    // {
+    //     Serial.println("COLOUR: yellow");
+    // }
 }
 
 RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand
 
 void loop()
 {
+    // Serial.printf("Currentstateeee: %d\n", state);
+
+
     if (millis() - lastUpdateTime >= robot.getDtInMs())
     {
         lastUpdateTime = millis();
+
+        emergencystop = false;
 
         while (Serial.available())
         {
@@ -407,6 +424,10 @@ void loop()
                 Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
 
                 robot.setIsStarting(true);
+
+                if(start_timer){
+                    start_time = std::chrono::steady_clock::now();
+                }
 
                 state = TURN_TO_PATH;
                 [[fallthrough]];
@@ -529,11 +550,7 @@ void loop()
 
                 }
                 break;
-            case EMERGENCYSTOP:
 
-                    robot.stop();
-
-                break;
             }
 
             if (state != WAIT)
@@ -561,6 +578,30 @@ void loop()
                 // robot.setPose(_robotX, _robotY, _robotTheta);
                 // sendPositionUpdate();
             }
+
+            
+
+            // Measure execution time
+            auto now_time   = std::chrono::steady_clock::now();
+            double time_duration = std::chrono::duration_cast<std::chrono::seconds>(now_time - start_time).count();;
+            if(time_duration > 100 && start_timer == true){
+                Serial.println("The exec time is over 100 sec");
+                robot.stop();
+            }
+
+            
+            static auto last_print_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_print_time).count() >= 100) {
+                last_print_time = now_time;
+
+                Serial.print("ESPstate: ");
+                Serial.println(state);
+            }
+
+                if (emergencystop == true)
+                {
+                    robot.stop();
+                }
 
             // display.updatePointsDisplay(0);
 

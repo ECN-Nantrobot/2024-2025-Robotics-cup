@@ -61,6 +61,9 @@ bool team_colour = 0;
 
 ecn::Point pop;
 
+double close_obstacle_threshold = 0.30;
+bool emergencystate = false;
+
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
                        Maze& maze,
                        float robot_pos_x,
@@ -76,7 +79,9 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     float max_x     = 3 - reduction;
     float min_y     = 0 + reduction;
     float max_y     = 2 - reduction;
-    float radius_around_robot = 0.3;
+    float radius_around_robot = 0.22;
+
+    int count_close_points = 0;
 
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -107,10 +112,23 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
             colored_pt_notused.b = 50; 
             cloud_filtered_notused->points.push_back(colored_pt_notused);
         }
+
+        if (distance_to_robot <= close_obstacle_threshold) {
+            count_close_points++;
+        }
     }
 
-    // Perform clustering
-    maze.resetIm(); // Reset the maze before processing new points
+    if (count_close_points > 0)
+    {
+        emergencystate = true;
+        std::cout << "⚠️ Emergency state activated! Close points detected: " << count_close_points << std::endl;
+    }
+    else{
+        emergencystate = false;
+    }
+
+        // Perform clustering
+        maze.resetIm(); // Reset the maze before processing new points
 
     pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>());
     tree->setInputCloud(cloud_filtered);
@@ -143,11 +161,6 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
 
         float cluster_center_x = sum_x / indices.indices.size();
         float cluster_center_y = sum_y / indices.indices.size();
-
-        if (cluster_center_x - robot_x < close_obstacle_threshold || cluster_center_y - robot_y < close_obstacle_threshold) {
-            ser.write("STATE:EMERGENCYSTOP\n");
-        }
-
 
         // Smooth the cluster center
         if (first_time) {
@@ -286,7 +299,9 @@ void publishElasticBandCircles(const std::vector<Point>& eb_path, const rclcpp::
 }
 
 
-void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher, std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster, const rclcpp::Node::SharedPtr node)
+void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher,
+                     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster,
+                     const rclcpp::Node::SharedPtr node)
 
 {
     nav_msgs::msg::Odometry odom_msg;
@@ -506,14 +521,14 @@ void processCommand(const std::string& command)
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     }
     else if (command.rfind("RESET!", 0) == 0) {
-        std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
-        pid_t ppid = getppid();
-        std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
-        kill(ppid, SIGINT);
+        // std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
+        // pid_t ppid = getppid();
+        // std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
+        // kill(ppid, SIGINT);
 
-        // Optionally, shutdown this node as well
-        rclcpp::shutdown();
-        // return 1;
+        // // Optionally, shutdown this node as well
+        // rclcpp::shutdown();
+        // // return 1;
     }
 }
 
@@ -571,9 +586,10 @@ int main(int argc, char** argv)
     auto cloud_notused_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_notused", 10);
 
 
-    auto cloud_subscriber = 
-    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node); });
-
+    auto cloud_subscriber =
+    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node);
+    });
 
 
     auto main_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/main", 10);
@@ -666,6 +682,8 @@ int main(int argc, char** argv)
 
     double wheel_distance, speed, kp, ki, kd;
 
+    team_colour = 0;
+
     try {
         if (team_colour == 0) {
             loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_blue.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
@@ -678,7 +696,6 @@ int main(int argc, char** argv)
         std::cerr << "Error loading configuration: " << e.what() << std::endl;
         return 1;
     }
-    
 
     robot.setSpeed(speed);
     robot.setPID(kp, ki, kd);
@@ -727,13 +744,43 @@ int main(int argc, char** argv)
 
     // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-    astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+
+    try {
+        astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+        std::cout << "Calculated A*!!!!!!!!!!!!!!!!!!" << std::endl;
+        std::cout << "Calculated A*!!!!!!!!!!!!!!!!!!" << std::endl;
+
+
+    } catch (const std::exception& e) {
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+
+        // astar_path.clear(); // Clear the path to handle the error gracefully
+        // ser.write("STATE:WAITFORPATH\n");
+        // std::cout << "Sent WAITFORPATH state" << std::endl;
+    } catch (...) {
+        std::cerr << "Caught unknown exception!" << std::endl;
+        astar_path.clear();
+        ser.write("STATE:WAITFORPATH\n");
+        // break;
+    }
+
     for (auto& position : astar_path) {
         position           = position * (1 / Point::maze.resize_for_astar);
         astar_path.front() = start_p;
         astar_path.back()  = goal_p;
     }
-
 
     elastic_band.updatePath(astar_path);
     elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
@@ -785,19 +832,19 @@ int main(int argc, char** argv)
 
 
 
-    bool vizualize_opencv = false; // Set to false to disable OpenCV visualization
-    cv::Mat simulation;
-    const int scale         = 20; // size up visualization for better quality
-    const int display_res   = 600;
-    std::string window_name = ("Robot Simulation");
-    if (vizualize_opencv) {
-        // Vizualize with OpenCV 1 of 2
-        cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
-        cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-        cv::moveWindow(window_name, 0, 0);
-        cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
-    }
+    // bool vizualize_opencv = false; // Set to false to disable OpenCV visualization
+    // cv::Mat simulation;
+    // const int scale         = 20; // size up visualization for better quality
+    // const int display_res   = 600;
+    // std::string window_name = ("Robot Simulation");
+    // if (vizualize_opencv) {
+    //     // Vizualize with OpenCV 1 of 2
+    //     cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+    //     cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
+    //     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    //     cv::moveWindow(window_name, 0, 0);
+    //     cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
+    // }
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
@@ -811,6 +858,7 @@ int main(int argc, char** argv)
             while (ser.available() && max_reads > 0) {
                 std::string command = ser.readline();
                 processCommand(command);
+                std::cout << "Processed command: " << command << std::endl;
                 max_reads--;
             }
 
@@ -864,13 +912,20 @@ int main(int argc, char** argv)
 
                 try {
                     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+                    std::cout << "Calculated A*!!!!!!!!!!!!!!!!!!" << std::endl;
                 } catch (const std::exception& e) {
                     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
                     astar_path.clear(); // Clear the path to handle the error gracefully
                     ser.write("STATE:WAITFORPATH\n");
                     std::cout << "Sent WAITFORPATH state" << std::endl;
                     break;
+                } catch (...) {
+                    std::cerr << "Caught unknown exception!" << std::endl;
+                    astar_path.clear();
+                    ser.write("STATE:WAITFORPATH\n");
+                    break;
                 }
+
 
                 for (auto& position : astar_path) {
                     position           = position * (1 / Point::maze.resize_for_astar);
@@ -1083,13 +1138,18 @@ int main(int argc, char** argv)
             std::cout << "" << std::endl;
         }
 
-        if (vizualize_opencv) {
-            // Vizualize with OpenCV 2 of 2
-            cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
-            cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                                // to support transparency
-            robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
-            cv::imshow(window_name, simulation);
-            cv::waitKey(1);
+        // if (vizualize_opencv) {
+        //     // Vizualize with OpenCV 2 of 2
+        //     cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+        //     cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                                // to support transparency
+        //     robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
+        //     cv::imshow(window_name, simulation);
+        //     cv::waitKey(1);
+        // }
+
+        if(emergencystate = true)
+        {
+            ser.write("EMERGENCYSTOP\n");
         }
 
 
