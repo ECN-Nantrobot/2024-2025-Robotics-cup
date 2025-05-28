@@ -283,7 +283,6 @@ void setup()
     lastUpdateTime = millis();
     startTime = millis();
 
-    Serial.println("ESP Initialized!");
 
     pinMode(starter_button, INPUT_PULLDOWN);
     pinMode(colour_button, INPUT_PULLDOWN);
@@ -296,11 +295,13 @@ void setup()
     //     vTaskDelay(100);
     // }
 
-    while (digitalRead(starter_button) == LOW)
+    while (digitalRead(colour_button) == LOW)
     {
         Serial.println("Waiting for START button to be pressed...");
         vTaskDelay(100);
     }
+
+    Serial.println("ESP Initialized!");
 
     Serial.println("START!");
 

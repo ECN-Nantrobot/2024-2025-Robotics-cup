@@ -1,6 +1,6 @@
 robot:
   wheel_distance: 37.3
-  speed: 10.0
+  speed: 6.0
   pid:
     kp: 28
     ki: 0.02
@@ -16,33 +16,33 @@ robot:
 # goal 23 - drop off cans
 # goal 18 - final position
 
-# goals:
-#   - x: 124
-#     y: 24
-#     theta: 0
-
-#   # Goal 9
-#   - x: 60
-#     y: 140
-#     theta: 0
-
-#   - x: 124
-#     y: 24
-#     theta: 0
-
-
-## OPENCV FRAME
-
 goals:
-  - x: 125
-    y: 175
-    theta: -90
-
-  # Goal 9
-  - x: 110
-    y: 135
+  # Goal 29
+  - x: 190
+    y: 66
     theta: 0
 
-  - x: 125
-    y: 175
-    theta: -90
+    # Goal 22
+  - x: 177
+    y: 15
+    theta: 180
+
+    # Goal 33
+  - x: 222
+    y: 54
+    theta: 180
+
+    # Goal 35
+  - x: 217
+    y: 144
+    theta: 0
+
+    # Goal 23
+  - x: 177
+    y: 45
+    theta: 180
+
+    # Goal 18
+  - x: 262
+    y: 182
+    theta: 0

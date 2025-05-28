@@ -612,12 +612,12 @@ int main(int argc, char** argv)
     while (rclcpp::ok()) {
         auto current_time = std::chrono::steady_clock::now();
         if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
-            std::cout << "Waiting for START! command from ESP..." << std::endl;
+            std::cout << "Waiting for START!" << std::endl;
             start_time = current_time;
         }
         if (ser.available()) {
             std::string command = ser.readline();
-            std::cout << "Received from serial: " << command << std::endl;
+            // std::cout << "Received from serial: " << command << std::endl;
             if (command.find("START!") != std::string::npos) {
                 std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
@@ -647,14 +647,14 @@ int main(int argc, char** argv)
     //-------------------------------------------------------------------------------------
 
     // TODO: Change the map for yellow or blue
-    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png");
-    if(team_colour == 0) {
-        std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
-        std::cout << "Using blue maze: " << std::endl;
-    } else if (team_colour == 1) {
-        std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
-        std::cout << "Using yellow maze: " << std::endl;
-    }
+    std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_wo_p.png");
+    // if(team_colour == 0) {
+    //     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    //     std::cout << "Using blue maze: " << std::endl;
+    // } else if (team_colour == 1) {
+    //     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
+    //     std::cout << "Using yellow maze: " << std::endl;
+    // }
 
     Point::maze.load(filename_maze);
     Point::maze.computeDistanceTransform(); // Precompute distance transform
@@ -663,10 +663,10 @@ int main(int argc, char** argv)
 
     try {
         if (team_colour == 0) {
-            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_blue.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
             std::cout << "Using blue goals configuration" << std::endl;
         } else if (team_colour == 1) {
-            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_yellow.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
             std::cout << "Using yellow goals configuration" << std::endl;
         }
     } catch (const std::exception& e) {
@@ -941,7 +941,7 @@ int main(int argc, char** argv)
                     elastic_band.resetOptimization();
 
                     if (counter_set_eb_path > set_eb_path_counter_limit) {
-                        elastic_band.generateSmoothedPath(4.0f, 21, 1.2f); // 0.08 ms
+                        elastic_band.generateSmoothedPath(3.0f, 21, 1.2f); // 0.08 ms
 
                         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                         eb_comp_inarow            = eb_comp_inarow_default;

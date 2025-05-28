@@ -237,14 +237,14 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
     const float total_change_threshold = 0.03; //(total distanc of movement of points)
     float total_change                 = 0;
 
-    const float spring_weight_default = 16.5;
+    const float spring_weight_default = 20.5;
     const int spring_radius           = 1; // Radius of the spring force (average Point of neighbors in radius)
     int dynamic_spring_radius         = spring_radius;
-    float rep_to_spring_radius_factor = 0.4;
+    float rep_to_spring_radius_factor = 0.3;
 
     const float repulsive_strength = 6;
-    const int min_rep_radius       = 6;
-    const int max_rep_radius       = 18;
+    const int min_rep_radius       = 5;
+    const int max_rep_radius       = 16;
     float dynamic_rep_radius       = min_rep_radius;
     const int repel_raduis         = 24;
     const float repel_variation    = 0.3; // +- 40%
@@ -279,7 +279,7 @@ bool ElasticBand::optimize(const Point& start, const Point& goal)
 
         // Calculate the distance to the previous point
         float distanceToPrev = std::hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
-        if (distanceToPrev > 20) {
+        if (distanceToPrev > 30) {
             std::cout << "Distance to previous point exceeds threshold. Exiting optimization." << std::endl;
             optimization_complete = true;
             return optimization_complete;
