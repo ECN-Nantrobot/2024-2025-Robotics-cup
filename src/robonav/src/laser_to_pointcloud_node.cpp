@@ -36,7 +36,7 @@ private:
         geometry_msgs::msg::TransformStamped transform;
         try {
             transform = tf_buffer_.lookupTransform("map", scan_msg->header.frame_id, // from lidar_link to map
-                                                   scan_msg->header.stamp, rclcpp::Duration::from_seconds(0.2));
+                                                   scan_msg->header.stamp, rclcpp::Duration::from_seconds(0.4));
         } catch (tf2::TransformException& ex) {
             RCLCPP_WARN(this->get_logger(), "Transform failed: %s", ex.what());
             return;

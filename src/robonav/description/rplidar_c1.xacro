@@ -31,7 +31,7 @@
     <joint name="rplidar_joint" type="fixed">
         <parent link="base_link"/>
         <child link="lidar_link"/>
-        <origin xyz="-0.053 0.0 0.36" rpy="0 0 3.14159"/>  <!-- Lidar is on top of the Chassis, rotated 180 degrees around the vertical axis -->
+        <origin xyz="-0.053 0.0 0.36" rpy="0 0 0.096"/>  <!-- Lidar is on top of the Chassis, rotated 180 degrees around the vertical axis -->
     </joint>
 
 

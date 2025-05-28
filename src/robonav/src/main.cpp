@@ -502,10 +502,13 @@ void processCommand(const std::string& command)
     }
     else if (command.rfind("RESET!", 0) == 0) {
         std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
-        // rclcpp::shutdown();                         // Clean shutdown
-        // std::system("ros2 run robonav main_node &"); // Restart
-        // std::exit(0);     
-        //                           // Kill current process
+        pid_t ppid = getppid();
+        std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
+        kill(ppid, SIGINT);
+
+        // Optionally, shutdown this node as well
+        rclcpp::shutdown();
+        // return 1;
     }
 }
 

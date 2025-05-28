@@ -28,7 +28,7 @@ namespace ecn
         void stop()
         {
             leftSpeed_ = 0;
-            rightSpeed_ = 0;
+            rightSpeed_ =  0;
             is_starting_ = true;
         }
 

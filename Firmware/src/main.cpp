@@ -30,6 +30,8 @@ const int internalLed = 2; // eingebaute LED auf GPIO 2
 
 float distance_to_goal = 0.0;
 
+float no_path_counter = 1.0;
+
 enum RobotState
 {
     WAIT,
@@ -396,6 +398,8 @@ void loop()
                 }
                 Serial.println("CurrentState: NAVIGATION");
 
+                no_path_counter = 1.0;
+
                 robot.followPath();
 
                 // float start = Point(robot.getX(), robot.getY());
@@ -475,15 +479,22 @@ void loop()
 
             case WAITFORPATH:
                 Serial.println("CurrentState: WAITFORPATH");
-                
-                // robot.stop();
+
+                no_path_counter++;
+
+                if(no_path_counter > 30)
+                {
+                    robot.stop();
+
+                }
+
 
                 break;
             }
 
             if (state != WAIT)
             {
-                setMotorSpeeds(robot.getLeftSpeed()/100, robot.getRightSpeed()/100);
+                setMotorSpeeds(robot.getLeftSpeed()/100 /no_path_counter , robot.getRightSpeed()/100 /no_path_counter);
                 // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
 
                 if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
