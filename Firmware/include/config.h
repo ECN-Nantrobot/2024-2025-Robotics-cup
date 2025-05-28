@@ -18,6 +18,8 @@
 #define SDAPin 23
 #define SLCPin 22
 
+#define stepPinX 33
+#define dirPinX 32
 
 // Define pins for pump
 #define pumpPin 15
@@ -66,5 +68,6 @@ extern TwoWire wireDisplay;
 extern bool isTestInProgress;
 extern int testCurrentStep;
 extern bool starter; 
+extern bool is_blue; 
 
 #endif

@@ -86,12 +86,20 @@ void controlPanel(void *pvParameters)
             }
 
             // Sarter
-            if (!(reponseDuPCF8574 & (1 << 5)))
+            if (!(reponseDuPCF8574 & (1 << 5))){
                 Serial.println(F("  ==> Interruption depuis la broche P5"));
+            }
             // // Switch Fonction
             // if (!(reponseDuPCF8574 & (1 << 4))) Serial.println(F("  ==> Interruption depuis la broche P4"));
             // // Bouton YELLOW
-            // if (!(reponseDuPCF8574 & (1 << 3))) Serial.println(F("  ==> Interruption depuis la broche P3"));
+            if (!(reponseDuPCF8574 & (1 << 3))) 
+            {
+                Serial.println(F("  ==> Interruption depuis la broche P3"));
+                is_blue = false;
+            }
+            else {
+                is_blue = true;
+            }
 
             // Bouton RESET
             if (!(reponseDuPCF8574 & (1 << 2)))

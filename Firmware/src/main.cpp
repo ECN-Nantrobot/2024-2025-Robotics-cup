@@ -39,6 +39,9 @@ float distance_to_goal = 0.0;
 
 float no_path_counter = 1.0;
 
+bool starter = false;
+bool is_blue = true;
+
 enum RobotState
 {
     WAIT,
@@ -285,18 +288,18 @@ void setup()
     while(starter == true)
     {
         Serial.println("Waiting for START button to be pressed...");
-        delay(100);
+        vTaskDelay(100);
     }
 
     // Serial.println("START!");
 
-    // if (digitalRead(colour) == HIGH)
+    // if (is_blue == true)
     // {
-    //     Serial.println("COLOUR: yellow");
+    //     Serial.println("COLOUR: blue");
     // }
     // else
     // {
-    //     Serial.println("COLOUR: blue");
+    //     Serial.println("COLOUR: yellow");
     // }
 }
 

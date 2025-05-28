@@ -3,7 +3,8 @@
 #include "motorHandler.h"
 #include <AccelStepper.h>
 #include "config.h"
-
+#include "debug.h"
+#include "servoHandler.h"
 SemaphoreHandle_t robotXMutex;
 
 // extern Robot robot;
@@ -22,6 +23,9 @@ const double metersPerStep = oneStepAngle * wheelDiameter / 2; // [m]
 // Create motor instances
 AccelStepper motorR(motorInterfaceType, stepPin2, dirPin2);
 AccelStepper motorL(motorInterfaceType, stepPin1, dirPin1);
+AccelStepper motorX(motorInterfaceType, stepPinX, dirPinX);
+
+int end_X_sensor = LOW;
 
 void initMotor()
 {
@@ -139,5 +143,83 @@ void allRunSpeed(void *pvParameters)
         }
 
         // Optionally add a small delay or yield to let other tasks run.
+    }
+}
+
+
+
+
+
+
+void initialize_Z_axis() {
+    pinMode(buttonPinX, INPUT_PULLDOWN);
+
+    SerialLog("Initializing X axis...");
+
+    motorX.setCurrentPosition(0);
+    moveAxeZ(800, 1);
+
+    setServo(4, 180);
+
+    motorX.move(-9999999); // Move towards the endstop
+
+    // Variables for detecting multiple consecutive HIGH signals
+    int consecutiveHighCount = 0;
+    const int requiredHighCount = 5; // Number of consecutive HIGH signals needed
+
+    while (1) {
+        end_X_sensor = digitalRead(buttonPinX);
+
+        if (end_X_sensor == HIGH) {
+            consecutiveHighCount++;
+            if (consecutiveHighCount >= requiredHighCount) {
+                break; // Exit loop if enough HIGH signals
+            }
+        } else {
+            consecutiveHighCount = 0; // Reset count if LOW is detected
+        }
+
+        SerialLog("X Axis Sensor: " + String(end_X_sensor));
+        delay(5);
+    }
+
+    motorX.setCurrentPosition(0);
+    moveAxeZ(300, 1);
+    motorX.setCurrentPosition(0);
+
+    SerialSuccess("X Axis initialized.");
+}
+
+void moveAxeZ(int position, bool wait) {
+  // Move the motor to the target position
+  motorX.moveTo(position);  // Assuming motorX controls the Z-axis, change if necessary
+
+  SerialLog("Moving Axe Z to position: " + String(position));
+
+  if (wait) {
+      // Wait until the motor reaches the target position
+      while (motorX.isRunning()) {
+          // Optionally, you can add a small delay to prevent the CPU from being overloaded
+          delay(10);
+      }
+      SerialLog("Axe Z reached position: " + String(position));
+  }
+  else {
+      SerialLog("Axe Z movement started but not waiting for completion.");
+  }
+}
+
+void go(int distance)
+{
+    motorL.setCurrentPosition(0);
+    motorR.setCurrentPosition(0);
+
+    motorL.move(distance);
+    motorR.move(distance);
+
+    while (motorR.isRunning())
+    {
+        // Optionally, you can add a small delay to prevent the CPU from being overloaded
+        delay(10);
     }
 }
