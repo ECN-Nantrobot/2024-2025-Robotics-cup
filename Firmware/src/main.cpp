@@ -51,7 +51,8 @@ enum RobotState
     TURN_TO_PATH,
     GOAL_REACHED,
     PATH_PLANNING,
-    WAITFORPATH
+    WAITFORPATH,
+    EMERGENCYSTOP
 };
 RobotState state = WAIT;
 RobotState last_sent_state = WAIT;
@@ -198,6 +199,8 @@ void processCommand(String command)
         String stateStr = command.substring(6);
         if (stateStr == "INIT")
             state = INIT;
+        if (stateStr == "EMERGENCYSTOP")
+            state = EMERGENCYSTOP;
         // else if (stateStr == "NAVIGATION")
         //     state = NAVIGATION;
         // else if (stateStr == "TURN_TO_GOAL")
@@ -525,7 +528,10 @@ void loop()
                     robot.stop();
 
                 }
+                break;
+            case EMERGENCYSTOP:
 
+                    robot.stop();
 
                 break;
             }

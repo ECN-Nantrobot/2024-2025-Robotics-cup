@@ -144,6 +144,11 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
         float cluster_center_x = sum_x / indices.indices.size();
         float cluster_center_y = sum_y / indices.indices.size();
 
+        if (cluster_center_x - robot_x < close_obstacle_threshold || cluster_center_y - robot_y < close_obstacle_threshold) {
+            ser.write("STATE:EMERGENCYSTOP\n");
+        }
+
+
         // Smooth the cluster center
         if (first_time) {
             smoothed_centers[cluster_id] = { cluster_center_x, cluster_center_y };
@@ -607,42 +612,42 @@ int main(int argc, char** argv)
 
 
 
-    // Wait for the START and COLOUR! command from ESP
-    auto start_time = std::chrono::steady_clock::now();
-    while (rclcpp::ok()) {
-        auto current_time = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
-            std::cout << "Waiting for START!" << std::endl;
-            start_time = current_time;
-        }
-        if (ser.available()) {
-            std::string command = ser.readline();
-            // std::cout << "Received from serial: " << command << std::endl;
-            if (command.find("START!") != std::string::npos) {
-                std::cout << "Received START! command from ESP. Continuing..." << std::endl;
+    // // Wait for the START and COLOUR! command from ESP
+    // auto start_time = std::chrono::steady_clock::now();
+    // while (rclcpp::ok()) {
+    //     auto current_time = std::chrono::steady_clock::now();
+    //     if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= 1) {
+    //         std::cout << "Waiting for START!" << std::endl;
+    //         start_time = current_time;
+    //     }
+    //     if (ser.available()) {
+    //         std::string command = ser.readline();
+    //         // std::cout << "Received from serial: " << command << std::endl;
+    //         if (command.find("START!") != std::string::npos) {
+    //             std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
-                // Wait for the COLOUR command after START!
-                while (ser.available()) {
-                    std::string colour_command = ser.readline();
-                    if (colour_command.find("COLOUR:") != std::string::npos) {
-                        std::string colour = colour_command.substr(8); // Extract the colour name
-                        colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
-                        std::cout << "Received COLOUR: " << colour << std::endl;
-                        if (colour == "yellow") {
-                            team_colour = 1;
-                        } else if (colour == "blue") {
-                            team_colour = 0;
-                        } else {
-                            std::cerr << "Unknown colour: " << colour << std::endl;
-                        }
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    //             // Wait for the COLOUR command after START!
+    //             while (ser.available()) {
+    //                 std::string colour_command = ser.readline();
+    //                 if (colour_command.find("COLOUR:") != std::string::npos) {
+    //                     std::string colour = colour_command.substr(8); // Extract the colour name
+    //                     colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
+    //                     std::cout << "Received COLOUR: " << colour << std::endl;
+    //                     if (colour == "yellow") {
+    //                         team_colour = 1;
+    //                     } else if (colour == "blue") {
+    //                         team_colour = 0;
+    //                     } else {
+    //                         std::cerr << "Unknown colour: " << colour << std::endl;
+    //                     }
+    //                     break;
+    //                 }
+    //             }
+    //             break;
+    //         }
+    //     }
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
 
     //-------------------------------------------------------------------------------------
 
@@ -734,17 +739,17 @@ int main(int argc, char** argv)
     elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
 
 
-    // std::cout << "Waiting for ESP reset ... " << std::endl;
-    // while (true) {
-    //     if (ser.available()) {
-    //         std::string result = ser.readline();
-    //         if (result.find("ESP Initialized!") != std::string::npos) {
-    //             std::cout << "ESP Initialization confirmed!" << std::endl;
-    //             break;
-    //         }
-    //     }
-    // }
-    // std::cout << std::endl; // Move to the next line after the loop ends
+    std::cout << "Waiting for ESP reset ... " << std::endl;
+    while (true) {
+        if (ser.available()) {
+            std::string result = ser.readline();
+            if (result.find("ESP Initialized!") != std::string::npos) {
+                std::cout << "ESP Initialization confirmed!" << std::endl;
+                break;
+            }
+        }
+    }
+    std::cout << std::endl; // Move to the next line after the loop ends
 
 
     publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
@@ -773,6 +778,26 @@ int main(int argc, char** argv)
     bool dont_move = false;
 
     bool switch_sim_movoment = false;
+
+
+
+
+
+
+
+    bool vizualize_opencv = false; // Set to false to disable OpenCV visualization
+    cv::Mat simulation;
+    const int scale         = 20; // size up visualization for better quality
+    const int display_res   = 600;
+    std::string window_name = ("Robot Simulation");
+    if (vizualize_opencv) {
+        // Vizualize with OpenCV 1 of 2
+        cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+        cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA); // to support transparency
+        cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+        cv::moveWindow(window_name, 0, 0);
+        cv::resizeWindow(window_name, display_res * simulation.cols / simulation.rows, display_res * simulation.rows / simulation.rows);
+    }
 
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
@@ -1056,6 +1081,15 @@ int main(int argc, char** argv)
             std::cout << "" << std::endl;
             std::cout << "" << std::endl;
             std::cout << "" << std::endl;
+        }
+
+        if (vizualize_opencv) {
+            // Vizualize with OpenCV 2 of 2
+            cv::resize(Point::maze.getIm(), simulation, cv::Size(), scale, scale, cv::INTER_NEAREST);
+            cv::cvtColor(simulation, simulation, cv::COLOR_BGR2BGRA);                                                                                // to support transparency
+            robot.draw(simulation, elastic_band.getSmoothedPath(), scale, elastic_band.getInitialPath(), goals, elastic_band.getPath(), astar_path); // takes 1ms
+            cv::imshow(window_name, simulation);
+            cv::waitKey(1);
         }
 
 
