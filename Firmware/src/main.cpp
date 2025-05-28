@@ -3,11 +3,18 @@
 #include "robot.h"
 #include "motorHandler.h"
 #include "point.h"
-#include "displayHandler.h"
+// #include "displayHandler.h"
 #include "powerSensorHandler.h"
+#include "controlPanelHandler.h"
+#include "debug.h"
+#include "stacking.h"
+#include "servoHandler.h"
 
 #include "Wire.h"
 #include <math.h>
+
+SemaphoreHandle_t i2cMutex = xSemaphoreCreateMutex();
+
 TwoWire myWire(0);
 TwoWire wireDisplay(1);
 
@@ -15,7 +22,7 @@ using namespace ecn;
 
 Robot robot(0, 0, 0, 3, 5, 0.01, 0.1); // x, y, theta, speed, kp, ki, kd
 
-DisplayHandler display;
+// DisplayHandler display;
 
 // // Robot state (in meters, radians)
 float currentX = 0.0;
@@ -26,7 +33,7 @@ float currentTheta = 0.0;
 unsigned long lastUpdateTime = 0;
 unsigned long startTime = 0;
 
-const int internalLed = 2; // eingebaute LED auf GPIO 2
+// const int internalLed = 2; // eingebaute LED auf GPIO 2
 
 float distance_to_goal = 0.0;
 
@@ -219,14 +226,14 @@ void sendPositionUpdate()
         robot.setPose(_robotX, _robotY, _robotTheta);
         xSemaphoreGive(robotXMutex);
 
-        digitalWrite(internalLed, HIGH);
+        // digitalWrite(internalLed, HIGH);
         Serial.print("X: ");
         Serial.print(robot.getX());
         Serial.print(", Y: ");
         Serial.print(robot.getY());
         Serial.print(", Theta: ");
         Serial.println(robot.getTheta());
-        digitalWrite(internalLed, LOW);
+        // digitalWrite(internalLed, LOW);
     }
 }
 
@@ -239,31 +246,47 @@ void setup()
     }
     delay(500);
 
-    // Initialize the other modules (motors, display, power sensor)
+    SerialTitle("Initialisation du système");
+
+    SerialInfo("1/6 Initialisation de la pompe...");
+    // initPump();
+
+    SerialInfo("2/6 Initialisation du servo...");
+    // initServo();
+
+    SerialInfo("3/6 Initialisation du capteur de puissance...");
+    // initPowerSensor();
+
+    SerialInfo("4/6 Initialisation du moteur...");
     initMotor();
 
-    // For testing, we start with a low constant speed; pure pursuit will adjust individual wheel speeds.
-    setMotorSpeeds(0, 0);
-    // display.initDisplay(false, false); /// !!!!! Same as motor 
-    initPowerSensor();
+    SerialInfo("5/6 Initialisation de l'afficheur...");
+    // display.initDisplay(true, false);
 
-    pinMode(internalLed, OUTPUT);
-    digitalWrite(internalLed, LOW);
+    SerialInfo("6/6 Initialisation de l'afficheur...");
+    initControlPanel();
+
+    SerialInfo("Initialisation terminée avec succès !");
+
+
+    setMotorSpeeds(0, 0);
+
+    // pinMode(internalLed, OUTPUT);
+    // digitalWrite(internalLed, LOW);
 
     // Reset timer for control loop
     lastUpdateTime = millis();
     startTime = millis();
 
-    pinMode(starter, INPUT_PULLDOWN);
-    pinMode(colour, INPUT_PULLDOWN);
-
     Serial.println("ESP Initialized!");
 
-    // while(digitalRead(starter) == LOW)
-    // {
-    //     Serial.println("Waiting for START button to be pressed...");
-    //     delay(100);
-    // }
+    starter = false;
+
+    while(starter == true)
+    {
+        Serial.println("Waiting for START button to be pressed...");
+        delay(100);
+    }
 
     // Serial.println("START!");
 
@@ -502,14 +525,14 @@ void loop()
                     robot.setPose(_robotX, _robotY, _robotTheta);
                     xSemaphoreGive(robotXMutex);
 
-                    digitalWrite(internalLed, HIGH);
+                    // digitalWrite(internalLed, HIGH);
                     Serial.print("X: ");
                     Serial.print(robot.getX());
                     Serial.print(", Y: ");
                     Serial.print(robot.getY());
                     Serial.print(", Theta: ");
                     Serial.println(robot.getTheta());
-                    digitalWrite(internalLed, LOW);
+                    // digitalWrite(internalLed, LOW);
 
                     // display.updatePointsDisplay(robotY);
                 }
@@ -518,7 +541,7 @@ void loop()
                 // sendPositionUpdate();
             }
 
-            display.updatePointsDisplay(0);
+            // display.updatePointsDisplay(0);
 
             // End of loop
         }

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "Wire.h"
+// #include "displayHandler.h"
 
 // Define pins for motors
 #define stepPin1 26
@@ -17,8 +18,16 @@
 #define SDAPin 23
 #define SLCPin 22
 
-#define starter 4
-#define colour 13
+
+// Define pins for pump
+#define pumpPin 15
+#define vanPin 2
+#define buttonPin1 4
+#define buttonPin2 13
+#define buttonPin3 21
+#define buttonPinX 34
+
+
 
 // Define motor interface type for AccelStepper
 #define motorInterfaceType 1
@@ -37,6 +46,7 @@ extern volatile float _robotY;
 extern volatile float _robotTheta;
 
 extern SemaphoreHandle_t robotXMutex;
+extern SemaphoreHandle_t i2cMutex;
 
 // I2C instances
 extern TwoWire myWire;
@@ -44,13 +54,17 @@ extern TwoWire wireDisplay;
 
 
 // Forward declaration of ecn::DisplayHandler
-namespace ecn {
-	class DisplayHandler;
-}
+// namespace ecn {
+// 	class DisplayHandler;
+// }
 
 // display instance
-#include "displayHandler.h"
-extern ecn::DisplayHandler display;
+// #include "displayHandler.h"
+// extern ecn::DisplayHandler display;
 
+// control panel variable
+extern bool isTestInProgress;
+extern int testCurrentStep;
+extern bool starter; 
 
 #endif

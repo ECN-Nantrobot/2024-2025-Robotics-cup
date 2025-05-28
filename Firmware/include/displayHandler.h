@@ -1,38 +1,12 @@
-/**
- * @file displayHandler.h
- * @brief Header file for the DisplayHandler class.
- * 
- * Dependencies:
- * - TFT_eSPI library for display control.
- * - SPI library for communication.
- * - ecn_logo.h for the logo bitmap.
- * - displayConfig.h for display & class configuration constants.
- * 
- * Usage example:
- * @code
- * ecn::DisplayHandler display;
- * display.initDisplay();
- * display.updateDisplay(1, 12.5, 100.0);
- * @endcode
- * 
- * @note Currently displayHandler is only configured for the GC9A01 display controller.
- * Ensure that the TFT_eSPI library is properly configured for your hardware.
- * Remaining tasks are commented with the TODO tag.
- * 
- * @version 1.0
- * @date 02/02/2025
- * 
- * @author
- * Rohit Panikar
- */
 #ifndef DISPLAYHANDLER_H
 #define DISPLAYHANDLER_H
+
+#include <config.h>
 
 #include <TFT_eSPI.h>       // Hardware-specific library
 #include <SPI.h>
 #include <ecn_logo.h>
 #include <displayConfig.h>
-#include <Config.h>
 
 namespace ecn
 {

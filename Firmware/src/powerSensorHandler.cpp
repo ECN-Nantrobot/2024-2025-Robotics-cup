@@ -1,6 +1,6 @@
 #include "powerSensorHandler.h"
 #include "Adafruit_INA219.h"
-#include "Config.h"
+#include "config.h"
 
 // Create an instance of the Adafruit INA219 power sensor class
 Adafruit_INA219 ina219;
@@ -49,7 +49,7 @@ void updateBattery(void *pvParameters){
     while(1){
         // Update the voltage variable in the display object, 
         // the display object has it's own freeRTOS task to periodiclly update the actual screen
-        display.updateBatteryDisplay(ina219.getBusVoltage_V());
+        // display.updateBatteryDisplay(ina219.getBusVoltage_V());
 
         // Serial.println("update voltage");
         vTaskDelay(3000 / portTICK_PERIOD_MS);

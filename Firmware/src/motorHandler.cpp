@@ -2,7 +2,7 @@
 #include <math.h>
 #include "motorHandler.h"
 #include <AccelStepper.h>
-#include "Config.h"
+#include "config.h"
 
 SemaphoreHandle_t robotXMutex;
 
