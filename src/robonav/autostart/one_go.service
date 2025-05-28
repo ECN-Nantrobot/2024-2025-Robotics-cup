@@ -10,10 +10,8 @@ User=pi
 Group=pi
 Restart=always
 RestartSec=7
-StartLimitInterval=60
-KillMode=mixed
-Type=simple
-Environment=DISPLAY=:0
+Environment=ROS_DOMAIN_ID=42
+Environment=RCL_LOG_LEVEL=INFO
 
 
 [Install]

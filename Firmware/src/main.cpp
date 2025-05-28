@@ -249,6 +249,8 @@ void setup()
     }
     delay(500);
 
+    Serial.println("RESET!");
+
     SerialTitle("Initialisation du système");
 
     SerialInfo("1/6 Initialisation de la pompe...");
@@ -267,7 +269,7 @@ void setup()
     // display.initDisplay(true, false);
 
     SerialInfo("6/6 Initialisation de l'afficheur...");
-    initControlPanel();
+    // initControlPanel();
 
     SerialInfo("Initialisation terminée avec succès !");
 
@@ -283,24 +285,33 @@ void setup()
 
     Serial.println("ESP Initialized!");
 
+    pinMode(starter_button, INPUT_PULLDOWN);
+    pinMode(colour_button, INPUT_PULLDOWN);
+
     starter = false;
 
-    while(starter == true)
+    // while(starter == true)
+    // {
+    //     Serial.println("Waiting for START button to be pressed...");
+    //     vTaskDelay(100);
+    // }
+
+    while (digitalRead(starter_button) == LOW)
     {
         Serial.println("Waiting for START button to be pressed...");
         vTaskDelay(100);
     }
 
-    // Serial.println("START!");
+    Serial.println("START!");
 
-    // if (is_blue == true)
-    // {
-    //     Serial.println("COLOUR: blue");
-    // }
-    // else
-    // {
-    //     Serial.println("COLOUR: yellow");
-    // }
+    if (digitalRead(colour_button) == LOW)
+    {
+        Serial.println("COLOUR: blue");
+    }
+    else
+    {
+        Serial.println("COLOUR: yellow");
+    }
 }
 
 RobotState lastState = GOAL_REACHED; // Letzter ausgegebener Zustand

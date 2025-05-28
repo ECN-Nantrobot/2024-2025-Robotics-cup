@@ -24,12 +24,12 @@
 // Define pins for pump
 #define pumpPin 15
 #define vanPin 2
-#define buttonPin1 4
-#define buttonPin2 13
 #define buttonPin3 21
 #define buttonPinX 34
-
-
+// #define buttonPin1 4
+// #define buttonPin2 13
+#define starter_button 34
+#define colour_button 35
 
 // Define motor interface type for AccelStepper
 #define motorInterfaceType 1

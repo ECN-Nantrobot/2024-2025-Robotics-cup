@@ -13,12 +13,12 @@ goals:
   - x: 250
     y: 150
     theta: 90
-  - x: 60
-    y: 100
-    theta: -90
-  - x: 250
-    y: 150
-    theta: 90
-  - x: 50
-    y: 70
-    theta: 0
+  # - x: 60
+  #   y: 100
+  #   theta: -90
+  # - x: 250
+  #   y: 150
+  #   theta: 90
+  # - x: 50
+  #   y: 70
+    # theta: 0
