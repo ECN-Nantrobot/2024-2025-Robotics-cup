@@ -1,0 +1,6 @@
+bodmer/TFT_eSPI@^2.5.43
+waspinator/AccelStepper@^1.64
+SPI
+adafruit/Adafruit INA219@^1.2.3
+bblanchon/ContinuousStepper@^3.1.0
+adafruit/Adafruit PWM Servo Driver Library@^3.0.2
