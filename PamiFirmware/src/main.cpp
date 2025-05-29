@@ -17,7 +17,7 @@ using namespace ecn;
 
 DisplayHandler display;
 std::vector<Point> loadedPath;
-capteur ultrasonic(27, 14);
+capteur ultrasonic(TRIG_PIN, ECHO_PIN);
 
 volatile float robotX = 0.0;
 volatile float robotY = 0.0;
@@ -28,7 +28,7 @@ volatile float _robotY = 0.0;
 volatile float _robotTheta = 0.0;
 
 // Pure Pursuit & Control Parameters
-const float v = 0.2;              // Robot forward speed (m/s)
+const float v = 0.1;              // Robot forward speed (m/s)
 const float lookAheadDistance = 0.05; // Look-ahead distance (m)
 const unsigned long controlInterval = 50; // Control loop interval in ms (50ms => 0.05s)
 float dt_seconds = controlInterval / 1000.0; // dt in seconds
@@ -151,7 +151,13 @@ void purePursuitUpdate() {
   if (error < 0.05) {  // within 5 cm of goal
     setMotorSpeeds(0, 0);
     Serial.println("Goal reached!");
-    while (1) { delay(1000); }
+    while (1)
+    {
+      delay(10);
+      analogWrite(SERVO_PIN, 255);
+      delay(10);
+      analogWrite(SERVO_PIN, 0);
+    }
   }
 }
 
@@ -162,7 +168,7 @@ void setup() {
 
 
   // Load path file from SPIFFS
-  if (loadPathFromFile("/straight_line_path_50cm.txt", loadedPath)) {
+  if (loadPathFromFile("/small_line.txt", loadedPath)) {
     Serial.println("Loaded path points:");
   } else {
     Serial.println("Failed to load path file.");
@@ -188,7 +194,7 @@ void setup() {
   // For testing, we start with a low constant speed; pure pursuit will adjust individual wheel speeds.
   setMotorSpeeds(0, 0);
   //display.initDisplay(false, false);
-  initPowerSensor();
+  //initPowerSensor();
 
   // Init obstacle detector
   ultrasonic.setup();
@@ -196,11 +202,15 @@ void setup() {
   // Reset timer for control loop
   lastUpdateTime = millis();
   startTime = millis();
-
-  ultrasonic.setup();
+  pinMode(STARTER_PIN, INPUT_PULLUP);
+  pinMode(SERVO_PIN, OUTPUT);
+  while (digitalRead(STARTER_PIN) == LOW)
+  {
+    Serial.println("Waiting to start");
+    delay(100);
+  }
+  delay(86000);
 }
-
-
 
 
 float position = 1;
@@ -208,11 +218,16 @@ void loop() {
      // Run the pure pursuit update every controlInterval (50 ms)
     if (millis() - lastUpdateTime >= controlInterval) {
       lastUpdateTime = millis();
-      Serial.println(ultrasonic.distance());
-      if (ultrasonic.distance()<lookAheadDistance)
+      float d = ultrasonic.distance();
+      Serial.println(d);
+      if (d<0.1)
       {
         Serial.println("Obstacle detected, stopping motors.");
         setMotorSpeeds(0,0);
+        delay(10);
+        analogWrite(SERVO_PIN, 255);
+        delay(10);
+        analogWrite(SERVO_PIN, 0);
         return;
       }
       purePursuitUpdate();

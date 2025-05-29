@@ -4,6 +4,13 @@
 #include <Arduino.h>
 #include "Wire.h"
 
+// Define pins for the Ultresonic Sensor
+#define TRIG_PIN 27
+#define ECHO_PIN 14
+
+// Define other pins
+#define STARTER_PIN 5
+#define SERVO_PIN 2
 
 // Define pins for motors
 #define stepPin1 26
@@ -24,7 +31,7 @@
 
 // Dimensions of robot
 const float wheelDiameter = 0.0675;   // meters
-const float trackWidth = 0.185;       // meters
+const float trackWidth = 0.095;       // meters
 const int stepsPerRevolution = 200;
 
 // robot position

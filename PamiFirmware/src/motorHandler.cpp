@@ -11,8 +11,8 @@ const double metersPerStep = oneStepAngle * wheelDiameter/2; // [m]
 // １m/s = 1 / metersPerStep [steps/s]
 
 // Create motor instances
-AccelStepper motorR(motorInterfaceType, stepPin1, dirPin1);
-AccelStepper motorL(motorInterfaceType, stepPin2, dirPin2);
+AccelStepper motorL(motorInterfaceType, stepPin1, dirPin1);
+AccelStepper motorR(motorInterfaceType, stepPin2, dirPin2);
 
 
 void initMotor()
