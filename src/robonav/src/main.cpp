@@ -64,6 +64,7 @@ ecn::Point pop;
 double close_obstacle_threshold = 0.30;
 bool emergencystate             = false;
 
+
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
                        Maze& maze,
                        float robot_pos_x,
@@ -569,9 +570,10 @@ void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& o
         int height = obstacle["height"].as<int>();
         std::string type = obstacle["type"].as<std::string>();
         std::string color = obstacle["color"].as<std::string>();
+        int duration = 50000;
 
-        Obstacle::Type obstacle_type = (type == "FIXED") ? Obstacle::FIXED : Obstacle::MOVABLE;
-        obstacles.emplace_back(x, y, width, height, obstacle_type, color);
+        Obstacle::Type obstacle_type = (type == "FIXED") ? Obstacle::FIXED : Obstacle::TEMPORARY;
+        obstacles.emplace_back(x, y, width, height, obstacle_type, color, duration);
     }
 }
 
@@ -640,29 +642,29 @@ int main(int argc, char** argv)
             if (command.rfind("START!", 0) == 0) {
                 std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
-                // // Wait for the COLOUR command after START!
-                // while (ser.available()) {
-                //     std::string colour_command = ser.readline();
-                //     if (colour_command.find("COLOUR:") != std::string::npos) {
-                //         std::string colour = colour_command.substr(8); // Extract the colour name
-                //         colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
-                //         std::cout << "Received COLOUR: " << colour << std::endl;
-                //         if (colour == "yellow") {
-                //             team_colour = 1;
-                //         } else if (colour == "blue") {
-                //             team_colour = 0;
-                //         } else {
-                //             std::cerr << "Unknown colour: " << colour << std::endl;
-                //         }
-                //         break;
-                //     }
-                // }
-                break;
+                while (ser.available()) {
+                    std::string colour_command = ser.readline();
+                    if (colour_command.rfind("COLOUR", 0) == 0) {
+                        std::string colour = colour_command.substr(6);                                      // Extract the colour name
+                        colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
+                        std::cout << "Received COLOUR:_" << colour << "_" << std::endl;
+                        if (colour == "yellow") {
+                            team_colour = 0;
+                        } else if (colour == "blue") {
+                            team_colour = 1;
+                        } else {
+                            std::cerr << "Unknown colour: " << colour << std::endl;
+                        }
+                        break;
+                    }
+                }
+                break; // ✅ Break outer loop (START!)
             }
         }
+
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
+    
     //-------------------------------------------------------------------------------------
 
     // TODO: Change the map for yellow or blue
@@ -681,11 +683,11 @@ int main(int argc, char** argv)
     double wheel_distance, speed, kp, ki, kd;
 
     try {
-        if (team_colour == 0) {
-            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_blue.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+        if (team_colour == 1) {
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_blue_final.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
             std::cout << "Using blue goals configuration" << std::endl;
-        } else if (team_colour == 1) {
-            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_yellow.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
+        } else if (team_colour == 0) {
+            loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_yellow_final.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
             std::cout << "Using yellow goals configuration" << std::endl;
         }
     } catch (const std::exception& e) {
@@ -728,20 +730,30 @@ int main(int argc, char** argv)
 
 
     // Load obstacles from a YAML file
-    // std::string obstacles_filename = "/home/pi/2024-2025-Robotics-cup/src/robonav/config/obstacles.yaml";
-    // std::vector<Obstacle> obstacles;
-    // try {
-    //     loadObstaclesFromFile(obstacles_filename, obstacles);
-    //     std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error loading obstacles from yaml file: " << e.what() << std::endl;
-    //     return 1;
-    // }
+    std::string obstacles_filename = "/home/pi/2024-2025-Robotics-cup/src/robonav/config/obstacles.yaml";
+    std::vector<Obstacle> obstacles;
+    try {
+        loadObstaclesFromFile(obstacles_filename, obstacles);
+        std::cout << "Obstacles loaded successfully from " << obstacles_filename << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading obstacles from yaml file: " << e.what() << std::endl;
+        return 1;
+    }
 
 
     // Point::maze.computeDistanceTransform();
     cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-    astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+
+    try {
+        astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+    } catch (const std::exception& e) {
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+        astar_path.clear(); // Clear the path to handle the error gracefully
+    }
+
     for (auto& position : astar_path) {
         position           = position * (1 / Point::maze.resize_for_astar);
         astar_path.front() = start_p;
@@ -779,6 +791,11 @@ int main(int argc, char** argv)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     ser.write("STATE:INIT\n");
+    ser.write("STATE:INIT\n");
+    ser.write("STATE:INIT\n");
+    ser.write("STATE:INIT\n");
+    ser.write("STATE:INIT\n");
+    ser.write("STATE:INIT\n");
     std::cout << "Sent INIT state" << std::endl;
 
     std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
@@ -812,7 +829,7 @@ int main(int argc, char** argv)
             // for (auto& obstacle : obstacles) {
             //     obstacle.update();
             // }
-            // Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
+            Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
 
 
             robot.setPose(robot_x, robot_y, robot_theta);
@@ -999,6 +1016,13 @@ int main(int argc, char** argv)
                 if (robot.goal_index < robot.goals.size() - 1) {
                     robot.goal_index++;
                     std::cout << "New goal: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
+                    // Remove the second obstacle from the obstacles vector
+                    int removeobstacles_offset = 0;
+                    if (team_colour == 1) { removeobstacles_offset = 2; }
+                    if (obstacles.size() > 1 + removeobstacles_offset) {
+                        obstacles.erase(obstacles.begin());
+                        std::cout << "OOOOOOOOOOOOO Removed first obstacle from obstacles vector OOOOOOOOOOOOO" << std::endl;
+                    }
                 } else {
                     std::cout << "All goals reached!" << std::endl;
                 }
@@ -1026,21 +1050,6 @@ int main(int argc, char** argv)
         publishAStarPath(astar_path, astar_path_pub, node);
         publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
 
-
-        // if(robot_x >= 13.0) {
-        //     switch_sim_movoment = true;
-        // }
-        // if (robot_x <= 10.0) {
-        //     switch_sim_movoment = false;
-        // }
-
-        // if(switch_sim_movoment)
-        //     robot_x -= 0.1;
-        // else
-        //     robot_x += 0.1;
-
-
-        // std::cout << "Robot Position x: " << robot_x << std::endl;
 
 
         std::vector<double> loop_times; // Vector to store loop execution times

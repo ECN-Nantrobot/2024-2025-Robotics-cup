@@ -1,0 +1,53 @@
+robot:
+  wheel_distance: 37.3
+  speed: 12.0
+  pid:
+    kp: 30
+    ki: 0.02
+    kd: 0.6
+
+# TEAM BLUE STRATEGY
+# start at goal 22
+# goal 29 - pick up cans
+# goal 22 - drop off cans
+# goal 33 - pick up cans -- handle differently by esp 
+# (goal 24 - drop off cans -- reached by esp) 
+# goal 35 - pick up cans
+# goal 23 - drop off cans
+# goal 18 - final position
+
+goals:
+    # Starting Position (Goal 22)
+  - x: 177
+    y: 175
+    theta: -90
+
+  # # Goal 29
+  # - x: 190
+  #   y: 133
+  #   theta: -90
+
+  #   # Goal 22
+  # - x: 177
+  #   y: 175
+  #   theta: 90
+
+  #   # Goal 33
+  # - x: 222
+  #   y: 145
+  #   theta: 90
+
+  #   # Goal 35
+  # - x: 218
+  #   y: 55
+  #   theta: -90
+
+  #   # Goal 23
+  # - x: 177
+  #   y: 154
+  #   theta: 90
+
+    # Goal 18
+  - x: 275
+    y: 25
+    theta: -90

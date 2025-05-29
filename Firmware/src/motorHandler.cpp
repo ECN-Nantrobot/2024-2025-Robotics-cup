@@ -152,7 +152,7 @@ void allRunSpeed(void *pvParameters)
 
 
 void initialize_Z_axis() {
-    pinMode(buttonPinX, INPUT_PULLDOWN);
+    // pinMode(buttonPinX, INPUT_PULLDOWN);
 
     SerialLog("Initializing X axis...");
 
@@ -168,8 +168,8 @@ void initialize_Z_axis() {
     const int requiredHighCount = 5; // Number of consecutive HIGH signals needed
 
     while (1) {
-        end_X_sensor = digitalRead(buttonPinX);
-
+        // end_X_sensor = digitalRead(buttonPinX);
+        end_X_sensor = HIGH;
         if (end_X_sensor == HIGH) {
             consecutiveHighCount++;
             if (consecutiveHighCount >= requiredHighCount) {

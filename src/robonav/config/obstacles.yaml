@@ -1,25 +1,27 @@
 obstacles:
+  # Yellow
   - x: 77
     y: 174
     width: 84
     height: 34
-    type: "FIXED"
+    type: "TEMPORARY"
     color: "lightgray"
   - x: 110
     y: 104
     width: 84
     height: 34
-    type: "FIXED"
+    type: "TEMPORARY"
+    color: "lightgray"
+  # Blue
+  - x: 222
+    y: 174
+    width: 84
+    height: 34
+    type: "TEMPORARY"
     color: "lightgray"
   - x: 190
     y: 104
     width: 84
     height: 34
-    type: "FIXED"
-    color: "lightgray"
-  - x: 222
-    y: 174
-    width: 84
-    height: 34
-    type: "FIXED"
+    type: "TEMPORARY"
     color: "lightgray"

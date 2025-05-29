@@ -41,7 +41,7 @@ void Maze::load(std::string _filename)
     std::cout << "Image type after: " << im.type() << " ... ";
 
     // Add a 5-pixel border around obstacles
-    const int border_size = 2;
+    const int border_size = 8;
     const cv::Vec3b border_colour(100, 100, 100);
     cv::Mat obstacle_mask = cv::Mat::zeros(im.size(), CV_8UC1);
     
