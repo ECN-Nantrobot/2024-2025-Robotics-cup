@@ -1,0 +1,112 @@
+robot:
+  wheel_distance: 37.3
+  speed: 10.0
+  pid:
+    kp: 28
+    ki: 0.02
+    kd: 0.5
+
+# TEAM YELLOW STRATEGY
+# start at goal 2
+# goal 9 - pick up cans
+# goal 2 - drop off cans
+# goal 14 - pick up cans -- handle differently by esp 
+# (goal 1 - drop off cans -- reached by esp) 
+# goal 17 - pick up cans
+# goal 3 - drop off cans
+# goal 0 - final position
+
+goals:
+    # Step = 0
+    # Starting Position (Goal #2)  
+  - x: 122
+    y: 175
+    theta: -90
+
+    # Step = 1
+    # Goal 3   midpoint
+  - x: 122
+    y: 154
+    theta: -90
+
+  # Step = 2
+  # Goal 9
+  - x: 110
+    y: 133
+    theta: -90
+
+  # Step = 3
+  # Goal PICK UP CANS (from 9)
+  - x: 110
+    y: 109
+    theta: -90
+
+  # Step = 4
+    # Goal 3   midpoint
+  - x: 122
+    y: 154
+    theta: 90
+
+    # Step = 5
+    # Goal 2   (DROP OFF CANS)
+  - x: 122
+    y: 175
+    theta: 90
+
+    # Step = 6
+    # Goal 3   midpoint
+  - x: 122
+    y: 154
+    theta: -90
+
+    # Step = 7
+    # Goal 14    
+  - x: 77
+    y: 145
+    theta: 90
+
+    # Step = 8
+    # Goal 14    PICK UP CANS (from 14)
+  - x: 77
+    y: 171
+    theta: 90
+
+    # Step = 9
+    # Goal 1     (DROP OFF CANS)
+  - x: 77
+    y: 184
+    theta: 90
+
+    # MOVE BACKWARDS A LITTLE BIT (esp)
+
+  # Step = 10
+    # Goal 17
+  - x: 81
+    y: 65
+    theta: -90
+
+    # Step = 11
+    # PICK UP CANS (from 17)
+  - x: 81
+    y: 31
+    theta: -90
+
+    # MOVE BACKWARDS A LITTLE BIT MORE (esp)
+
+    # Step = 12
+    # Goal 3  (DROP OFF CANS)
+  - x: 122
+    y: 154
+    theta: 90
+
+    # Step = 13
+    # Goal 7  midpoint
+  - x: 36
+    y: 132
+    theta: -90
+
+    # Step = 14
+    # Goal 0
+  - x: 37
+    y: 25
+    theta: -90

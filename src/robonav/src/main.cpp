@@ -1,8 +1,8 @@
-#include <a_star.h>
+// #include <a_star.h>
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
-#include <elastic_bands.h>
+// #include <elastic_bands.h>
 #include <filesystem>
 #include <fstream>
 #include <iomanip> // For std::fixed and std::setprecision
@@ -65,6 +65,8 @@ ecn::Point pop;
 double close_obstacle_threshold = 0.30;
 bool emergencystate             = false;
 
+int sendpathcounter = 0;
+
 
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
                        Maze& maze,
@@ -74,13 +76,13 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
                        const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_notused_publisher,
                        const rclcpp::Node::SharedPtr& node)
 {
-    robot_pos_x = robot_x / 100.0;
-    robot_pos_y = 2 - (robot_y / 100.0);
-    float reduction = 0.25;
-    float min_x     = 0 + reduction;
-    float max_x     = 3 - reduction;
-    float min_y     = 0 + reduction;
-    float max_y     = 2 - reduction;
+    robot_pos_x               = robot_x / 100.0;
+    robot_pos_y               = 2 - (robot_y / 100.0);
+    float reduction           = 0.25;
+    float min_x               = 0 + reduction;
+    float max_x               = 3 - reduction;
+    float min_y               = 0 + reduction;
+    float max_y               = 2 - reduction;
     float radius_around_robot = 0.3;
 
     // Convert PointCloud2 to PCL PointCloud
@@ -101,17 +103,16 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
             colored_pt.z = pt.z;
             colored_pt.r = 255;
             colored_pt.g = 255;
-            colored_pt.b = 255; 
+            colored_pt.b = 255;
             cloud_filtered->points.push_back(colored_pt);
-        }
-        else{
+        } else {
             pcl::PointXYZRGB colored_pt_notused;
             colored_pt_notused.x = pt.x;
             colored_pt_notused.y = pt.y;
             colored_pt_notused.z = pt.z;
             colored_pt_notused.r = 50;
             colored_pt_notused.g = 50;
-            colored_pt_notused.b = 50; 
+            colored_pt_notused.b = 50;
             cloud_filtered_notused->points.push_back(colored_pt_notused);
         }
 
@@ -235,6 +236,7 @@ void publishElasticbandPath(const std::vector<Point>& elastic_path, const rclcpp
 
     path_publisher->publish(path_msg);
 }
+
 
 // Function to publish A* path as nav_msgs/Path
 void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
@@ -435,7 +437,7 @@ void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
     auto path_send_start_time = std::chrono::steady_clock::now(); // Start timing
 
     int path_sending_limit = 3;                                              // Send x points at a time
-    size_t path_size       = std::min(path.size(), static_cast<size_t>(32)); // total points to save
+    size_t path_size       = std::min(path.size(), static_cast<size_t>(200)); // total points to save
 
     int iterations = 0;
     // Loop through the entire path in chunks (in this case, 2 points at a time)
@@ -520,8 +522,7 @@ void processCommand(const std::string& command)
     } else if (command.rfind("POP:", 0) == 0) {
         std::string popStr = command.substr(4);
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
-    }
-    else if (command.rfind("RESET!", 0) == 0) {
+    } else if (command.rfind("RESET!", 0) == 0) {
         // std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
         // pid_t ppid = getppid();
         // std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
@@ -537,12 +538,12 @@ std::vector<ecn::Point> generateStraightPath(const ecn::Point& start, const ecn:
 {
     std::vector<ecn::Point> path;
 
-    float step_size = 1.0;
+    float step_size = 1.5;
 
-    float dx = end.x - start.x;
-    float dy = end.y - start.y;
+    float dx       = end.x - start.x;
+    float dy       = end.y - start.y;
     float distance = std::sqrt(dx * dx + dy * dy);
-    int steps = static_cast<int>(distance / step_size);
+    int steps      = static_cast<int>(distance / step_size);
 
     for (int i = 0; i <= steps; ++i) {
         float t = static_cast<float>(i) / steps;
@@ -550,9 +551,9 @@ std::vector<ecn::Point> generateStraightPath(const ecn::Point& start, const ecn:
         float y = start.y + t * dy;
 
         ecn::Point point;
-        point.x = x;
-        point.y = y;
-        point.radius = 3.0; // Optional default value
+        point.x      = x;
+        point.y      = y;
+        point.radius = 3.0;                     // Optional default value
         point.colour = cv::Scalar(50, 200, 50); // Green-ish path point
 
         path.push_back(point);
@@ -560,7 +561,6 @@ std::vector<ecn::Point> generateStraightPath(const ecn::Point& start, const ecn:
 
     return path;
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -590,18 +590,19 @@ void loadGoalsFromFile(const std::string& filename, std::vector<ecn::Pose>& goal
 }
 
 // Function to load obstacles from a YAML file
-void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& obstacles) {
+void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& obstacles)
+{
     YAML::Node yaml_config = YAML::LoadFile(filename);
 
     obstacles.clear();
     for (const auto& obstacle : yaml_config["obstacles"]) {
-        int x = obstacle["x"].as<int>();
-        int y = obstacle["y"].as<int>();
-        int width = obstacle["width"].as<int>();
-        int height = obstacle["height"].as<int>();
-        std::string type = obstacle["type"].as<std::string>();
+        int x             = obstacle["x"].as<int>();
+        int y             = obstacle["y"].as<int>();
+        int width         = obstacle["width"].as<int>();
+        int height        = obstacle["height"].as<int>();
+        std::string type  = obstacle["type"].as<std::string>();
         std::string color = obstacle["color"].as<std::string>();
-        int duration = 50000;
+        int duration      = 50000;
 
         Obstacle::Type obstacle_type = (type == "FIXED") ? Obstacle::FIXED : Obstacle::TEMPORARY;
         obstacles.emplace_back(x, y, width, height, obstacle_type, color, duration);
@@ -611,17 +612,16 @@ void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& o
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node           = rclcpp::Node::make_shared("main_publisher");
+    auto node = rclcpp::Node::make_shared("main_publisher");
 
     auto cloud_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_used", 10);
 
     auto cloud_notused_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_notused", 10);
 
-
-    auto cloud_subscriber = 
-    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) { processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node); });
-
-
+    auto cloud_subscriber =
+    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node);
+    });
 
     auto main_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/main", 10);
     auto path_publisher = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
@@ -631,10 +631,10 @@ int main(int argc, char** argv)
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_viz", 10);
     auto tf_broadcaster     = std::make_shared<tf2_ros::TransformBroadcaster>(node);
 
-    auto elastic_band_path_pub    = node->create_publisher<nav_msgs::msg::Path>("/elastic_band_path", 10);
-    auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
-    auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
-    auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
+    auto elastic_band_path_pub = node->create_publisher<nav_msgs::msg::Path>("/elastic_band_path", 10);
+    // auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
+    // auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
+    // auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
 
 
     serial::Serial ser;
@@ -658,7 +658,6 @@ int main(int argc, char** argv)
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give ESP time to start
 
 
-
     // Wait for the START and COLOUR! command from ESP
     auto start_time = std::chrono::steady_clock::now();
     while (rclcpp::ok()) {
@@ -679,7 +678,7 @@ int main(int argc, char** argv)
                 while (ser.available()) {
                     std::string colour_command = ser.readline();
                     if (colour_command.rfind("COLOUR:", 0) == 0) {
-                        std::string colour = colour_command.substr(7);                                      // Extract the colour name
+                        std::string colour = colour_command.substr(7);                               // Extract the colour name
                         colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
                         std::cout << "Received COLOUR:_" << colour << "_" << std::endl;
                         if (colour == "yellow") {
@@ -698,21 +697,12 @@ int main(int argc, char** argv)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    
+
     //-------------------------------------------------------------------------------------
 
-    // TODO: Change the map for yellow or blue
     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_wo_p.png");
-    // if(team_colour == 0) {
-    //     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
-    //     std::cout << "Using blue maze: " << std::endl;
-    // } else if (team_colour == 1) {
-    //     std::string filename_maze = Maze::mazeFile("Eurobot_map_real_bw_10_p.png"); // CHOOSE WHICH MAZE YOU WANT TO USE
-    //     std::cout << "Using yellow maze: " << std::endl;
-    // }
 
     Point::maze.load(filename_maze);
-    Point::maze.computeDistanceTransform(); // Precompute distance transform
 
     double wheel_distance, speed, kp, ki, kd;
 
@@ -728,7 +718,7 @@ int main(int argc, char** argv)
         std::cerr << "Error loading configuration: " << e.what() << std::endl;
         return 1;
     }
-    
+
 
     robot.setSpeed(speed);
     robot.setPID(kp, ki, kd);
@@ -775,7 +765,6 @@ int main(int argc, char** argv)
     // }
 
 
-    // // Point::maze.computeDistanceTransform();
     // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
 
     // try {
@@ -813,7 +802,7 @@ int main(int argc, char** argv)
 
 
     // publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
-     publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
+    publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
 
     sendSpeedAndPID(ser, speed, kp, ki, kd);
     sendGoals(ser);
@@ -824,8 +813,10 @@ int main(int argc, char** argv)
 
     auto straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
     sendPath(ser, straight_path);
+    publishElasticbandPath(straight_path, path_publisher, node);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50000));
 
     ser.write("STATE:INIT\n");
     ser.write("STATE:INIT\n");
@@ -837,11 +828,11 @@ int main(int argc, char** argv)
 
     std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
-    int navigation_counter = 0;
+    // int navigation_counter = 0;
+    // int send_path_counter = 0;
 
     rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
 
-    int send_path_counter = 0;
 
     bool dont_move = false;
 
@@ -878,8 +869,8 @@ int main(int argc, char** argv)
                 std::cout << "State: INIT" << std::endl;
 
                 // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-                start_p    = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
-                goal_p     = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+                start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
+                goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
                 // try {
                 //     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
                 // } catch (const std::exception& e) {
@@ -895,6 +886,8 @@ int main(int argc, char** argv)
                 //     astar_path.back()  = goal_p;
                 // }
 
+                
+
 
                 // elastic_band.updatePath(astar_path);
                 // elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
@@ -904,6 +897,8 @@ int main(int argc, char** argv)
 
                 straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
                 sendPath(ser, straight_path);
+                publishElasticbandPath(straight_path, path_publisher, node);
+
 
                 state = WAITING;
 
@@ -914,7 +909,6 @@ int main(int argc, char** argv)
                 std::cout << "State: PATH_PLANNING-------" << std::endl;
 
                 // Recalculate A* path
-                // Point::maze.computeDistanceTransform();
                 // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
                 start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
                 goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
@@ -997,14 +991,34 @@ int main(int argc, char** argv)
                 // }
 
 
+                // static auto last_clone_time = std::chrono::steady_clock::now();
+                // auto current_time           = std::chrono::steady_clock::now();
+                // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+
+                // sendpathcounter++;
+
+                // if (sendpathcounter >= 50)
+                // {
+                //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+                //     sendPath(ser, straight_path);
+                //     publishElasticbandPath(straight_path, path_publisher, node);
+
+                //     std::cout << "Straight path sent and published!" << std::endl;
+                //     std::cout << "Straight path sent and published!" << std::endl;
+                //     std::cout << "Straight path sent and published!" << std::endl;
+                //     std::cout << "Straight path sent and published!" << std::endl;
+                //     std::cout << "Straight path sent and published!" << std::endl;
+
+                //     sendpathcounter = 0;
+                // }
+
+
                 // elastic_band.updatePath(astar_path);
 
-                straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-                sendPath(ser, straight_path);
 
-
-                state = NAVIGATION;
-                [[fallthrough]];
+                // state = NAVIGATION;
+                // [[fallthrough]];
+                break;
 
 
             case NAVIGATION:
@@ -1032,16 +1046,14 @@ int main(int argc, char** argv)
                 //         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
                 //         eb_comp_inarow            = eb_comp_inarow_default;
 
-                send_path_counter++;
-                if (send_path_counter >= 5) {
-                    straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);        
-                    publishElasticbandPath(straight_path, path_publisher, node);
-                    sendPath(ser, straight_path);
-                    send_path_counter = 0;
-                }
+                // send_path_counter++;
+                // if (send_path_counter >= 5) {
+                //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+                //     publishElasticbandPath(straight_path, path_publisher, node);
+                //     sendPath(ser, straight_path);
+                //     send_path_counter = 0;
+                // }
 
-
-                
 
                 // navigation_counter++;
 
@@ -1065,6 +1077,12 @@ int main(int argc, char** argv)
                     //     obstacles.erase(obstacles.begin());
                     //     std::cout << "OOOOOOOOOOOOO Removed first obstacle from obstacles vector OOOOOOOOOOOOO" << std::endl;
                     // }
+
+
+                    straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+                    sendPath(ser, straight_path);
+                    publishElasticbandPath(straight_path, path_publisher, node);
+
                 } else {
                     std::cout << "All goals reached!" << std::endl;
                 }
@@ -1078,24 +1096,36 @@ int main(int argc, char** argv)
 
         static auto last_clone_time = std::chrono::steady_clock::now();
         auto current_time           = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1) {
+        // std::cout << std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() << std::endl;
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1)
+        {
             last_clone_time = current_time;
             publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
             std::cout << "Occupancy grid published!!!!" << std::endl;
         }
+        // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+
+        //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+        //     sendPath(ser, straight_path);
+        //     publishElasticbandPath(straight_path, path_publisher, node);
+
+        //     std::cout << "Straight path sent and published!" << std::endl;
+        //     std::cout << "Straight path sent and published!" << std::endl;
+        //     std::cout << "Straight path sent and published!" << std::endl;
+        //     std::cout << "Straight path sent and published!" << std::endl;
+        //     std::cout << "Straight path sent and published!" << std::endl;
+
+        // }
 
         rclcpp::spin_some(node);
-
 
         publishPosition(odom_publisher, tf_broadcaster, node);
         publishPoint(point_publisher, node, pop);
         // publishAStarPath(astar_path, astar_path_pub, node);
         // publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
-        
 
 
         std::vector<double> loop_times; // Vector to store loop execution times
-
         // Measure loop execution time
         auto loop_end_time   = std::chrono::steady_clock::now();
         double loop_duration = std::chrono::duration_cast<std::chrono::milliseconds>(loop_end_time - loop_start_time).count();
@@ -1103,11 +1133,9 @@ int main(int argc, char** argv)
 
         std_msgs::msg::Float64 loop_time_msg;
         loop_time_msg.data = loop_duration;
-        loop_time_publisher->publish(loop_time_msg);
+        // loop_time_publisher->publish(loop_time_msg);
 
-
-         std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
-
+        std::cout << "Loop execution time: " << loop_duration << " ms" << std::endl;
 
         // Calculate and print average execution time
         static double total_loop_time = 0.0;
