@@ -39,7 +39,7 @@ goals:
     # Goal 7  midpoint
   - x: 60
     y: 132
-    theta: -90
+    theta: -180
 
       # Step = 13
     # Goal 7  midpoint

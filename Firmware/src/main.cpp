@@ -38,7 +38,6 @@ unsigned long startTime = 0;
 // const int internalLed = 2; // eingebaute LED auf GPIO 2
 
 float distance_to_goal = 0.0;
-float no_path_counter = 1.0;
 
 bool emergencystop = false;
 int emergency_counter = 0;
@@ -54,13 +53,26 @@ enum RobotState
     TURN_TO_GOAL,
     TURN_TO_PATH,
     GOAL_REACHED,
-    PATH_PLANNING,
-    WAITFORPATH
+    PATH_PLANNING
 };
 RobotState state = WAIT;
 RobotState last_sent_state = WAIT;
 
 String pathBuffer = ""; // Buffer to store the incoming path data
+
+void sendpath(const std::vector<Point>& path)
+{
+    Serial.print("PATH:");
+    for (size_t i = 0; i < path.size(); ++i)
+    {
+        Serial.printf("%f,%f", path[i].x, path[i].y);
+        if (i < path.size() - 1)
+        {
+            Serial.print(";"); // Separate points with semicolons
+        }
+    }
+    Serial.print("\n"); // End the path message
+}
 
 void parseGoals(String data)
 {
@@ -109,37 +121,37 @@ void parseGoals(String data)
     Serial.println();
 }
 
-void parsePath(String data)
-{
-    robot.path_.clear();
-    int lastIndex = 0;
-    while (lastIndex < data.length())
-    {
-        int nextIndex = data.indexOf(';', lastIndex);
-        if (nextIndex == -1)
-            nextIndex = data.length();
+// void parsePath(String data)
+// {
+//     robot.path_.clear();
+//     int lastIndex = 0;
+//     while (lastIndex < data.length())
+//     {
+//         int nextIndex = data.indexOf(';', lastIndex);
+//         if (nextIndex == -1)
+//             nextIndex = data.length();
 
-        String segment = data.substring(lastIndex, nextIndex);
-        lastIndex = nextIndex + 1;
+//         String segment = data.substring(lastIndex, nextIndex);
+//         lastIndex = nextIndex + 1;
 
-        int comma = segment.indexOf(',');
-        if (comma == -1)
-            continue;
+//         int comma = segment.indexOf(',');
+//         if (comma == -1)
+//             continue;
 
-        float x = segment.substring(0, comma).toFloat();
-        float y = segment.substring(comma + 1).toFloat();
-        // Serial.printf("Parsedpath Point: (%f, %f)\n", x, y);
-        robot.path_.push_back(Point(x, y));
-    }
-    // Serial.print("Full Path received: ");
-    // for (const auto &point : robot.path_)
-    // {
-    //     Serial.printf("(%f, %f) ", point.x, point.y);
-    // }
-    // Serial.println();
-    Serial.print("Number of points in the path::: ");
-    Serial.println(robot.path_.size());
-}
+//         float x = segment.substring(0, comma).toFloat();
+//         float y = segment.substring(comma + 1).toFloat();
+//         // Serial.printf("Parsedpath Point: (%f, %f)\n", x, y);
+//         robot.path_.push_back(Point(x, y));
+//     }
+//     // Serial.print("Full Path received: ");
+//     // for (const auto &point : robot.path_)
+//     // {
+//     //     Serial.printf("(%f, %f) ", point.x, point.y);
+//     // }
+//     // Serial.println();
+//     Serial.print("Number of points in the path::: ");
+//     Serial.println(robot.path_.size());
+// }
 
 void parseSpeedAndPID(String data)
 {
@@ -177,6 +189,8 @@ void processCommand(String command)
     {
         parseGoals(command.substring(6));
         Serial.println("ACK:GOALS_RECEIVED");
+        
+        state = INIT;
     }
     
     // else if (command.startsWith("PATH:"))
@@ -199,30 +213,32 @@ void processCommand(String command)
 
     else if (command.startsWith("STATE:"))
     {
-        String stateStr = command.substring(6);
-        if (stateStr == "INIT")
-            state = INIT;
-        // else if (stateStr == "NAVIGATION")
-        //     state = NAVIGATION;
-        // else if (stateStr == "TURN_TO_GOAL")
-        //     state = TURN_TO_GOAL;
-        // else if (stateStr == "TURN_TO_PATH")
-        //     state = TURN_TO_PATH;
-        // else if (stateStr == "GOAL_REACHED")
-        //     state = GOAL_REACHED;
-        Serial.print("ACK:STATE_RECEIVED: ");
-        Serial.println(stateStr);
+        // String stateStr = command.substring(6);
+        // // if (stateStr == "INIT")
+        // //     state = INIT;
+        // // else if (stateStr == "NAVIGATION")
+        // //     state = NAVIGATION;
+        // // else if (stateStr == "TURN_TO_GOAL")
+        // //     state = TURN_TO_GOAL;
+        // // else if (stateStr == "TURN_TO_PATH")
+        // //     state = TURN_TO_PATH;
+        // // else if (stateStr == "GOAL_REACHED")
+        // //     state = GOAL_REACHED;
+        // Serial.print("ACK:STATE_RECEIVED:_");
+        // Serial.print(stateStr);
+        // Serial.println("_");
+
     }
 
     if (command == "EMERGENCYSTOP"){
         emergencystop = true;
         Serial.println("EMERGENCYSTOP_RECEIVED");
     }
-    else if (command == "RESET")
-    {
-        Serial.println("ESP32 restarting...");
-        ESP.restart(); // Software Reset
-    }
+    // else if (command == "RESET")
+    // {
+    //     Serial.println("ESP32 restarting...");
+    //     ESP.restart(); // Software Reset
+    // }
 
     else if (command.startsWith("SPEED_PID:"))
     {
@@ -255,7 +271,7 @@ void setup()
     {
         delay(10);
     }
-    delay(400);
+    delay(200);
 
     Serial.println("RESET!");
 
@@ -305,10 +321,12 @@ void setup()
     //     Serial.println(digitalRead(save_start_button));
     //  }
 
-    while (digitalRead(save_start_button) == HIGH){
+    while (digitalRead(save_start_button) == LOW){
         Serial.println("Waiting for Save Start button ...");
         vTaskDelay(200);
     }
+
+    Serial.println("security button pressed, waiting for Start button...");
 
     while (digitalRead(starter_button) == HIGH)
     {
@@ -340,7 +358,7 @@ void loop()
 
         if (emergencystop == true){
             emergency_counter++;
-            if (emergency_counter > 100)
+            if (emergency_counter > 65)
             {
                 emergencystop = false;
                 emergency_counter = 0;
@@ -352,47 +370,47 @@ void loop()
             String command = Serial.readStringUntil('\n');
             processCommand(command);
 
-            // If a PATH message is received, wait until PATHEND message
-            if (command.startsWith("PATH:"))
-            {
-                // Collect all parts of the path until we encounter PATHEND
-                String fullPath = ""; // Initialize empty string to store the full path
+            // // If a PATH message is received, wait until PATHEND message
+            // if (command.startsWith("PATH:"))
+            // {
+            //     // Collect all parts of the path until we encounter PATHEND
+            //     String fullPath = ""; // Initialize empty string to store the full path
 
-                if (command.startsWith("PATH:"))
-                {
-                    command = command.substring(5); // Remove "PATH:" prefix
-                }
+            //     if (command.startsWith("PATH:"))
+            //     {
+            //         command = command.substring(5); // Remove "PATH:" prefix
+            //     }
 
-                fullPath += command;
-                int counter = 0;
-                // Keep collecting until "PATHEND:" is found
-                while (true)
-                {
-                    if (Serial.available())
-                    {
-                        command = Serial.readStringUntil('\n');
-                        // Serial.println("RCCCC: " + command);
+            //     fullPath += command;
+            //     int counter = 0;
+            //     // Keep collecting until "PATHEND:" is found
+            //     while (true)
+            //     {
+            //         if (Serial.available())
+            //         {
+            //             command = Serial.readStringUntil('\n');
+            //             // Serial.println("RCCCC: " + command);
 
-                        // counter++;
-                        // Serial.print("Received Path Count: ");
-                        // Serial.println(counter);
+            //             // counter++;
+            //             // Serial.print("Received Path Count: ");
+            //             // Serial.println(counter);
 
-                        // If we encounter "PATHEND:", we need to remove it before adding to fullPath
-                        if (command.startsWith("PATHEND:"))
-                        {
-                            command = command.substring(8); // Remove "PATHEND:" prefix
-                            fullPath += command;            // Add the final chunk to the full path
-                            parsePath(fullPath);       // Process the complete path
-                            break;                          // Exit the loop after processing
-                        }
-                        else
-                        {
-                            // Otherwise, just add the chunk to the full path
-                            fullPath += command.substring(3);
-                        }
-                    }
-                }
-            }
+            //             // If we encounter "PATHEND:", we need to remove it before adding to fullPath
+            //             if (command.startsWith("PATHEND:"))
+            //             {
+            //                 command = command.substring(8); // Remove "PATHEND:" prefix
+            //                 fullPath += command;            // Add the final chunk to the full path
+            //                 parsePath(fullPath);       // Process the complete path
+            //                 break;                          // Exit the loop after processing
+            //             }
+            //             else
+            //             {
+            //                 // Otherwise, just add the chunk to the full path
+            //                 fullPath += command.substring(3);
+            //             }
+            //         }
+            //     }
+            // }
         }
 
             // static String inputString = ""; // Buffer for incoming data
@@ -434,6 +452,10 @@ void loop()
                     start_time = std::chrono::steady_clock::now();
                 }
 
+                robot.generateStraightPath();
+
+                sendpath(robot.getPath());
+
                 state = TURN_TO_PATH;
                 [[fallthrough]];
 
@@ -464,8 +486,6 @@ void loop()
                     last_sent_state = PATH_PLANNING;
                 }
                 Serial.println("CurrentState: NAVIGATION");
-
-                no_path_counter = 1.0;
 
                 robot.followPath();
 
@@ -520,7 +540,7 @@ void loop()
                     Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
                     
                     // delay(1000);
-                    vTaskDelay(400);
+                    vTaskDelay(50);
 
 
                     robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
@@ -530,11 +550,6 @@ void loop()
                     // TODO: STACKING CODE ////////////////////////////////////////////////////////////////////////////////77
                     // robot.leftSpeed_ =
                     // robot.rightSpeed_ =
-
-
-
-
-
 
                     state = INIT;
                 }
@@ -546,26 +561,13 @@ void loop()
                 }
                 break;
 
-            case WAITFORPATH:
-                Serial.println("CurrentState: WAITFORPATH");
-
-                no_path_counter++;
-
-                if(no_path_counter > 30)
-                {
-                    robot.stop();
-
-                }
-
-
-                break;
             }
 
 
             // Measure execution time
             auto now_time = std::chrono::steady_clock::now();
             double time_duration = std::chrono::duration_cast<std::chrono::seconds>(now_time - start_time).count();
-            ;
+            
             if (time_duration > 100 && start_timer == true)
             {
                 Serial.println("The exec time is over 100 sec");
@@ -580,6 +582,15 @@ void loop()
             //     Serial.print("ESPstate: ");
             //     Serial.println(state);
             // }
+            
+            // if (state == WAIT)
+            //     {
+            //         if (time_duration > 5 && start_timer == true)
+            //         {
+            //             Serial.println("The exec time is over 5 sec");
+            //             state = INIT;
+            //         }
+            //     }
 
             if (emergencystop == true)
             {
@@ -588,8 +599,8 @@ void loop()
 
             if (state != WAIT)
             {
-                setMotorSpeeds(robot.getLeftSpeed()/100 /no_path_counter , robot.getRightSpeed()/100 /no_path_counter);
-                // Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
+                setMotorSpeeds(robot.getLeftSpeed()/100 , robot.getRightSpeed()/100);
+                Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
 
                 if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
                 {

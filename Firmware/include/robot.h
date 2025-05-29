@@ -18,6 +18,36 @@ namespace ecn
         int findClosestPointOnPath();
         float calcAngleError(int target_index);
 
+        Point getPosition() const { return Point{x_, y_}; }
+
+        void generateStraightPath()
+        {
+            Point start = Point{x_, y_};
+            Point end = goals[current_goal_index].point;
+
+            float dx = end.x - start.x;
+            float dy = end.y - start.y;
+            float distance = std::sqrt(dx * dx + dy * dy);
+            int steps = static_cast<int>(distance / path_cm_per_point_);
+
+            for (int i = 0; i <= steps; ++i)
+            {
+                float t = static_cast<float>(i) / steps;
+                float x = start.x + t * dx;
+                float y = start.y + t * dy;
+
+                ecn::Point point;
+                point.x = x;
+                point.y = y;
+                path_.push_back(point);
+            }
+        }
+
+        std::vector<Point> getPath() const
+        {
+            return path_;
+        }
+
         void turn(float angle_error);
 
         void setIsStarting(bool value)
@@ -87,9 +117,11 @@ namespace ecn
         bool start_turning = true;
 
     private :
-        float turnsignal_limit = 2.0;
+        float turnsignal_limit = 3.0;
         float reducing_factor = 0;
-        float max_control_output_ = 16.0;  // (also max wheel speed for turnig)
+        float max_control_output_ = 30.0;  // (also max wheel speed for turnig)
+
+        float path_cm_per_point_ = 2.0;
 
         int current_goal_index = 1;
 

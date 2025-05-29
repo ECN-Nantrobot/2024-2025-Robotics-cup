@@ -102,7 +102,7 @@ def generate_launch_description():
     )
 
     laser_to_pointcloud_node = TimerAction(
-        period=1.0,  # Add an 8-second delay
+        period=0.2,  # Add an 8-second delay
         actions=[Node(
             package='robonav',
             executable='laser_to_pointcloud_node',

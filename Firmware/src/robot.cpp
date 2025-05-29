@@ -47,10 +47,14 @@ namespace ecn
         //                " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
         //                String(output));
 
-        if (output > max_control_output_)
+        if (output > max_control_output_){
             output = max_control_output_;
-        else if (output < -max_control_output_)
+            Serial.print("PID output limited to max_control_output_: ");
+        }
+        else if (output < -max_control_output_){
             output = -max_control_output_;
+            Serial.print("PID output limited to -max_control_output_: ");
+        }
 
         return output;
     }
@@ -71,7 +75,7 @@ namespace ecn
         {
             if (turnsignal > turnsignal_limit || turnsignal < -turnsignal_limit)
             {
-                reducing_factor += 1.0 / 30.0;
+                reducing_factor += 1.0 / 15.0;
                 leftSpeed_ = -turnsignal * reducing_factor;
                 rightSpeed_ = turnsignal * reducing_factor;
                 // Serial.println("reducing_factor: " + String(reducing_factor));
@@ -196,9 +200,9 @@ namespace ecn
             );
 
             // Slow speed if the robot is close to a goal
-            if (distanceToGoal < 15.0f)
+            if (distanceToGoal < 10.0f)
             {
-                speed_to_set = std::max(0.5f, distanceToGoal / 10.0f * target_speed_);
+                speed_to_set = std::max(0.8f, distanceToGoal / 10.0f * target_speed_);
             }
             // Slow speed if the robot is starting
             
@@ -206,7 +210,7 @@ namespace ecn
             
             if (is_starting_)
             {
-                starting_speed_ += 0.5f;
+                starting_speed_ += 1.0f;
                 speed_to_set = starting_speed_;
                 // Serial.print("is_starting == true, ");
                 // Serial.println("Starting speed: " + String(starting_speed_));

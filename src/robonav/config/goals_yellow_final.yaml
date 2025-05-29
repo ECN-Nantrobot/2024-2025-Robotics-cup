@@ -1,8 +1,8 @@
 robot:
   wheel_distance: 37.3
-  speed: 18.0
+  speed: 30.0
   pid:
-    kp: 30
+    kp: 28
     ki: 0.02
     kd: 0.6
 
@@ -37,14 +37,14 @@ goals:
 
     # Step = 13
     # Goal 7  midpoint
-  - x: 60
+  - x: 75
     y: 132
-    theta: -90
+    theta: -180
 
       # Step = 13
     # Goal 7  midpoint
-  - x: 60
-    y: 50
+  - x: 75
+    y: 80
     theta: -90
 
     # Step = 14

@@ -27,7 +27,7 @@
 
 #include <cv_bridge/cv_bridge.h>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-#include <sensor_msgs/msg/image.hpp>
+// #include <sensor_msgs/msg/image.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
@@ -45,6 +45,9 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_conversions/pcl_conversions.h>
 // #include <pcl_ros/transforms.hpp> // Provides pcl_ros::transformPointCloud
+
+#include "geometry_msgs/msg/pose_array.hpp"
+
 
 using namespace std;
 using namespace ecn;
@@ -67,6 +70,8 @@ bool emergencystate             = false;
 
 int sendpathcounter = 0;
 
+std::vector<ecn::Point> received_path;
+
 
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
                        Maze& maze,
@@ -74,6 +79,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
                        float robot_pos_y,
                        const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_publisher,
                        const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_notused_publisher,
+                       const rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr& cloud_tooclose_publisher,
                        const rclcpp::Node::SharedPtr& node)
 {
     robot_pos_x               = robot_x / 100.0;
@@ -94,6 +100,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     // Filter points within the desired map area and exclude points within a radius of 30cm from the robot
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZRGB>());
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_notused(new pcl::PointCloud<pcl::PointXYZRGB>());
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_tooclose(new pcl::PointCloud<pcl::PointXYZRGB>());
     for (const auto& pt : cloud->points) {
         float distance_to_robot = std::sqrt(std::pow(pt.x - robot_pos_x, 2) + std::pow(pt.y - robot_pos_y, 2));
         if (pt.x >= min_x && pt.x <= max_x && pt.y >= min_y && pt.y <= max_y && distance_to_robot > radius_around_robot) {
@@ -115,12 +122,21 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
             colored_pt_notused.b = 50;
             cloud_filtered_notused->points.push_back(colored_pt_notused);
         }
-
+        
         if (distance_to_robot <= close_obstacle_threshold) {
+            pcl::PointXYZRGB colored_pt_tooclose;
+            colored_pt_tooclose.x = pt.x;
+            colored_pt_tooclose.y = pt.y;
+            colored_pt_tooclose.z = pt.z;
+            colored_pt_tooclose.r = 255;
+            colored_pt_tooclose.g = 50;
+            colored_pt_tooclose.b = 50;
+            cloud_filtered_tooclose->points.push_back(colored_pt_tooclose);
+
             count_close_points++;
         }
+        
     }
-
 
     emergencystate = false;
 
@@ -213,48 +229,29 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     pcl::toROSMsg(*cloud_filtered_notused, cloud_filtered_notused_msg);
     cloud_filtered_notused_msg.header = cloud_msg->header;
     cloud_notused_publisher->publish(cloud_filtered_notused_msg);
+
+    sensor_msgs::msg::PointCloud2 cloud_filtered_tooclose_msg;
+    pcl::toROSMsg(*cloud_filtered_tooclose, cloud_filtered_tooclose_msg);
+    cloud_filtered_tooclose_msg.header = cloud_msg->header;
+    cloud_tooclose_publisher->publish(cloud_filtered_tooclose_msg);
 }
 
 
-void publishElasticbandPath(const std::vector<Point>& elastic_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
+void publishPath(const std::vector<Point>& path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
 {
     nav_msgs::msg::Path path_msg;
     path_msg.header.stamp    = node->now();
     path_msg.header.frame_id = "odom";
 
-    for (const auto& point : elastic_path) {
+    for (const auto& point : path) {
         geometry_msgs::msg::PoseStamped pose;
         pose.header.stamp       = path_msg.header.stamp;
         pose.header.frame_id    = "odom";
         pose.pose.position.x    = point.x / 100.0;     // Convert from cm to m
         pose.pose.position.y    = 2 - point.y / 100.0; // Conversion cm to m and frame change
         pose.pose.position.z    = 0.0;
-        pose.pose.orientation.w = 1.0; // Default orientation
-
-        path_msg.poses.push_back(pose);
-    }
-
-    path_publisher->publish(path_msg);
-}
-
-
-// Function to publish A* path as nav_msgs/Path
-void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
-{
-    nav_msgs::msg::Path path_msg;
-    path_msg.header.stamp    = node->now();
-    path_msg.header.frame_id = "odom"; // Set the appropriate frame
-
-    path_msg.poses.clear(); // Clear any residual data
-
-    for (const auto& position : astar_path) {
-        geometry_msgs::msg::PoseStamped pose;
-        pose.header.stamp    = path_msg.header.stamp;
-        pose.header.frame_id = "odom";
-        pose.pose.position.x = position.x / 100.0;     // Convert cm to meters
-        pose.pose.position.y = 2 - position.y / 100.0; // Verify this transformation
-        pose.pose.position.z = 0.0;
-
+        
+        
         tf2::Quaternion q;
         q.setRPY(0, 0, -robot_theta); // Verify robot_theta value
         pose.pose.orientation.x = q.x();
@@ -265,43 +262,78 @@ void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Pub
         path_msg.poses.push_back(pose);
     }
 
+    // for (const auto& point : path) {
+    //     std::cout << "Path point: (" << point.x << ", " << point.y << ")" << std::endl;
+    // }
+
     path_publisher->publish(path_msg);
 }
 
-// Function to publish Elastic Band circles as visualization_msgs/Marker
-void publishElasticBandCircles(const std::vector<Point>& eb_path, const rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr& marker_publisher, const rclcpp::Node::SharedPtr& node)
-{
-    visualization_msgs::msg::Marker marker;
-    marker.header.stamp    = node->now();
-    marker.header.frame_id = "odom"; // Set the appropriate frame
-    marker.ns              = "elastic_band_circles";
-    marker.id              = 0;
-    marker.type            = visualization_msgs::msg::Marker::SPHERE_LIST;
-    marker.action          = visualization_msgs::msg::Marker::ADD;
 
-    for (const auto& point : eb_path) {
-        geometry_msgs::msg::Point sphere_center;
-        sphere_center.x = point.x / 100.0; // Convert cm to meters
-        sphere_center.y = 2 - point.y / 100.0;
-        sphere_center.z = 0.0;
-        marker.points.push_back(sphere_center);
+// // Function to publish A* path as nav_msgs/Path
+// void publishAStarPath(const std::vector<Position>& astar_path, const rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr& path_publisher, const rclcpp::Node::SharedPtr& node)
+// {
+//     nav_msgs::msg::Path path_msg;
+//     path_msg.header.stamp    = node->now();
+//     path_msg.header.frame_id = "odom"; // Set the appropriate frame
 
-        // Set the size of each circle based on point.radius
-        marker.scale.x = point.radius / 100.0; // Convert cm to meters
-        marker.scale.y = point.radius / 100.0;
-        marker.scale.z = point.radius / 100.0;
+//     path_msg.poses.clear(); // Clear any residual data
 
-        // Use the color from point.colour (cv::Scalar(255, 50, 50))
-        std_msgs::msg::ColorRGBA sphere_color;
-        sphere_color.r = point.colour[2] / 255.0; // OpenCV uses BGR, normalize to [0, 1]
-        sphere_color.g = point.colour[1] / 255.0;
-        sphere_color.b = point.colour[0] / 255.0;
-        sphere_color.a = 0.03; // opacity
-        marker.colors.push_back(sphere_color);
-    }
+//     for (const auto& position : astar_path) {
+//         geometry_msgs::msg::PoseStamped pose;
+//         pose.header.stamp    = path_msg.header.stamp;
+//         pose.header.frame_id = "odom";
+//         pose.pose.position.x = position.x / 100.0;     // Convert cm to meters
+//         pose.pose.position.y = 2 - position.y / 100.0; // Verify this transformation
+//         pose.pose.position.z = 0.0;
 
-    marker_publisher->publish(marker);
-}
+//         tf2::Quaternion q;
+//         q.setRPY(0, 0, -robot_theta); // Verify robot_theta value
+//         pose.pose.orientation.x = q.x();
+//         pose.pose.orientation.y = q.y();
+//         pose.pose.orientation.z = q.z();
+//         pose.pose.orientation.w = q.w();
+
+//         path_msg.poses.push_back(pose);
+//     }
+
+//     path_publisher->publish(path_msg);
+// }
+
+// // Function to publish Elastic Band circles as visualization_msgs/Marker
+// void publishElasticBandCircles(const std::vector<Point>& eb_path, const rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr& marker_publisher, const rclcpp::Node::SharedPtr& node)
+// {
+//     visualization_msgs::msg::Marker marker;
+//     marker.header.stamp    = node->now();
+//     marker.header.frame_id = "odom"; // Set the appropriate frame
+//     marker.ns              = "elastic_band_circles";
+//     marker.id              = 0;
+//     marker.type            = visualization_msgs::msg::Marker::SPHERE_LIST;
+//     marker.action          = visualization_msgs::msg::Marker::ADD;
+
+//     for (const auto& point : eb_path) {
+//         geometry_msgs::msg::Point sphere_center;
+//         sphere_center.x = point.x / 100.0; // Convert cm to meters
+//         sphere_center.y = 2 - point.y / 100.0;
+//         sphere_center.z = 0.0;
+//         marker.points.push_back(sphere_center);
+
+//         // Set the size of each circle based on point.radius
+//         marker.scale.x = point.radius / 100.0; // Convert cm to meters
+//         marker.scale.y = point.radius / 100.0;
+//         marker.scale.z = point.radius / 100.0;
+
+//         // Use the color from point.colour (cv::Scalar(255, 50, 50))
+//         std_msgs::msg::ColorRGBA sphere_color;
+//         sphere_color.r = point.colour[2] / 255.0; // OpenCV uses BGR, normalize to [0, 1]
+//         sphere_color.g = point.colour[1] / 255.0;
+//         sphere_color.b = point.colour[0] / 255.0;
+//         sphere_color.a = 0.03; // opacity
+//         marker.colors.push_back(sphere_color);
+//     }
+
+//     marker_publisher->publish(marker);
+// }
 
 
 void publishPosition(const rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher, std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster, const rclcpp::Node::SharedPtr node)
@@ -432,57 +464,57 @@ void sendGoals(serial::Serial& ser)
     ser.write(message);
 }
 
-void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
-{
-    auto path_send_start_time = std::chrono::steady_clock::now(); // Start timing
+// void sendPath(serial::Serial& ser, const std::vector<ecn::Point>& path)
+// {
+//     auto path_send_start_time = std::chrono::steady_clock::now(); // Start timing
 
-    int path_sending_limit = 3;                                              // Send x points at a time
-    size_t path_size       = std::min(path.size(), static_cast<size_t>(200)); // total points to save
+//     int path_sending_limit = 3;                                              // Send x points at a time
+//     size_t path_size       = std::min(path.size(), static_cast<size_t>(200)); // total points to save
 
-    int iterations = 0;
-    // Loop through the entire path in chunks (in this case, 2 points at a time)
-    for (size_t i = 0; i < path_size; i += path_sending_limit) {
-        std::string message;
-        if (i + path_sending_limit >= path_size) {
-            message = "PATHEND:"; // Use "PATHEND:" for the last batch
-        } else {
-            message = (i == 0) ? "PATH:" : "PT:"; // Use "PATH:" for the first batch, "PT:" for subsequent ones
-        }
+//     int iterations = 0;
+//     // Loop through the entire path in chunks (in this case, 2 points at a time)
+//     for (size_t i = 0; i < path_size; i += path_sending_limit) {
+//         std::string message;
+//         if (i + path_sending_limit >= path_size) {
+//             message = "PATHEND:"; // Use "PATHEND:" for the last batch
+//         } else {
+//             message = (i == 0) ? "PATH:" : "PT:"; // Use "PATH:" for the first batch, "PT:" for subsequent ones
+//         }
 
-        size_t max_points = std::min(path_size - i, static_cast<size_t>(path_sending_limit)); // Limit the number of points in each chunk
+//         size_t max_points = std::min(path_size - i, static_cast<size_t>(path_sending_limit)); // Limit the number of points in each chunk
 
-        std::ostringstream path_oss;
-        path_oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
+//         std::ostringstream path_oss;
+//         path_oss << std::fixed << std::setprecision(2); // Set fixed-point format with 2 decimal places
 
-        // Add points to the message
-        for (size_t j = i; j < i + max_points; ++j) {
-            // Format x and y to two decimal places
-            path_oss << path[j].x << "," << path[j].y << ";";
-        }
+//         // Add points to the message
+//         for (size_t j = i; j < i + max_points; ++j) {
+//             // Format x and y to two decimal places
+//             path_oss << path[j].x << "," << path[j].y << ";";
+//         }
 
-        message += path_oss.str(); // Add the formatted points to the message
-        message += "\n";           // Add a newline to mark the end of the message
+//         message += path_oss.str(); // Add the formatted points to the message
+//         message += "\n";           // Add a newline to mark the end of the message
 
-        ser.write(message); // Send the message over serial
-        iterations++;
-        // std::cout << message;                                      // Print the message to std
-        std::this_thread::sleep_for(std::chrono::milliseconds(6)); // Optional: wait before sending the next chunk
-    }
-    // std::cout << std::endl;
-    std::cout << iterations << " of " << path_size / path_sending_limit << " PATH chunks sent" << std::endl;
+//         ser.write(message); // Send the message over serial
+//         iterations++;
+//         // std::cout << message;                                      // Print the message to std
+//         std::this_thread::sleep_for(std::chrono::milliseconds(6)); // Optional: wait before sending the next chunk
+//     }
+//     // std::cout << std::endl;
+//     std::cout << iterations << " of " << path_size / path_sending_limit << " PATH chunks sent" << std::endl;
 
-    auto path_send_end_time   = std::chrono::steady_clock::now(); // End timing
-    double path_send_duration = std::chrono::duration_cast<std::chrono::milliseconds>(path_send_end_time - path_send_start_time).count();
-    std::cout << "" << std::endl;
-    std::cout << "" << std::endl;
-    std::cout << "" << std::endl;
+//     auto path_send_end_time   = std::chrono::steady_clock::now(); // End timing
+//     double path_send_duration = std::chrono::duration_cast<std::chrono::milliseconds>(path_send_end_time - path_send_start_time).count();
+//     std::cout << "" << std::endl;
+//     std::cout << "" << std::endl;
+//     std::cout << "" << std::endl;
 
-    std::cout << "Path sending time: " << path_send_duration << " ms" << std::endl;
-    std::cout << "" << std::endl;
-    std::cout << "" << std::endl;
+//     std::cout << "Path sending time: " << path_send_duration << " ms" << std::endl;
+//     std::cout << "" << std::endl;
+//     std::cout << "" << std::endl;
 
-    std::cout << "" << std::endl;
-}
+//     std::cout << "" << std::endl;
+// }
 
 void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, double D)
 {
@@ -494,7 +526,7 @@ void sendSpeedAndPID(serial::Serial& ser, double speed, double P, double I, doub
 
 void processCommand(const std::string& command)
 {
-    std::cout << "Recieved from ESP: " << command;
+    std::cout << "Recieved from ESP:_" << command << "_";
 
     if (command.rfind("X:", 0) == 0) {
         std::string position_string = command;
@@ -531,6 +563,25 @@ void processCommand(const std::string& command)
         // // Optionally, shutdown this node as well
         // rclcpp::shutdown();
         // return 1;
+    } else if (command.rfind("PATH:", 0) == 0) {
+
+        std::string path_data = command.substr(5); // Extract the path data after "PATH:"
+        path_data.erase(std::remove(path_data.begin(), path_data.end(), '\n'), path_data.end());
+
+        std::istringstream path_stream(path_data);
+        std::string point_str;
+
+        received_path.clear(); // Clear any previous path data
+
+        while (std::getline(path_stream, point_str, ';')) {
+            float x, y;
+            if (sscanf(point_str.c_str(), "%f,%f", &x, &y) == 2) {
+                ecn::Point point;
+                point.x = x;
+                point.y = y;
+                received_path.push_back(point);
+            }
+        }
     }
 }
 
@@ -561,15 +612,6 @@ std::vector<ecn::Point> generateStraightPath(const ecn::Point& start, const ecn:
 
     return path;
 }
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void loadGoalsFromFile(const std::string& filename, std::vector<ecn::Pose>& goals, double& wheel_distance, double& speed, double& kp, double& ki, double& kd)
 {
@@ -609,29 +651,63 @@ void loadObstaclesFromFile(const std::string& filename, std::vector<Obstacle>& o
     }
 }
 
+void publishGoals(const std::vector<ecn::Pose>& goals, const rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr& goals_publisher, const rclcpp::Node::SharedPtr& node)
+{
+    geometry_msgs::msg::PoseArray goals_msg;
+    goals_msg.header.stamp    = node->now();
+    goals_msg.header.frame_id = "odom";
+
+    for (const auto& goal : goals) {
+        geometry_msgs::msg::Pose pose;
+        pose.position.x = goal.point.x / 100.0;     // Convert cm to meters
+        pose.position.y = 2 - goal.point.y / 100.0; // Frame transformation
+        pose.position.z = 0.0;
+
+        tf2::Quaternion q;
+        q.setRPY(0, 0, -goal.theta * M_PI / 180.0); // Convert degrees to radians
+        pose.orientation.x = q.x();
+        pose.orientation.y = q.y();
+        pose.orientation.z = q.z();
+        pose.orientation.w = q.w();
+
+        goals_msg.poses.push_back(pose);
+    }
+
+    goals_publisher->publish(goals_msg);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
     auto node = rclcpp::Node::make_shared("main_publisher");
 
     auto cloud_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_used", 10);
-
     auto cloud_notused_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_notused", 10);
+    auto cloud_tooclose_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_tooclose", 10);
 
-    auto cloud_subscriber =
-    node->create_subscription<sensor_msgs::msg::PointCloud2>("/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
-        processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, node);
+    auto cloud_subscriber = node->create_subscription<sensor_msgs::msg::PointCloud2>(
+    "/pointcloud", 10, [node, cloud_publisher, cloud_notused_publisher, cloud_tooclose_publisher](const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        processPointCloud(msg, Point::maze, robot_x, robot_y, cloud_publisher, cloud_notused_publisher, cloud_tooclose_publisher, node);
     });
 
     auto main_publisher = node->create_publisher<geometry_msgs::msg::Twist>("/main", 10);
-    auto path_publisher = node->create_publisher<nav_msgs::msg::Path>("elastic_band_path", 10);
+    auto path_publisher = node->create_publisher<nav_msgs::msg::Path>("/path", 10);
     auto odom_publisher = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
     // auto odom_subscriber    = node->create_subscription<nav_msgs::msg::Odometry>("/odom", 10, odomCallback);
     auto point_publisher    = node->create_publisher<geometry_msgs::msg::PointStamped>("point_topic", 10);
+    auto goals_publisher    = node->create_publisher<geometry_msgs::msg::PoseArray>("/goals", 10);
     auto occupancy_grid_pub = node->create_publisher<nav_msgs::msg::OccupancyGrid>("/map_viz", 10);
     auto tf_broadcaster     = std::make_shared<tf2_ros::TransformBroadcaster>(node);
-
-    auto elastic_band_path_pub = node->create_publisher<nav_msgs::msg::Path>("/elastic_band_path", 10);
     // auto astar_path_pub           = node->create_publisher<nav_msgs::msg::Path>("/astar_path", 10);
     // auto elastic_band_circles_pub = node->create_publisher<visualization_msgs::msg::Marker>("/elastic_band_circles", 10);
     // auto loop_time_publisher      = node->create_publisher<std_msgs::msg::Float64>("loop_execution_time", 10);
@@ -641,7 +717,7 @@ int main(int argc, char** argv)
     bool port_opened = false;
 
     try {
-        ser.setPort("/dev/ttyUSB0");
+        ser.setPort("/dev/esp32");
         ser.setBaudrate(921600);
         serial::Timeout to = serial::Timeout::simpleTimeout(1000);
         ser.setTimeout(to);
@@ -714,8 +790,10 @@ int main(int argc, char** argv)
             loadGoalsFromFile("/home/pi/2024-2025-Robotics-cup/src/robonav/config/goals_yellow_final.yaml", robot.goals, wheel_distance, speed, kp, ki, kd);
             std::cout << "Using yellow goals configuration" << std::endl;
         }
+
+        publishGoals(robot.goals, goals_publisher, node);
     } catch (const std::exception& e) {
-        std::cerr << "Error loading configuration: " << e.what() << std::endl;
+        std::cerr << "Error loading goal configuration: " << e.what() << std::endl;
         return 1;
     }
 
@@ -807,24 +885,24 @@ int main(int argc, char** argv)
     sendSpeedAndPID(ser, speed, kp, ki, kd);
     sendGoals(ser);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // sendPath(ser, elastic_band.getSmoothedPath());
 
-    auto straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-    sendPath(ser, straight_path);
-    publishElasticbandPath(straight_path, path_publisher, node);
+    // auto straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+    // sendPath(ser, straight_path);
+    // publishElasticbandPath(straight_path, path_publisher, node);
 
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(50000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-    ser.write("STATE:INIT\n");
-    ser.write("STATE:INIT\n");
-    ser.write("STATE:INIT\n");
-    ser.write("STATE:INIT\n");
-    ser.write("STATE:INIT\n");
-    ser.write("STATE:INIT\n");
-    std::cout << "Sent INIT state" << std::endl;
+    // ser.write("STATE:INIT\n");
+    // ser.write("STATE:INIT\n");
+    // ser.write("STATE:INIT\n");
+    // ser.write("STATE:INIT\n");
+    // ser.write("STATE:INIT\n");
+    // ser.write("STATE:INIT\n");
+    // std::cout << "Sent INIT state" << std::endl;
 
     std::cout << "Robot Position: (" << robot.getX() << ", " << robot.getY() << ")" << std::endl;
 
@@ -833,272 +911,261 @@ int main(int argc, char** argv)
 
     rclcpp::Rate loop_rate(20); // 20 Hz, 50ms per loop
 
-
-    bool dont_move = false;
-
-    bool switch_sim_movoment = false;
-
     ////////////////////////////////////////////////////////////////////// MAIN LOOP ////////////////////////////////////////////////////////////////////
     while (rclcpp::ok()) {
         auto loop_start_time = std::chrono::steady_clock::now(); // Initialize loop start time
 
-        if (dont_move == false) {
+        int max_reads = 15;
 
-
-            int max_reads = 15;
-
-            while (ser.available() && max_reads > 0) {
-                std::string command = ser.readline();
-                processCommand(command);
-                max_reads--;
-            }
-
-            // // Updating the Obstacles
-            // for (auto& obstacle : obstacles) {
-            //     obstacle.update();
-            // // }
-            // Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
-
-
-            robot.setPose(robot_x, robot_y, robot_theta);
-
-            switch (state) {
-            case WAITING: std::cout << "State: WAITING" << std::endl; break;
-
-            case INIT:
-                std::cout << "State: INIT" << std::endl;
-
-                // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-                start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
-                goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
-                // try {
-                //     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
-                // } catch (const std::exception& e) {
-                //     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
-                //     astar_path.clear(); // Clear the path to handle the error gracefully
-                //     // ser.write("STATE:WAITFORPATH\n");
-                //     // std::cout << "Sent WAITFORPATH state" << std::endl;
-                //     break;
-                // }
-                // for (auto& position : astar_path) {
-                //     position           = position * (1 / Point::maze.resize_for_astar);
-                //     astar_path.front() = start_p;
-                //     astar_path.back()  = goal_p;
-                // }
-
-                
-
-
-                // elastic_band.updatePath(astar_path);
-                // elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
-
-                // publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
-                // sendPath(ser, elastic_band.getSmoothedPath());
-
-                straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-                sendPath(ser, straight_path);
-                publishElasticbandPath(straight_path, path_publisher, node);
-
-
-                state = WAITING;
-
-
-                break;
-
-            case PATH_PLANNING:
-                std::cout << "State: PATH_PLANNING-------" << std::endl;
-
-                // Recalculate A* path
-                // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
-                start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
-                goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
-
-                // try {
-                //     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
-                // } catch (const std::exception& e) {
-                //     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
-                //     astar_path.clear(); // Clear the path to handle the error gracefully
-                //     ser.write("STATE:WAITFORPATH\n");
-                //     std::cout << "Sent WAITFORPATH state" << std::endl;
-                //     break;
-                // }
-
-                // for (auto& position : astar_path) {
-                //     position           = position * (1 / Point::maze.resize_for_astar);
-                //     astar_path.front() = start_p;
-                //     astar_path.back()  = goal_p;
-                // }
-
-                // // Check the difference in the A* path
-                // path_difference_front = 0.0;
-                // path_difference_end   = 0.0;
-                // path_difference       = 0.0;
-                // // path_difference_check_limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
-                // path_difference_check_limit = astar_path.size() / 2;
-                // if (astar_path_previous.size() != 0) {
-                //     for (size_t i = 1 + path_difference_check_limit; i < astar_path.size(); i += 2) {
-                //         double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
-                //         double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
-                //         path_difference_front += sqrt(dx * dx + dy * dy);
-                //     }
-                //     path_difference_front /= astar_path.size();
-                //     // std ::cout << "A* path diff front: %: " << path_difference_front;
-
-                //     for (size_t i = 1; i < astar_path.size() - path_difference_check_limit; i += 2) {
-                //         double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
-                //         double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
-                //         path_difference_end += sqrt(dx * dx + dy * dy);
-                //     }
-                //     path_difference_end /= astar_path.size();
-                //     // std ::cout << " A* path diff end: %: " << path_difference_end;
-                // } else {
-                //     // std::cout << "astar_path_previous.size() = " << astar_path_previous.size() << std::endl;
-                // }
-                // path_difference = path_difference_front + path_difference_end;
-                // if (path_difference_front > 3) {
-                //     astar_path_previous = astar_path;
-                //     elastic_band.updatePath(astar_path);
-                //     // std::cout << "    -> A* Path Front, set eb" << std::endl;
-                //     elastic_band.resetOptimization();
-                //     counter_set_eb_path       = 0;
-                //     set_eb_path_counter_limit = 1;
-                //     eb_comp_inarow            = 1;
-                // } else if (path_difference_end > 4) {
-                //     astar_path_previous = astar_path;
-                //     elastic_band.updatePath(astar_path);
-                //     // std::cout << "    -> A* Path Back, set eb" << std::endl;
-                //     set_eb_path_counter_limit = 2;
-                //     counter_set_eb_path       = 0;
-                //     elastic_band.resetOptimization();
-                // } else if (path_difference >= 3.1) {
-                //     astar_path_previous = astar_path;
-                //     elastic_band.updatePath(astar_path);
-                //     // std::cout << "    -> A* Path FULL, set eb" << std::endl;
-                //     elastic_band.resetOptimization();
-                //     counter_set_eb_path       = 0;
-                //     set_eb_path_counter_limit = 1;
-                //     eb_comp_inarow            = 1;
-                //     elastic_band.setMaxInterations(6);
-                // } else if (path_difference > 2.6 && path_difference < 3 || astar_path_previous.size() == 0) {
-                //     astar_path_previous = astar_path;
-                //     elastic_band.updatePath(astar_path);
-                //     // std::cout << "    -> A* Path MEDIUM, set eb" << std::endl;
-                //     set_eb_path_counter_limit = 3;
-                //     counter_set_eb_path       = 0;
-                //     elastic_band.resetOptimization();
-                // } else {
-                //     std ::cout << "" << std::endl;
-                // }
-
-
-                // static auto last_clone_time = std::chrono::steady_clock::now();
-                // auto current_time           = std::chrono::steady_clock::now();
-                // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
-
-                // sendpathcounter++;
-
-                // if (sendpathcounter >= 50)
-                // {
-                //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-                //     sendPath(ser, straight_path);
-                //     publishElasticbandPath(straight_path, path_publisher, node);
-
-                //     std::cout << "Straight path sent and published!" << std::endl;
-                //     std::cout << "Straight path sent and published!" << std::endl;
-                //     std::cout << "Straight path sent and published!" << std::endl;
-                //     std::cout << "Straight path sent and published!" << std::endl;
-                //     std::cout << "Straight path sent and published!" << std::endl;
-
-                //     sendpathcounter = 0;
-                // }
-
-
-                // elastic_band.updatePath(astar_path);
-
-
-                // state = NAVIGATION;
-                // [[fallthrough]];
-                break;
-
-
-            case NAVIGATION:
-                std::cout << "State: NAVIGATION to: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
-
-
-                // elastic_band.optimize(robot.getPosition(), robot.goals[robot.goal_index]);
-
-                // if (elastic_band.errorCheck() == true) {
-                //     // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
-                //     elastic_band.resetOptimization();
-                //     state = PATH_PLANNING;
-                //     break;
-                // }
-
-                // if (elastic_band.isOptimizationComplete()) {
-                //     // std::cout << "Elastic Band optimization completed";
-                //     counter_set_eb_path++;
-                //     elastic_band.resetOptimization();
-
-                //     if (counter_set_eb_path > set_eb_path_counter_limit) {
-                //         elastic_band.generateSmoothedPath(2.5f, 21, 1.2f); // 0.08 ms
-                //         std::cout << "generated EB Path" << std::endl;
-
-                //         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
-                //         eb_comp_inarow            = eb_comp_inarow_default;
-
-                // send_path_counter++;
-                // if (send_path_counter >= 5) {
-                //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-                //     publishElasticbandPath(straight_path, path_publisher, node);
-                //     sendPath(ser, straight_path);
-                //     send_path_counter = 0;
-                // }
-
-
-                // navigation_counter++;
-
-                // if (navigation_counter >= 15) {
-                //     state              = PATH_PLANNING;
-                //     navigation_counter = 0;
-                // }
-
-                break;
-
-            case GOAL_REACHED:
-                std::cout << "State: GOAL_REACHED" << std::endl;
-
-                if (robot.goal_index < robot.goals.size() - 1) {
-                    robot.goal_index++;
-                    std::cout << "New goal: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
-                    // Remove the second obstacle from the obstacles vector
-                    // int removeobstacles_offset = 0;
-                    // if (team_colour == 1) { removeobstacles_offset = 2; }
-                    // if (obstacles.size() > 1 + removeobstacles_offset) {
-                    //     obstacles.erase(obstacles.begin());
-                    //     std::cout << "OOOOOOOOOOOOO Removed first obstacle from obstacles vector OOOOOOOOOOOOO" << std::endl;
-                    // }
-
-
-                    straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
-                    sendPath(ser, straight_path);
-                    publishElasticbandPath(straight_path, path_publisher, node);
-
-                } else {
-                    std::cout << "All goals reached!" << std::endl;
-                }
-
-                state = WAITING;
-
-
-                break;
-            }
+        while (ser.available() && max_reads > 0) {
+            std::string command = ser.readline();
+            processCommand(command);
+            max_reads--;
         }
+
+        // // Updating the Obstacles
+        // for (auto& obstacle : obstacles) {
+        //     obstacle.update();
+        // // }
+        // Point::maze.renderObstacles(obstacles, Point::maze.im, 1);
+
+
+        robot.setPose(robot_x, robot_y, robot_theta);
+
+        switch (state) {
+        case WAITING: std::cout << "State: WAITING" << std::endl; break;
+
+        case INIT:
+            std::cout << "State: INIT" << std::endl;
+
+            // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+            start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
+            goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+            // try {
+            //     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+            // } catch (const std::exception& e) {
+            //     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+            //     astar_path.clear(); // Clear the path to handle the error gracefully
+            //     // ser.write("STATE:WAITFORPATH\n");
+            //     // std::cout << "Sent WAITFORPATH state" << std::endl;
+            //     break;
+            // }
+            // for (auto& position : astar_path) {
+            //     position           = position * (1 / Point::maze.resize_for_astar);
+            //     astar_path.front() = start_p;
+            //     astar_path.back()  = goal_p;
+            // }
+
+
+            // elastic_band.updatePath(astar_path);
+            // elastic_band.runFullOptimization(robot.getPosition(), robot.goals[robot.goal_index]);
+
+            // publishElasticbandPath(elastic_band.getSmoothedPath(), path_publisher, node);
+            // sendPath(ser, elastic_band.getSmoothedPath());
+
+            // straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+            // sendPath(ser, straight_path);
+            // publishElasticbandPath(straight_path, path_publisher, node);
+
+
+            state = WAITING;
+
+
+            break;
+
+        case PATH_PLANNING:
+            std::cout << "State: PATH_PLANNING-------" << std::endl;
+
+            // Recalculate A* path
+            // cv::resize(Point::maze.im, Point::maze.im_lowres, cv::Size(), Point::maze.resize_for_astar, Point::maze.resize_for_astar, cv::INTER_AREA);
+            start_p = Position(static_cast<int>(robot.getX()), static_cast<int>(robot.getY()));
+            goal_p  = Position(static_cast<int>(robot.goals[robot.goal_index].point.x), static_cast<int>(robot.goals[robot.goal_index].point.y));
+
+            // try {
+            //     astar_path = Astar(start_p * Point::maze.resize_for_astar, goal_p * Point::maze.resize_for_astar);
+            // } catch (const std::exception& e) {
+            //     std::cerr << "Error during A* path calculation: " << e.what() << std::endl;
+            //     astar_path.clear(); // Clear the path to handle the error gracefully
+            //     ser.write("STATE:WAITFORPATH\n");
+            //     std::cout << "Sent WAITFORPATH state" << std::endl;
+            //     break;
+            // }
+
+            // for (auto& position : astar_path) {
+            //     position           = position * (1 / Point::maze.resize_for_astar);
+            //     astar_path.front() = start_p;
+            //     astar_path.back()  = goal_p;
+            // }
+
+            // // Check the difference in the A* path
+            // path_difference_front = 0.0;
+            // path_difference_end   = 0.0;
+            // path_difference       = 0.0;
+            // // path_difference_check_limit = astar_path.size() < 25 ? astar_path.size() : astar_path.size() / 2;
+            // path_difference_check_limit = astar_path.size() / 2;
+            // if (astar_path_previous.size() != 0) {
+            //     for (size_t i = 1 + path_difference_check_limit; i < astar_path.size(); i += 2) {
+            //         double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
+            //         double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
+            //         path_difference_front += sqrt(dx * dx + dy * dy);
+            //     }
+            //     path_difference_front /= astar_path.size();
+            //     // std ::cout << "A* path diff front: %: " << path_difference_front;
+
+            //     for (size_t i = 1; i < astar_path.size() - path_difference_check_limit; i += 2) {
+            //         double dx = astar_path_previous[astar_path_previous.size() - i].x - astar_path[astar_path.size() - i].x;
+            //         double dy = astar_path_previous[astar_path_previous.size() - i].y - astar_path[astar_path.size() - i].y;
+            //         path_difference_end += sqrt(dx * dx + dy * dy);
+            //     }
+            //     path_difference_end /= astar_path.size();
+            //     // std ::cout << " A* path diff end: %: " << path_difference_end;
+            // } else {
+            //     // std::cout << "astar_path_previous.size() = " << astar_path_previous.size() << std::endl;
+            // }
+            // path_difference = path_difference_front + path_difference_end;
+            // if (path_difference_front > 3) {
+            //     astar_path_previous = astar_path;
+            //     elastic_band.updatePath(astar_path);
+            //     // std::cout << "    -> A* Path Front, set eb" << std::endl;
+            //     elastic_band.resetOptimization();
+            //     counter_set_eb_path       = 0;
+            //     set_eb_path_counter_limit = 1;
+            //     eb_comp_inarow            = 1;
+            // } else if (path_difference_end > 4) {
+            //     astar_path_previous = astar_path;
+            //     elastic_band.updatePath(astar_path);
+            //     // std::cout << "    -> A* Path Back, set eb" << std::endl;
+            //     set_eb_path_counter_limit = 2;
+            //     counter_set_eb_path       = 0;
+            //     elastic_band.resetOptimization();
+            // } else if (path_difference >= 3.1) {
+            //     astar_path_previous = astar_path;
+            //     elastic_band.updatePath(astar_path);
+            //     // std::cout << "    -> A* Path FULL, set eb" << std::endl;
+            //     elastic_band.resetOptimization();
+            //     counter_set_eb_path       = 0;
+            //     set_eb_path_counter_limit = 1;
+            //     eb_comp_inarow            = 1;
+            //     elastic_band.setMaxInterations(6);
+            // } else if (path_difference > 2.6 && path_difference < 3 || astar_path_previous.size() == 0) {
+            //     astar_path_previous = astar_path;
+            //     elastic_band.updatePath(astar_path);
+            //     // std::cout << "    -> A* Path MEDIUM, set eb" << std::endl;
+            //     set_eb_path_counter_limit = 3;
+            //     counter_set_eb_path       = 0;
+            //     elastic_band.resetOptimization();
+            // } else {
+            //     std ::cout << "" << std::endl;
+            // }
+
+
+            // static auto last_clone_time = std::chrono::steady_clock::now();
+            // auto current_time           = std::chrono::steady_clock::now();
+            // if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 5) {
+
+            // sendpathcounter++;
+
+            // if (sendpathcounter >= 50)
+            // {
+            //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+            //     sendPath(ser, straight_path);
+            //     publishElasticbandPath(straight_path, path_publisher, node);
+
+            //     std::cout << "Straight path sent and published!" << std::endl;
+            //     std::cout << "Straight path sent and published!" << std::endl;
+            //     std::cout << "Straight path sent and published!" << std::endl;
+            //     std::cout << "Straight path sent and published!" << std::endl;
+            //     std::cout << "Straight path sent and published!" << std::endl;
+
+            //     sendpathcounter = 0;
+            // }
+
+
+            // elastic_band.updatePath(astar_path);
+
+
+            // state = NAVIGATION;
+            // [[fallthrough]];
+            break;
+
+
+        case NAVIGATION:
+            std::cout << "State: NAVIGATION to: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
+
+
+            // elastic_band.optimize(robot.getPosition(), robot.goals[robot.goal_index]);
+
+            // if (elastic_band.errorCheck() == true) {
+            //     // std::cout << "EB Optimization error -> PATH PLANNING." << std::endl;
+            //     elastic_band.resetOptimization();
+            //     state = PATH_PLANNING;
+            //     break;
+            // }
+
+            // if (elastic_band.isOptimizationComplete()) {
+            //     // std::cout << "Elastic Band optimization completed";
+            //     counter_set_eb_path++;
+            //     elastic_band.resetOptimization();
+
+            //     if (counter_set_eb_path > set_eb_path_counter_limit) {
+            //         elastic_band.generateSmoothedPath(2.5f, 21, 1.2f); // 0.08 ms
+            //         std::cout << "generated EB Path" << std::endl;
+
+            //         set_eb_path_counter_limit = set_eb_path_counter_limit_default;
+            //         eb_comp_inarow            = eb_comp_inarow_default;
+
+            // send_path_counter++;
+            // if (send_path_counter >= 5) {
+            //     straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+            //     publishElasticbandPath(straight_path, path_publisher, node);
+            //     sendPath(ser, straight_path);
+            //     send_path_counter = 0;
+            // }
+
+
+            // navigation_counter++;
+
+            // if (navigation_counter >= 15) {
+            //     state              = PATH_PLANNING;
+            //     navigation_counter = 0;
+            // }
+
+            break;
+
+        case GOAL_REACHED:
+            std::cout << "State: GOAL_REACHED" << std::endl;
+
+            if (robot.goal_index < robot.goals.size() - 1) {
+                robot.goal_index++;
+                std::cout << "New goal: (" << robot.goals[robot.goal_index].point.x << ", " << robot.goals[robot.goal_index].point.y << ")" << std::endl;
+                // Remove the second obstacle from the obstacles vector
+                // int removeobstacles_offset = 0;
+                // if (team_colour == 1) { removeobstacles_offset = 2; }
+                // if (obstacles.size() > 1 + removeobstacles_offset) {
+                //     obstacles.erase(obstacles.begin());
+                //     std::cout << "OOOOOOOOOOOOO Removed first obstacle from obstacles vector OOOOOOOOOOOOO" << std::endl;
+                // }
+
+
+                // straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
+                // sendPath(ser, straight_path);
+                // publishElasticbandPath(straight_path, path_publisher, node);
+
+            } else {
+                std::cout << "All goals reached!" << std::endl;
+            }
+
+            state = WAITING;
+
+
+            break;
+        }
+
 
         static auto last_clone_time = std::chrono::steady_clock::now();
         auto current_time           = std::chrono::steady_clock::now();
         // std::cout << std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() << std::endl;
-        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1)
-        {
+        if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_clone_time).count() >= 1) {
             last_clone_time = current_time;
             publishOccupancyGrid(occupancy_grid_pub, Point::maze.im);
             std::cout << "Occupancy grid published!!!!" << std::endl;
@@ -1121,6 +1188,10 @@ int main(int argc, char** argv)
 
         publishPosition(odom_publisher, tf_broadcaster, node);
         publishPoint(point_publisher, node, pop);
+        publishPath(received_path, path_publisher, node);
+        publishGoals(robot.goals, goals_publisher, node);
+
+
         // publishAStarPath(astar_path, astar_path_pub, node);
         // publishElasticBandCircles(elastic_band.getSmoothedPath(), elastic_band_circles_pub, node);
 
@@ -1166,7 +1237,7 @@ int main(int argc, char** argv)
 
         if (emergencystate == true) {
             ser.write("EMERGENCYSTOP\n");
-            std::cout << "send emergencystopppppppppppppp" << std::endl;
+            std::cout << "sent EMERGENCYSTOP" << std::endl;
         }
 
 

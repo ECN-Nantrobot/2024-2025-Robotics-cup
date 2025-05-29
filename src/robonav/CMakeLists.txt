@@ -26,8 +26,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 # Library für Maze-Funktionalität
 add_library(maze_lib SHARED 
     include/maze.h 
-    include/a_star.h 
-    include/elastic_bands.h 
+    # include/a_star.h 
+    # include/elastic_bands.h 
     include/point.h 
     include/position.h
     include/robot.h
@@ -35,7 +35,7 @@ add_library(maze_lib SHARED
     include/obstacle.h
     src/maze.cpp
     src/point.cpp
-    src/elastic_bands.cpp
+    # src/elastic_bands.cpp
     src/robot.cpp
 )
 
