@@ -17,7 +17,7 @@ using namespace ecn;
 
 DisplayHandler display;
 std::vector<Point> loadedPath;
-capteur ultrasonic(8, 9);
+capteur ultrasonic(27, 14);
 
 volatile float robotX = 0.0;
 volatile float robotY = 0.0;
@@ -28,7 +28,7 @@ volatile float _robotY = 0.0;
 volatile float _robotTheta = 0.0;
 
 // Pure Pursuit & Control Parameters
-const float v = 0.1;              // Robot forward speed (m/s)
+const float v = 0.2;              // Robot forward speed (m/s)
 const float lookAheadDistance = 0.05; // Look-ahead distance (m)
 const unsigned long controlInterval = 50; // Control loop interval in ms (50ms => 0.05s)
 float dt_seconds = controlInterval / 1000.0; // dt in seconds
@@ -162,7 +162,7 @@ void setup() {
 
 
   // Load path file from SPIFFS
-  if (loadPathFromFile("/sinus_path.txt", loadedPath)) {
+  if (loadPathFromFile("/straight_line_path_50cm.txt", loadedPath)) {
     Serial.println("Loaded path points:");
   } else {
     Serial.println("Failed to load path file.");
@@ -187,7 +187,7 @@ void setup() {
 
   // For testing, we start with a low constant speed; pure pursuit will adjust individual wheel speeds.
   setMotorSpeeds(0, 0);
-  display.initDisplay(false, false);
+  //display.initDisplay(false, false);
   initPowerSensor();
 
   // Init obstacle detector
@@ -196,7 +196,11 @@ void setup() {
   // Reset timer for control loop
   lastUpdateTime = millis();
   startTime = millis();
+
+  ultrasonic.setup();
 }
+
+
 
 
 float position = 1;
@@ -204,6 +208,7 @@ void loop() {
      // Run the pure pursuit update every controlInterval (50 ms)
     if (millis() - lastUpdateTime >= controlInterval) {
       lastUpdateTime = millis();
+      Serial.println(ultrasonic.distance());
       if (ultrasonic.distance()<lookAheadDistance)
       {
         Serial.println("Obstacle detected, stopping motors.");

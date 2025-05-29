@@ -10,8 +10,6 @@
 #define dirPin1 25
 #define stepPin2 33
 #define dirPin2 32
-#define stepPinX 14
-#define dirPinX 27
 
 
 // Define pins for i2c
@@ -27,7 +25,7 @@
 // Dimensions of robot
 const float wheelDiameter = 0.0675;   // meters
 const float trackWidth = 0.185;       // meters
-const int stepsPerRevolution = 3200;
+const int stepsPerRevolution = 200;
 
 // robot position
 extern volatile float robotX;
