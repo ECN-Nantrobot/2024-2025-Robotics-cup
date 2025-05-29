@@ -189,6 +189,9 @@ void setup() {
   setMotorSpeeds(0, 0);
   display.initDisplay(false, false);
   initPowerSensor();
+
+  // Init obstacle detector
+  ultrasonic.setup();
   
   // Reset timer for control loop
   lastUpdateTime = millis();
