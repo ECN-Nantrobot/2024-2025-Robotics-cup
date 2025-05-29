@@ -44,21 +44,21 @@ def generate_launch_description():
         )])
     )
 
-    map_server_node = TimerAction(
-        period=0.01,
-        actions=[Node(
-            package='nav2_map_server',
-            executable='map_server',
-            name='map_server',
-            output='screen',
-            parameters=[{
-                'yaml_filename': map_file,
-                'use_sim_time': False,
-                'always_send_full_map': True,
-                'frame_id': 'map'
-            }]
-        )]
-    )
+    # map_server_node = TimerAction(
+    #     period=0.01,
+    #     actions=[Node(
+    #         package='nav2_map_server',
+    #         executable='map_server',
+    #         name='map_server',
+    #         output='screen',
+    #         parameters=[{
+    #             'yaml_filename': map_file,
+    #             'use_sim_time': False,
+    #             'always_send_full_map': True,
+    #             'frame_id': 'map'
+    #         }]
+    #     )]
+    # )
 
     static_tf_node = Node(
         package='tf2_ros',
@@ -76,24 +76,24 @@ def generate_launch_description():
     #     parameters=[amcl_param_file, {'use_sim_time': False}]
     # )
 
-    lifecycle_manager = TimerAction(
-        period=2.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
-        actions=[Node(
-            package='nav2_lifecycle_manager',
-            executable='lifecycle_manager',
-            name='lifecycle_manager_localization',
-            output='screen',
-            parameters=[{
-                'use_sim_time': False,
-                'autostart': True,
-                # 'node_names': ['map_server', 'amcl']
-                'node_names': ['map_server']
-            }]
-        )]
-    )
+    # lifecycle_manager = TimerAction(
+    #     period=2.0,  # !!enough for Gazebo + clock to tick so map doesnt start without a time
+    #     actions=[Node(
+    #         package='nav2_lifecycle_manager',
+    #         executable='lifecycle_manager',
+    #         name='lifecycle_manager_localization',
+    #         output='screen',
+    #         parameters=[{
+    #             'use_sim_time': False,
+    #             'autostart': True,
+    #             # 'node_names': ['map_server', 'amcl']
+    #             'node_names': ['map_server']
+    #         }]
+    #     )]
+    # )
 
     main_node = TimerAction(
-        period=1.0,
+        period=0.1,
         actions=[Node(
             package='robonav',
             executable='main_node',
@@ -102,7 +102,7 @@ def generate_launch_description():
     )
 
     laser_to_pointcloud_node = TimerAction(
-        period=4.0,  # Add an 8-second delay
+        period=1.0,  # Add an 8-second delay
         actions=[Node(
             package='robonav',
             executable='laser_to_pointcloud_node',
@@ -120,10 +120,10 @@ def generate_launch_description():
 
     return LaunchDescription([
         rsp,
-        map_server_node,
+        # map_server_node,
         static_tf_node,
         # amcl_node,
-        lifecycle_manager,
+        # lifecycle_manager,
         rplidar_launch,
         laser_to_pointcloud_node,
         main_node

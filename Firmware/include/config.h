@@ -30,6 +30,7 @@
 // #define buttonPin2 13
 #define starter_button 35
 #define colour_button 13
+#define save_start_button 12
 
 // Define motor interface type for AccelStepper
 #define motorInterfaceType 1

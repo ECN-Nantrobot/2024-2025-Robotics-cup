@@ -85,7 +85,13 @@ public:
             optimize(start, goal); // Führt eine Iteration durch
         }
 
-        generateSmoothedPath(0.8f, 21, 1.2f);
+        resetOptimization();
+
+        while (!optimization_complete) {
+            optimize(start, goal); // Führt eine Iteration durch
+        }
+
+        generateSmoothedPath(2.5f, 21, 1.2f);
 
         std::cout << "Elastic Band initial optimization completed after " << current_iteration << " iterations." << std::endl;
 

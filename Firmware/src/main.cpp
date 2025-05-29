@@ -38,14 +38,9 @@ unsigned long startTime = 0;
 // const int internalLed = 2; // eingebaute LED auf GPIO 2
 
 float distance_to_goal = 0.0;
-
 float no_path_counter = 1.0;
 
-bool starter = false;
-bool is_blue = true;
-
 bool emergencystop = false;
-
 int emergency_counter = 0;
 
 bool start_timer = false;
@@ -260,7 +255,7 @@ void setup()
     {
         delay(10);
     }
-    delay(500);
+    delay(400);
 
     Serial.println("RESET!");
 
@@ -299,39 +294,39 @@ void setup()
 
     pinMode(starter_button, INPUT_PULLDOWN);
     pinMode(colour_button, INPUT_PULLDOWN);
-
-    starter = false;
-
-    // while(starter == true)
-    // {
-    //     Serial.println("Waiting for START button to be pressed...");
-    //     vTaskDelay(100);
-    // }
+    pinMode(save_start_button, INPUT_PULLDOWN);
 
     // while(true)
     //  {
     //     Serial.print(digitalRead(starter_button));
     //     Serial.print(", ");
-    //     Serial.println(digitalRead(colour_button));
+    //     Serial.print(digitalRead(colour_button));
+    //     Serial.print(", ");
+    //     Serial.println(digitalRead(save_start_button));
     //  }
+
+    while (digitalRead(save_start_button) == HIGH){
+        Serial.println("Waiting for Save Start button ...");
+        vTaskDelay(200);
+    }
 
     while (digitalRead(starter_button) == HIGH)
     {
-        Serial.println("Waiting for START button to be pressed...");
-        vTaskDelay(100);
+        Serial.println("Waiting for Start button to be pressed...");
+        vTaskDelay(200);
     }
 
     Serial.println("ESP Initialized!");
 
-    Serial.println("START!");
+    Serial.print("START!\n");
 
     if (digitalRead(colour_button) == LOW)
     {
-        Serial.println("COLOUR:yellow");
+        Serial.print("COLOUR:yellow\n");
     }
     else
     {
-        Serial.println("COLOUR:blue");
+        Serial.print("COLOUR:blue\n");
     }
 }
 
@@ -524,7 +519,9 @@ void loop()
                     Serial.println(robot.getCurrentGoalindex());
                     Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
                     
-                    delay(1000);
+                    // delay(1000);
+                    vTaskDelay(400);
+
 
                     robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
 

@@ -670,13 +670,16 @@ int main(int argc, char** argv)
         if (ser.available()) {
             std::string command = ser.readline();
             std::cout << "Received from serial: " << command << std::endl;
+
             if (command.rfind("START!", 0) == 0) {
+                command.erase(std::remove(command.begin(), command.end(), '\n'), command.end()); // Remove newline
+                std::cout << "Received from serial: " << command << std::endl;
                 std::cout << "Received START! command from ESP. Continuing..." << std::endl;
 
                 while (ser.available()) {
                     std::string colour_command = ser.readline();
-                    if (colour_command.rfind("COLOUR", 0) == 0) {
-                        std::string colour = colour_command.substr(6);                                      // Extract the colour name
+                    if (colour_command.rfind("COLOUR:", 0) == 0) {
+                        std::string colour = colour_command.substr(7);                                      // Extract the colour name
                         colour.erase(std::remove(colour.begin(), colour.end(), '\n'), colour.end()); // Remove newline
                         std::cout << "Received COLOUR:_" << colour << "_" << std::endl;
                         if (colour == "yellow") {
@@ -815,14 +818,14 @@ int main(int argc, char** argv)
     sendSpeedAndPID(ser, speed, kp, ki, kd);
     sendGoals(ser);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     // sendPath(ser, elastic_band.getSmoothedPath());
 
     auto straight_path = generateStraightPath(robot.getPosition(), robot.goals[robot.goal_index]);
     sendPath(ser, straight_path);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
     ser.write("STATE:INIT\n");
     ser.write("STATE:INIT\n");

@@ -23,24 +23,24 @@ goals:
     theta: -90
 
   # # Goal 9
-  # - x: 110
-  #   y: 133
-  #   theta: -90
+  - x: 110
+    y: 133
+    theta: -90
 
   #   # Goal 2
-  # - x: 122
-  #   y: 175
-  #   theta: 90
+  - x: 122
+    y: 175
+    theta: 90
 
   #   # Goal 14
-  # - x: 77
-  #   y: 145
-  #   theta: 90
+  - x: 77
+    y: 145
+    theta: 90
 
   #   # Goal 17
-  # - x: 81
-  #   y: 65
-  #   theta: -90
+  - x: 81
+    y: 65
+    theta: -90
 
   #   # Goal 3
   # - x: 122
@@ -48,6 +48,6 @@ goals:
   #   theta: 90
 
     # Goal 0
-  - x: 30
-    y: 25
-    theta: -90
+  # - x: 30
+  #   y: 25
+  #   theta: -90
