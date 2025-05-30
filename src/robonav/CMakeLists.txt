@@ -37,6 +37,7 @@ add_library(maze_lib SHARED
     src/point.cpp
     # src/elastic_bands.cpp
     src/robot.cpp
+    include/led_control.h
 )
 
 add_library(serial_lib STATIC
@@ -55,8 +56,8 @@ add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAPS="${CMAKE_CURRENT_SOURCE_DIR}/maps")
 
 add_executable(main_node src/main.cpp)
-target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib ${cv_bridge_LIBRARIES} gpiodcxx)
-ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs cv_bridge visualization_msgs sensor_msgs pcl_conversions)
+target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib ${cv_bridge_LIBRARIES} gpiod)
+ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs cv_bridge visualization_msgs sensor_msgs pcl_conversions )
 
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${PCL_INCLUDE_DIRS})
@@ -64,10 +65,15 @@ target_include_directories(main_node PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include 
 add_executable(laser_to_pointcloud_node src/laser_to_pointcloud_node.cpp)
 ament_target_dependencies(laser_to_pointcloud_node rclcpp sensor_msgs tf2 tf2_ros tf2_sensor_msgs laser_geometry tf2_geometry_msgs)
  
+# add_executable(led_node src/led_test_node.cpp)
+# ament_target_dependencies(led_test_node rclcpp)
+# target_link_libraries(led_test_node gpiod)
+
 install(TARGETS
   main_node
   maze_lib  
   laser_to_pointcloud_node
+#   led_test_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

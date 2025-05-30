@@ -109,11 +109,5 @@ goals:
     # Step = 13
     # Goal 0
   - x: 32
-    y: 40
-    theta: -90
-
-    # Step = 14
-    # Goal 0
-  - x: 32
-    y: 5
+    y: 25
     theta: -90

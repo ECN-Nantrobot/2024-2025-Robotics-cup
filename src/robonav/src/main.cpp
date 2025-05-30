@@ -48,8 +48,7 @@
 
 #include "geometry_msgs/msg/pose_array.hpp"
 
-#include <gpiod.hpp>
-
+#include "led_control.h"
 
 using namespace std;
 using namespace ecn;
@@ -94,7 +93,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     float max_x               = 3 - reduction;
     float min_y               = 0 + reduction;
     float max_y               = 2 - reduction;
-    float radius_around_robot = 0.3;
+    float radius_around_robot = 0.48;
 
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -563,8 +562,7 @@ void processCommand(const std::string& command)
         std::string reset_command = command;
         reset_command.erase(std::remove(reset_command.begin(), reset_command.end(), '\n'), reset_command.end()); // Remove newline
 
-        // led_pin.set_value(0); // LED on
-
+        led.turn_off();
 
         std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
         pid_t ppid = getppid();
@@ -701,11 +699,9 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-    // For LED
-    // led_pin.request({ "LED", gpiod::line_request::DIRECTION_OUTPUT });
-
-    // led_pin.set_value(0); // LED on
-
+    LEDControl led;
+    led.turn_off();
+    led.start_flash_slow();
 
     auto node = rclcpp::Node::make_shared("main_publisher");
 
@@ -767,6 +763,10 @@ int main(int argc, char** argv)
             std::string command = ser.readline();
             std::cout << "Received from serial: " << command << std::endl;
 
+            if(command.rfind("Waiting for Save Start button...", 0) == 0){
+                led.start_flash_fast();
+            }
+
             if (command.rfind("START!", 0) == 0) {
                 command.erase(std::remove(command.begin(), command.end(), '\n'), command.end()); // Remove newline
                 std::cout << "Received from serial: " << command << std::endl;
@@ -794,7 +794,7 @@ int main(int argc, char** argv)
             else if (command.rfind("RESET!", 0) == 0) {
                 command.erase(std::remove(command.begin(), command.end(), '\n'), command.end()); // Remove newline
 
-                // led_pin.set_value(0); // LED on
+                led.turn_off();
 
                 std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
 
@@ -810,6 +810,8 @@ int main(int argc, char** argv)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
+    led.turn_on();
 
     //-------------------------------------------------------------------------------------
 

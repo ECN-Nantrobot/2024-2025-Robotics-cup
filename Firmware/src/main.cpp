@@ -60,7 +60,7 @@ RobotState last_sent_state = WAIT;
 
 String pathBuffer = ""; // Buffer to store the incoming path data
 
-float distance_to_travel_4 = -25.0;
+float distance_to_travel_4 = -27.0;
 
 bool continue_after_straight = false;
 
@@ -308,22 +308,32 @@ void setup()
 
     setMotorSpeeds(0, 0);
 
+    setServo(0, 0);
+    vTaskDelay(200); // Hold position
+    setServo(1, 0);
+    vTaskDelay(200); // Hold position
+    setServo(2, 0);
+    vTaskDelay(200); // Hold position
+    setServo(8, 0);
+
+    vTaskDelay(600); // Hold position
+
     setServo(0, 90);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(1, 90);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(2, 90);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(8, 90);
 
     vTaskDelay(600); // Hold position
 
     setServo(0, 0);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(1, 0);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(2, 0);
-    vTaskDelay(100); // Hold position
+    vTaskDelay(200); // Hold position
     setServo(8, 0);
 
     // pinMode(internalLed, OUTPUT);
@@ -350,7 +360,7 @@ void setup()
 
     while (digitalRead(save_start_button) == LOW)
     {
-        Serial.println("Waiting for Save Start button ...");
+        Serial.print("Waiting for Save Start button...\n");
         vTaskDelay(200);
     }
 
