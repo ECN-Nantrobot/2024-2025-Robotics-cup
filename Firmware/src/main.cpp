@@ -60,7 +60,13 @@ RobotState last_sent_state = WAIT;
 
 String pathBuffer = ""; // Buffer to store the incoming path data
 
-void sendpath(const std::vector<Point>& path)
+float distance_to_travel_4 = -25.0;
+
+bool continue_after_straight = false;
+
+int straight_counter = 0;
+
+void sendpath(const std::vector<Point> &path)
 {
     Serial.print("PATH:");
     for (size_t i = 0; i < path.size(); ++i)
@@ -189,10 +195,10 @@ void processCommand(String command)
     {
         parseGoals(command.substring(6));
         Serial.println("ACK:GOALS_RECEIVED");
-        
+
         state = INIT;
     }
-    
+
     // else if (command.startsWith("PATH:"))
     // {
     //     pathBuffer += command.substring(5);
@@ -227,10 +233,10 @@ void processCommand(String command)
         // Serial.print("ACK:STATE_RECEIVED:_");
         // Serial.print(stateStr);
         // Serial.println("_");
-
     }
 
-    if (command == "EMERGENCYSTOP"){
+    if (command == "EMERGENCYSTOP")
+    {
         emergencystop = true;
         Serial.println("EMERGENCYSTOP_RECEIVED");
     }
@@ -299,7 +305,6 @@ void setup()
 
     SerialInfo("Initialisation terminée avec succès !");
 
-
     setMotorSpeeds(0, 0);
 
     // pinMode(internalLed, OUTPUT);
@@ -310,7 +315,6 @@ void setup()
     startTime = millis();
 
     // testServo();
-
 
     pinMode(starter_button, INPUT_PULLDOWN);
     pinMode(colour_button, INPUT_PULLDOWN);
@@ -325,7 +329,8 @@ void setup()
     //     Serial.println(digitalRead(save_start_button));
     //  }
 
-    while (digitalRead(save_start_button) == LOW){
+    while (digitalRead(save_start_button) == LOW)
+    {
         Serial.println("Waiting for Save Start button ...");
         vTaskDelay(200);
     }
@@ -360,7 +365,8 @@ void loop()
     {
         lastUpdateTime = millis();
 
-        if (emergencystop == true){
+        if (emergencystop == true)
+        {
             emergency_counter++;
             if (emergency_counter > 65)
             {
@@ -368,7 +374,7 @@ void loop()
                 emergency_counter = 0;
             }
         }
-        
+
         while (Serial.available())
         {
             String command = Serial.readStringUntil('\n');
@@ -417,239 +423,254 @@ void loop()
             // }
         }
 
-            // static String inputString = ""; // Buffer for incoming data
+        // static String inputString = ""; // Buffer for incoming data
 
-            // while (Serial.available())
-            // {
-            //     char c = Serial.read();
-            //     inputString += c;
+        // while (Serial.available())
+        // {
+        //     char c = Serial.read();
+        //     inputString += c;
 
-            //     if (c == '\n')
-            //     { // Full message received
-            //         processCommand(inputString);
-            //         inputString = ""; // Reset buffer
-            //     }
-            // }
+        //     if (c == '\n')
+        //     { // Full message received
+        //         processCommand(inputString);
+        //         inputString = ""; // Reset buffer
+        //     }
+        // }
 
-            switch (state)
+        switch (state)
+        {
+        case WAIT:
+
+            while (Serial.available())
             {
-            case WAIT:
+                String command = Serial.readStringUntil('\n');
+                processCommand(command);
+            }
 
-                while (Serial.available())
-                {
-                    String command = Serial.readStringUntil('\n');
-                    processCommand(command);
-                }
+            Serial.println("CurrentState: WAIT");
 
-                Serial.println("CurrentState: WAIT");
+            break;
+        case INIT:
+            Serial.println("CurrentState: INIT");
 
-                break;
-            case INIT:
-                Serial.println("CurrentState: INIT");
+            Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
 
-                Serial.printf("Current Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+            robot.setIsStarting(true);
 
+            if (start_timer)
+            {
+                start_time = std::chrono::steady_clock::now();
+            }
+
+            robot.generateStraightPath();
+
+            sendpath(robot.getPath());
+
+            state = TURN_TO_PATH;
+            [[fallthrough]];
+
+        case TURN_TO_PATH:
+            Serial.println("CurrentState: TURN_TO_PATH");
+
+            if (INIT != last_sent_state)
+            {
+                Serial.print("STATE:INIT\n");
+                last_sent_state = INIT;
+            }
+
+            if (robot.turnToPathOrientation())
+            {
+                Serial.println("Robot is aligned to path orientation!");
                 robot.setIsStarting(true);
+                robot.start_turning = true;
+                state = NAVIGATION;
+            }
 
-                if (start_timer)
+            break;
+
+        case NAVIGATION:
+            if (PATH_PLANNING != last_sent_state)
+            {
+                Serial.print("STATE:PATH_PLANNING\n");
+                last_sent_state = PATH_PLANNING;
+            }
+            Serial.println("CurrentState: NAVIGATION");
+
+            robot.followPath();
+
+            // float start = Point(robot.getX(), robot.getY());
+            distance_to_goal = robot.distanceToGoal(robot.goals[robot.getCurrentGoalindex()].point);
+            if (distance_to_goal < 5.0)
+            {
+                // std::cout << "Distance to goal: " << distance_to_goal << std::endl;
+
+                if (distance_to_goal < 0.5)
                 {
-                    start_time = std::chrono::steady_clock::now();
+                    Serial.printf("Goal reached: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                    std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
+                    state = TURN_TO_GOAL;
                 }
+            }
 
-                robot.generateStraightPath();
+            break;
 
-                sendpath(robot.getPath());
+        case TURN_TO_GOAL:
+            Serial.println("CurrentState: TURN_TO_GOAL");
+            Serial.print("STATE:TURN_TO_GOAL\n");
 
-                state = TURN_TO_PATH;
-                [[fallthrough]];
+            if (last_sent_state != WAIT)
+            {
+                Serial.print("STATE:WAIT\n");
+                last_sent_state = WAIT;
+                // delay(1000);
+            }
 
-            case TURN_TO_PATH:
-                Serial.println("CurrentState: TURN_TO_PATH");
+            if (robot.turnToGoalOrientation())
+            {
+                std::cout << "Robot is aligned to goal orientation!" << std::endl;
+                robot.start_turning = true;
+                state = GOAL_REACHED;
+            }
 
-                if (INIT != last_sent_state)
+            break;
+
+        case GOAL_REACHED:
+
+            Serial.println("CurrentState: GOAL_REACHED");
+            Serial.print("STATE:GOAL_REACHED\n");
+            Serial.print("current_goal_index: ");
+            Serial.println(robot.getCurrentGoalindex());
+
+            vTaskDelay(200);
+
+
+            if (robot.getCurrentGoalindex() < robot.goals.size() - 1)
+            {
+
+                if (robot.getCurrentGoalindex() == 4)
                 {
-                    Serial.print("STATE:INIT\n");
-                    last_sent_state = INIT;
-                }
+                    static float target_x = robot.getX() + distance_to_travel_4 * cos(robot.getTheta());
+                    static float target_y = robot.getY() + distance_to_travel_4 * sin(robot.getTheta());
 
+                    Serial.printf("Moving straight to target: %f, %f\n", target_x, target_y);
 
-                if (robot.turnToPathOrientation())
-                {
-                    Serial.println("Robot is aligned to path orientation!");
-                    robot.setIsStarting(true);
-                    robot.start_turning = true;
-                    state = NAVIGATION;
-                }
-
-                break;
-
-            case NAVIGATION:
-                if (PATH_PLANNING != last_sent_state)
-                {
-                    Serial.print("STATE:PATH_PLANNING\n");
-                    last_sent_state = PATH_PLANNING;
-                }
-                Serial.println("CurrentState: NAVIGATION");
-
-                robot.followPath();
-
-                // float start = Point(robot.getX(), robot.getY());
-                distance_to_goal = robot.distanceToGoal(robot.goals[robot.getCurrentGoalindex()].point);
-                if (distance_to_goal < 5.0)
-                {
-                    // std::cout << "Distance to goal: " << distance_to_goal << std::endl;
-
-                    if (distance_to_goal < 0.5)
+                    if(straight_counter < 20) 
                     {
-                        Serial.printf("Goal reached: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
-                        std::cout << "Robot has reached the goal -> TURN_TO_GOAL!" << std::endl;
-                        state = TURN_TO_GOAL;
+                        robot.setWheelSpeed(-5.0, -5.0);
+
+                        straight_counter ++;
                     }
-                }
-
-                break;
-
-            case TURN_TO_GOAL:
-                Serial.println("CurrentState: TURN_TO_GOAL");
-                Serial.print("STATE:TURN_TO_GOAL\n");
-
-                if (last_sent_state != WAIT) {
-                    Serial.print("STATE:WAIT\n");
-                    last_sent_state = WAIT;
-                    // delay(1000);
-                }
-
-                if (robot.turnToGoalOrientation())
-                {
-                    std::cout << "Robot is aligned to goal orientation!" << std::endl;
-                    robot.start_turning = true;
-                    state = GOAL_REACHED;
-                }
-
-                    break;
-
-            case GOAL_REACHED:
-
-                Serial.println("CurrentState: GOAL_REACHED");
-                Serial.print("STATE:GOAL_REACHED\n");
-                Serial.print("current_goal_index: ");
-                Serial.println(robot.getCurrentGoalindex());
-
-                if (robot.getCurrentGoalindex() < robot.goals.size() -1) {
-
-                    robot.incrementCurrentGoalIndex();
-
-                    Serial.print("New current_goal_index: ");
-                    Serial.println(robot.getCurrentGoalindex());
-                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
-                    
-                    // delay(1000);
-                    vTaskDelay(50);
-
-
-                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
-
-                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta  << std::endl;
-
-                    // TODO: STACKING CODE ////////////////////////////////////////////////////////////////////////////////77
-                    // robot.leftSpeed_ =
-                    // robot.rightSpeed_ =
-
-                    if (robot.getCurrentGoalindex() == 5){
-
-                        float distance_to_travel = -15.0;
-                        float target_x = robot.getX() + distance_to_travel * cos(robot.getTheta());
-                        float target_y = robot.getY() + distance_to_travel * sin(robot.getTheta());
-                        if(robot.moveStraight(target_x, target_y)){
-                            Serial.println("Robot is aligned to path orientation!");
-                            robot.setIsStarting(true);
-                            robot.start_turning = true;
-                        }
+                    if(straight_counter >= 20)
+                    {
+                        robot.setWheelSpeed(0, 0);
+                        straight_counter = 0;
+                        continue_after_straight = true;
                     }
 
+                    // if (robot.moveStraight(target_x, target_y, distance_to_travel_4))
+                    if(continue_after_straight == true)
+                    {
+                        Serial.println("Robot is aligned to path orientation!");
+                        robot.setIsStarting(true);
+                        robot.start_turning = true;
+                        robot.incrementCurrentGoalIndex();
+                        Serial.print("New current_goal_index: ");
+                        Serial.println(robot.getCurrentGoalindex());
+                        Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                        robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                        std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
 
-
-
-                    // if(robot.getCurrentGoalindex() == 2){
-                    //     vTaskDelay(65000);
-                    // }
+                        continue_after_straight = false;
 
                         state = INIT;
+                    }
                 }
                 else
                 {
-                    std::cout << "All goals have been reached. Mission complete!" << std::endl;
-                    state = WAIT;
-                    // End simulation
-                }
-                break;
+                    robot.incrementCurrentGoalIndex();
+                    Serial.print("New current_goal_index: ");
+                    Serial.println(robot.getCurrentGoalindex());
+                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
 
-            }
-
-
-            // Measure execution time
-            auto now_time = std::chrono::steady_clock::now();
-            double time_duration = std::chrono::duration_cast<std::chrono::seconds>(now_time - start_time).count();
-            
-            if (time_duration > 100 && start_timer == true)
-            {
-                Serial.println("The exec time is over 100 sec");
-                robot.stop();
-            }
-       
-            // static auto last_print_time = std::chrono::steady_clock::now();
-            // if (std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_print_time).count() >= 1000)
-            // {
-            //     last_print_time = now_time;
-
-            //     Serial.print("ESPstate: ");
-            //     Serial.println(state);
-            // }
-            
-            // if (state == WAIT)
-            //     {
-            //         if (time_duration > 5 && start_timer == true)
-            //         {
-            //             Serial.println("The exec time is over 5 sec");
-            //             state = INIT;
-            //         }
-            //     }
-
-            if (emergencystop == true)
-            {
-                robot.stop();
-            }
-
-            if (state != WAIT)
-            {
-                setMotorSpeeds(robot.getLeftSpeed()/100 , robot.getRightSpeed()/100);
-                Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
-
-                if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
-                {
-                    robot.setPose(_robotX, _robotY, _robotTheta);
-                    xSemaphoreGive(robotXMutex);
-
-                    // digitalWrite(internalLed, HIGH);
-                    Serial.print("X: ");
-                    Serial.print(robot.getX());
-                    Serial.print(", Y: ");
-                    Serial.print(robot.getY());
-                    Serial.print(", Theta: ");
-                    Serial.println(robot.getTheta());
-                    // digitalWrite(internalLed, LOW);
-
-                    // display.updatePointsDisplay(robotY);
+                    state = INIT;
                 }
 
-                // robot.setPose(_robotX, _robotY, _robotTheta);
-                // sendPositionUpdate();
+                // if(robot.getCurrentGoalindex() == 2){
+                //     vTaskDelay(65000);
+                // }
             }
-
-        
-
-            // display.updatePointsDisplay(0);
-
-            // End of loop
+            else
+            {
+                std::cout << "All goals have been reached. Mission complete!" << std::endl;
+                state = WAIT;
+                // End simulation
+            }
+            break;
         }
+
+        // Measure execution time
+        auto now_time = std::chrono::steady_clock::now();
+        double time_duration = std::chrono::duration_cast<std::chrono::seconds>(now_time - start_time).count();
+
+        if (time_duration > 100 && start_timer == true)
+        {
+            Serial.println("The exec time is over 100 sec");
+            robot.stop();
+        }
+
+        // static auto last_print_time = std::chrono::steady_clock::now();
+        // if (std::chrono::duration_cast<std::chrono::milliseconds>(now_time - last_print_time).count() >= 1000)
+        // {
+        //     last_print_time = now_time;
+
+        //     Serial.print("ESPstate: ");
+        //     Serial.println(state);
+        // }
+
+        // if (state == WAIT)
+        //     {
+        //         if (time_duration > 5 && start_timer == true)
+        //         {
+        //             Serial.println("The exec time is over 5 sec");
+        //             state = INIT;
+        //         }
+        //     }
+
+        if (emergencystop == true)
+        {
+            robot.stop();
+        }
+
+        if (state != WAIT)
+        {
+            setMotorSpeeds(robot.getLeftSpeed() / 100, robot.getRightSpeed() / 100);
+            Serial.printf("LM Speed: %f, RM Speed: %f\n", robot.getLeftSpeed(), robot.getRightSpeed());
+
+            if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE)
+            {
+                robot.setPose(_robotX, _robotY, _robotTheta);
+                xSemaphoreGive(robotXMutex);
+
+                // digitalWrite(internalLed, HIGH);
+                Serial.print("X: ");
+                Serial.print(robot.getX());
+                Serial.print(", Y: ");
+                Serial.print(robot.getY());
+                Serial.print(", Theta: ");
+                Serial.println(robot.getTheta());
+                // digitalWrite(internalLed, LOW);
+
+                // display.updatePointsDisplay(robotY);
+            }
+
+            // robot.setPose(_robotX, _robotY, _robotTheta);
+            // sendPositionUpdate();
+        }
+
+        // display.updatePointsDisplay(0);
+
+        // End of loop
+    }
 }

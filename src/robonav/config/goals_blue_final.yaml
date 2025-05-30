@@ -41,7 +41,7 @@ goals:
       # Step = 4
     # Goal     PUSH CANS END
   - x: 222
-    y: 195
+    y: 187
     theta: 90
 
   # MOVE BACKWARDS A LITTLE BIT (esp)

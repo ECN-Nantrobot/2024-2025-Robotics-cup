@@ -48,6 +48,8 @@
 
 #include "geometry_msgs/msg/pose_array.hpp"
 
+#include <gpiod.hpp>
+
 
 using namespace std;
 using namespace ecn;
@@ -71,6 +73,9 @@ bool emergencystate             = false;
 int sendpathcounter = 0;
 
 std::vector<ecn::Point> received_path;
+
+// gpiod::chip gpio("gpiochip0"); // Öffnet direkt den ersten GPIO-Chipauto 
+// gpiod::line led_pin = gpio.get_line(24);
 
 
 void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg,
@@ -557,6 +562,10 @@ void processCommand(const std::string& command)
     } else if (command.rfind("RESET!", 0) == 0) {
         std::string reset_command = command;
         reset_command.erase(std::remove(reset_command.begin(), reset_command.end(), '\n'), reset_command.end()); // Remove newline
+
+        // led_pin.set_value(0); // LED on
+
+
         std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
         pid_t ppid = getppid();
         std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
@@ -691,6 +700,13 @@ void publishGoals(const std::vector<ecn::Pose>& goals, const rclcpp::Publisher<g
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
+
+    // For LED
+    // led_pin.request({ "LED", gpiod::line_request::DIRECTION_OUTPUT });
+
+    // led_pin.set_value(0); // LED on
+
+
     auto node = rclcpp::Node::make_shared("main_publisher");
 
     auto cloud_publisher = node->create_publisher<sensor_msgs::msg::PointCloud2>("/pointcloud_used", 10);
@@ -736,6 +752,9 @@ int main(int argc, char** argv)
     std::this_thread::sleep_for(std::chrono::seconds(2)); // Give ESP time to start
 
 
+    // led_pin.set_value(1); // LED on
+
+
     // Wait for the START and COLOUR! command from ESP
     auto start_time = std::chrono::steady_clock::now();
     while (rclcpp::ok()) {
@@ -774,7 +793,11 @@ int main(int argc, char** argv)
 
             else if (command.rfind("RESET!", 0) == 0) {
                 command.erase(std::remove(command.begin(), command.end(), '\n'), command.end()); // Remove newline
+
+                // led_pin.set_value(0); // LED on
+
                 std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
+
                 pid_t ppid = getppid();
                 std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
                 kill(ppid, SIGINT);

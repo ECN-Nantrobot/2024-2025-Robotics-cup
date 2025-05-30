@@ -55,7 +55,7 @@ add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 add_compile_definitions(MAPS="${CMAKE_CURRENT_SOURCE_DIR}/maps")
 
 add_executable(main_node src/main.cpp)
-target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib ${cv_bridge_LIBRARIES})
+target_link_libraries(main_node maze_lib ${OpenCV_LIBS} yaml-cpp serial_lib ${cv_bridge_LIBRARIES} gpiodcxx)
 ament_target_dependencies(main_node rclcpp geometry_msgs OpenCV yaml-cpp tf2 tf2_ros nav_msgs cv_bridge visualization_msgs sensor_msgs pcl_conversions)
 
 target_include_directories(maze_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

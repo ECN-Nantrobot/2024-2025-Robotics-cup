@@ -249,30 +249,46 @@ namespace ecn
         }
     }
 
-    bool Robot::moveStraight(float target_x, float target_y)
+    bool Robot::moveStraight(float target_x, float target_y, float distance_to_travel)
     {
+        // Determine the direction factor based on the distance to travel
+        float sign_factor = (distance_to_travel < 0) ? -1.0f : 1.0f;
+
         float distance_error = std::hypot(target_x - x_, target_y - y_);
 
-        float speed_to_set = target_speed_;
+        Serial.printf("Distance to target: %f\n", distance_error);
+
+        float straight_target_speed = target_speed_ * sign_factor /3;
+
+        float speed_to_set = straight_target_speed;
+
+        Serial.printf("Target Speed: %f, Sign Factor: %f, Speed to Set: %f\n", straight_target_speed, sign_factor, speed_to_set);
 
         // Slow speed if the robot is close to a goal
-        float distance_to_goal_slowdown = 0.6;
+        float distance_to_goal_slowdown = 5.0;
         if (distance_error < distance_to_goal_slowdown)
         {
-            float factor = 1 - std::pow(1 - (distance_error / distance_to_goal_slowdown), 2);
-            speed_to_set = std::max(0.8f, factor * target_speed_);
+            float factor = distance_error / distance_to_goal_slowdown;
+            
+            if(sign_factor < 0)
+                speed_to_set = std::max(-1.5f, factor * straight_target_speed);
+            else
+                speed_to_set = std::max(1.5f, factor * straight_target_speed);
+
+            Serial.printf("Slowing down speed to: %f\n", speed_to_set);
         }
 
         if (is_starting_)
         {
-            starting_speed_ += 1.0f;
+            if(sign_factor > 0)
+                starting_speed_ += 1.0f;
+            if(sign_factor < 0)
+                starting_speed_ -= 1.0f;
             speed_to_set = starting_speed_;
-            // Serial.print("is_starting == true, ");
-            // Serial.println("Starting speed: " + String(starting_speed_));
 
-            if (speed_to_set >= target_speed_)
+            if ((sign_factor > 0 && speed_to_set >= straight_target_speed) || (sign_factor < 0 && speed_to_set <= straight_target_speed))
             {
-                speed_to_set = target_speed_;
+                speed_to_set = straight_target_speed;
                 starting_speed_ = 0;
                 is_starting_ = false;
             }
@@ -288,7 +304,9 @@ namespace ecn
             rightSpeed_ = speed_to_set;
         }
 
-        return (std::abs(distance_error) < 0.02f);
+        Serial.printf("Straight Left Speed: %f, Straight Right Speed: %f\n", leftSpeed_, rightSpeed_);
+
+        return (std::abs(distance_error) < 0.4f);
     }
 
 } // namespace ecn

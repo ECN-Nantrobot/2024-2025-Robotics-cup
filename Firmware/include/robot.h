@@ -88,6 +88,12 @@ namespace ecn
             target_speed_ = speed;
         }
 
+        void setWheelSpeed(float leftSpeed, float rightSpeed)
+        {
+            leftSpeed_ = leftSpeed;
+            rightSpeed_ = rightSpeed;
+        }
+
         void setPID(float P, float I, float D)
         {
             kp_ = P;
@@ -102,7 +108,7 @@ namespace ecn
             theta_ = theta;
         }
 
-        bool moveStraight(float target_x, float target_y);
+        bool moveStraight(float target_x, float target_y, float distance_to_travel);
 
         std::vector<Point> path_;
 
