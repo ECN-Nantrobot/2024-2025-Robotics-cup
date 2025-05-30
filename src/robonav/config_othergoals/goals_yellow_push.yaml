@@ -11,14 +11,8 @@ goals:
     # Step = 0
     # Starting Position (Goal #2)  
   - x: 122
-    y: 175
+    y: 184
     theta: -90
-
-  #   # Step = 1
-  #   # Goal 3   midpoint
-  # - x: 122
-  #   y: 154
-  #   theta: -90
 
   # Step = 1
   # Goal 9
@@ -41,7 +35,7 @@ goals:
       # Step = 4
     # Goal     PUSH CANS END
   - x: 77
-    y: 195
+    y: 187
     theta: -270
 
   # MOVE BACKWARDS A LITTLE BIT (esp)

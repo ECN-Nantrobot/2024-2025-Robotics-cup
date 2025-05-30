@@ -68,6 +68,8 @@ void initServo()
     }
     // Initialize servo 4 to 180
     board1.setPWM(4, 0, angleToPulse(130));
+    board1.setPWM(8, 0, angleToPulse(0));
+
     delay(20);
 
     SerialSuccess("Servo initialization complete");
@@ -104,7 +106,7 @@ void testServo()
     {
         setServo(i, 0);
     }
-    vTaskDelay(3000); // Hold position
+    // vTaskDelay(3000); // Hold position
 
     SerialSuccess("Servo test complete");
 }

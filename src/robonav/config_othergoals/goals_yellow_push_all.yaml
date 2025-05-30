@@ -1,11 +1,10 @@
 robot:
   wheel_distance: 37.3
-  speed: 30.0
+  speed: 10.0
   pid:
     kp: 28
     ki: 0.02
-    kd: 0.6
-
+    kd: 0.5
 
 # TEAM YELLOW STRATEGY
 # start at goal 2
