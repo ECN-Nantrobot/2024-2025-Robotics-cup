@@ -73,6 +73,8 @@ int sendpathcounter = 0;
 
 std::vector<ecn::Point> received_path;
 
+LEDControl led;
+
 // gpiod::chip gpio("gpiochip0"); // Öffnet direkt den ersten GPIO-Chipauto 
 // gpiod::line led_pin = gpio.get_line(24);
 
@@ -699,7 +701,7 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-    LEDControl led;
+    
     led.turn_off();
     led.start_flash_slow();
 
