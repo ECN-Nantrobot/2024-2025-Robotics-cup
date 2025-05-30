@@ -60,7 +60,7 @@ RobotState last_sent_state = WAIT;
 
 String pathBuffer = ""; // Buffer to store the incoming path data
 
-float distance_to_travel_4 = -25.0;
+float distance_to_travel_4 = -28.0;
 
 bool continue_after_straight = false;
 
@@ -457,6 +457,11 @@ void loop()
 
             robot.setIsStarting(true);
 
+            if(robot.getCurrentGoalindex() == 5)
+            {
+                vTaskDelay(45000);
+             }
+
             if (start_timer)
             {
                 start_time = std::chrono::steady_clock::now();
@@ -585,6 +590,7 @@ void loop()
                         state = INIT;
                     }
                 }
+                
                 else
                 {
                     robot.incrementCurrentGoalIndex();

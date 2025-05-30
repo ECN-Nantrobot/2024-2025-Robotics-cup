@@ -1,6 +1,6 @@
 robot:
   wheel_distance: 37.3
-  speed: 30.0
+  speed: 20.0
   pid:
     kp: 28
     ki: 0.02
@@ -11,7 +11,7 @@ goals:
     # Step = 0
     # Starting Position (Goal #22)  
   - x: 177
-    y: 175
+    y: 184
     theta: -90
 
   #   # Step = 1
@@ -50,17 +50,11 @@ goals:
       # Step = 5
     # Goal 30  midpoint
   - x: 245
-    y: 50
+    y: 55
     theta: -35
 
     # Step = 6
     # Goal 18
   - x: 262
-    y: 40
-    theta: -90
-
-    # Step = 7
-    # Goal 18
-  - x: 262
-    y: 5
+    y: 30
     theta: -90
