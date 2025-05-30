@@ -94,7 +94,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     float max_x               = 3 - reduction;
     float min_y               = 0 + reduction;
     float max_y               = 2 - reduction;
-    float radius_around_robot = 0.3;
+    float radius_around_robot = 0.48;
 
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
