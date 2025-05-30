@@ -15,8 +15,8 @@
 #define displaySDA 19
 #define displaySLC 21
 
-#define SDAPin 23
-#define SLCPin 22
+#define SDAPin 22
+#define SLCPin 23
 
 #define stepPinX 33
 #define dirPinX 32

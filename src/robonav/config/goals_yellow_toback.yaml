@@ -16,46 +16,40 @@ robot:
 # goal 3 - drop off cans
 # goal 0 - final position
 
-
 goals:
     # Step = 0
-    # Starting Position (Goal #2)  
-  - x: 122
+    # Starting Position (Goal #22)  
+  - x: 177
     y: 175
     theta: -90
 
   #   # Step = 1
-  #   # Goal 3   midpoint
-  # - x: 122
+  #   # Goal 23   midpoint
+  # - x: 177
   #   y: 154
   #   theta: -90
 
   # Step = 1
-  # Goal 9
-  - x: 110
+  # Goal 29
+  - x: 190
     y: 133
-    theta: -180
+    theta: 0
 
     # Step = 2
-    # Goal 7  midpoint
-  - x: 60
+    # Goal 30  midpoint
+  - x: 235
     y: 132
-    theta: -100
+    theta: -80
 
       # Step = 3
-    # Goal 7  midpoint
-  - x: 50
+    # Goal 30  midpoint
+  - x: 245
     y: 50
-    theta: -145
+    theta: -25
 
-        # Step = 4
-    # Goal 0
-  - x: 32
-    y: 40
-    theta: -90
 
     # Step = 4
-    # Goal 0
-  - x: 32
+    # Goal 18
+  - x: 262
     y: 5
     theta: -90

@@ -1,5 +1,6 @@
 #include "robot.h"
 #include <cmath>
+
 #include <iostream>
 #include "motorHandler.h"
 
@@ -23,7 +24,7 @@ namespace ecn
             error -= 2 * M_PI;
         while (error < -M_PI)
             error += 2 * M_PI;
-        
+
         // Serial.println("target_angle - theta_ = error: " + String(target_angle) + " - " + String(theta_) + " = " + String(error));
 
         return error;
@@ -37,7 +38,6 @@ namespace ecn
 
         float output = kp_ * angle_error + ki_ * integral_ + kd_ * derivative;
 
-
         float pp = kp_ * angle_error;
         float ii = ki_ * integral_;
         float dd = kd_ * derivative;
@@ -47,14 +47,22 @@ namespace ecn
         //                " KD " + String(kd_) + " * " + String(derivative) + " = " + String(dd) + " || = " +
         //                String(output));
 
-        if (output > max_control_output_){
+        if (output > max_control_output_)
+        {
             output = max_control_output_;
             Serial.print("PID output limited to max_control_output_: ");
         }
-        else if (output < -max_control_output_){
+        else if (output < -max_control_output_)
+        {
             output = -max_control_output_;
             Serial.print("PID output limited to -max_control_output_: ");
         }
+
+        // else if (output < min_control_output && output > -min_control_output)
+        // {
+        //     output = min_control_output;
+        //     Serial.print("PID output limited to min_control_output: ");
+        // }
 
         return output;
     }
@@ -67,7 +75,7 @@ namespace ecn
 
         leftSpeed_ = -turnsignal;
         rightSpeed_ = turnsignal;
-        
+
         // Serial.println("start_turning: " + String(start_turning));
         // Serial.println("turnsignal: " + String(turnsignal) + ", turnsignal_limit: " + String(turnsignal_limit));
 
@@ -87,13 +95,12 @@ namespace ecn
                 // Serial.println("Reduced turnsignal: " + String(turnsignal));
             }
         }
-        
+
         if (std::abs(angle_error) < 0.02)
         {
             leftSpeed_ = 0;
             rightSpeed_ = 0;
         }
-
 
         // Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
     }
@@ -106,7 +113,7 @@ namespace ecn
             angle_error -= 2 * M_PI;
         while (angle_error < -M_PI)
             angle_error += 2 * M_PI;
-        
+
         // Serial.println("Current Angle (theta_): " + String(theta_) + ", Target Angle (target theta): " + String(goals[current_goal_index].theta) + ", Angle Error: " + String(angle_error));
 
         turn(angle_error);
@@ -141,7 +148,7 @@ namespace ecn
         if (path_.empty())
         {
             Serial.println("Error: Path is empty.");
-            return -1; 
+            return -1;
         }
 
         // Find the closest point on the path to the current position
@@ -196,18 +203,19 @@ namespace ecn
 
             float distanceToGoal = std::min(
                 std::hypot(path_.back().x - x_, path_.back().y - y_),
-                std::hypot(goals[current_goal_index].point.x - x_, goals[current_goal_index].point.y - y_)
-            );
+                std::hypot(goals[current_goal_index].point.x - x_, goals[current_goal_index].point.y - y_));
 
             // Slow speed if the robot is close to a goal
-            if (distanceToGoal < 10.0f)
+            float distance_to_goal_slowdown = 6.0;
+            if (distanceToGoal < distance_to_goal_slowdown)
             {
-                speed_to_set = std::max(0.8f, distanceToGoal / 10.0f * target_speed_);
+                float factor = 1 - std::pow(1 - (distanceToGoal / distance_to_goal_slowdown), 2);
+                speed_to_set = std::max(0.8f, factor * target_speed_);
             }
             // Slow speed if the robot is starting
-            
+
             // Serial.print("Control Signal: " + String(controlSignal) + ", ");
-            
+
             if (is_starting_)
             {
                 starting_speed_ += 1.0f;
@@ -237,9 +245,49 @@ namespace ecn
 
                 // Serial.println("leftSpeed_: " + String(leftSpeed_) + ", rightSpeed_: " + String(rightSpeed_));
             }
+        }
+    }
 
+    bool Robot::moveStraight(float target_x, float target_y)
+    {
+        float distance_error = std::hypot(target_x - x_, target_y - y_);
+
+        float speed_to_set = target_speed_;
+
+        // Slow speed if the robot is close to a goal
+        float distance_to_goal_slowdown = 0.6;
+        if (distance_error < distance_to_goal_slowdown)
+        {
+            float factor = 1 - std::pow(1 - (distance_error / distance_to_goal_slowdown), 2);
+            speed_to_set = std::max(0.8f, factor * target_speed_);
         }
 
+        if (is_starting_)
+        {
+            starting_speed_ += 1.0f;
+            speed_to_set = starting_speed_;
+            // Serial.print("is_starting == true, ");
+            // Serial.println("Starting speed: " + String(starting_speed_));
+
+            if (speed_to_set >= target_speed_)
+            {
+                speed_to_set = target_speed_;
+                starting_speed_ = 0;
+                is_starting_ = false;
+            }
+        }
+        if (distance_error < 0.02f)
+        {
+            leftSpeed_ = 0;
+            rightSpeed_ = 0;
+        }
+        else
+        {
+            leftSpeed_ = speed_to_set;
+            rightSpeed_ = speed_to_set;
+        }
+
+        return (std::abs(distance_error) < 0.02f);
     }
 
 } // namespace ecn

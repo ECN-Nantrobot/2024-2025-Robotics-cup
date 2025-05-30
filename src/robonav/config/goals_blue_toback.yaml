@@ -16,7 +16,6 @@ robot:
 # goal 23 - drop off cans
 # goal 18 - final position
 
-
 goals:
     # Step = 0
     # Starting Position (Goal #22)  
@@ -48,13 +47,8 @@ goals:
     y: 50
     theta: -65
 
-    # Step = 4
-    # Goal 18
-  - x: 262
-    y: 40
-    theta: -90
 
-    # Step = 5
+    # Step = 4
     # Goal 18
   - x: 262
     y: 5

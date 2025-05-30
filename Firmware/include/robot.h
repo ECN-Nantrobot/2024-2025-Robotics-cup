@@ -58,7 +58,7 @@ namespace ecn
         void stop()
         {
             leftSpeed_ = 0;
-            rightSpeed_ =  0;
+            rightSpeed_ = 0;
             is_starting_ = true;
         }
 
@@ -71,7 +71,6 @@ namespace ecn
         volatile float getX() const { return x_; }
         volatile float getY() const { return y_; }
         volatile float getTheta() const { return theta_; }
-
 
         void setTargetTheta(float targetTheta) { targetTheta_ = targetTheta; }
 
@@ -103,23 +102,24 @@ namespace ecn
             theta_ = theta;
         }
 
+        bool moveStraight(float target_x, float target_y);
+
         std::vector<Point> path_;
 
         std::vector<Pose> goals;
         int getCurrentGoalindex() const { return current_goal_index; }
         void incrementCurrentGoalIndex() { current_goal_index += 1; }
 
-        float getLeftSpeed() { return leftSpeed_; }
-        float getRightSpeed() { return rightSpeed_; }
 
         float distanceToGoal(const Point &p) const { return std::hypot(p.x - x_, p.y - y_); };
 
         bool start_turning = true;
 
-    private :
+    private:
         float turnsignal_limit = 3.0;
         float reducing_factor = 0;
-        float max_control_output_ = 30.0;  // (also max wheel speed for turnig)
+        float max_control_output_ = 30.0; // (also max wheel speed for turnig)
+        float min_control_output = 0.5;   // minimum control output to avoid oscillations
 
         float path_cm_per_point_ = 2.0;
 
@@ -136,19 +136,17 @@ namespace ecn
         float wheelBase_ = 37.6;
         float robot_diameter_ = wheelBase_;
 
-        
-
         float leftSpeed_;
         float rightSpeed_;
 
-        float dt_ = 0.05; //in seconds
+        float dt_ = 0.05; // in seconds
         float dt_inms_ = dt_ * 1000.0;
 
         bool is_starting_ = true;
         float starting_speed_ = 0;
 
-            // PID parameters
-            float kp_,
+        // PID parameters
+        float kp_,
             ki_, kd_;
         float prevError_;
         float integral_;

@@ -555,14 +555,14 @@ void processCommand(const std::string& command)
         std::string popStr = command.substr(4);
         if (sscanf(popStr.c_str(), "%f,%f", &pop.x, &pop.y) == 2) {}
     } else if (command.rfind("RESET!", 0) == 0) {
-        // std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
-        // pid_t ppid = getppid();
-        // std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
-        // kill(ppid, SIGINT);
+        std::cout << "Received RESET command from ESP. Resetting robot state." << std::endl;
+        pid_t ppid = getppid();
+        std::cout << "Sending SIGINT to parent process (PID " << ppid << ")" << std::endl;
+        kill(ppid, SIGINT);
 
-        // // Optionally, shutdown this node as well
-        // rclcpp::shutdown();
-        // return 1;
+        // Optionally, shutdown this node as well
+        rclcpp::shutdown();
+        return 1;
     } else if (command.rfind("PATH:", 0) == 0) {
 
         std::string path_data = command.substr(5); // Extract the path data after "PATH:"

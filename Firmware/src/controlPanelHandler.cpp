@@ -7,39 +7,11 @@
 
 #define PCF8574_ADDRESS 0x20
 
-void scanI2C()
-{
-    SerialInfo("Scanning I2C bus...");
-    byte count = 0;
-
-    for (byte address = 1; address < 127; address++)
-    {
-        myWire.beginTransmission(address);
-        if (myWire.endTransmission() == 0)
-        {
-            Serial.print("I2C device found at 0x");
-            Serial.println(address, HEX);
-            count++;
-        }
-        delay(2);
-    }
-
-    if (count == 0)
-    {
-        SerialWarning("No I2C devices found.");
-    }
-    else
-    {
-        SerialSuccess("I2C scan complete.");
-    }
-}
-
 void initControlPanel()
 {
 
     myWire.begin(21, 22); // SDA, SCL
 
-    scanI2C(); // Run I2C scan before initializing PCF8574
 
     myWire.beginTransmission(PCF8574_ADDRESS);
     if (myWire.endTransmission() != 0)

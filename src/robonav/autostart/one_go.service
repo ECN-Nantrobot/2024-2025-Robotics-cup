@@ -12,6 +12,8 @@ Restart=always
 RestartSec=7
 Environment=ROS_DOMAIN_ID=42
 Environment=RCL_LOG_LEVEL=INFO
+StandardOutput=journal
+StandardError=journal
 
 
 [Install]

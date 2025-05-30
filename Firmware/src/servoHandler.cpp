@@ -9,6 +9,33 @@
 
 Adafruit_PWMServoDriver board1 = Adafruit_PWMServoDriver(0x40, myWire);
 
+void scanI2C()
+{
+    SerialInfo("Scanning I2C bus...");
+    byte count = 0;
+
+    for (byte address = 1; address < 127; address++)
+    {
+        myWire.beginTransmission(address);
+        if (myWire.endTransmission() == 0)
+        {
+            Serial.print("I2C device found at 0x");
+            Serial.println(address, HEX);
+            count++;
+        }
+        delay(2);
+    }
+
+    if (count == 0)
+    {
+        SerialWarning("No I2C devices found.");
+    }
+    else
+    {
+        SerialSuccess("I2C scan complete.");
+    }
+}
+
 int angleToPulse(int ang)
 {
     int pulse = map(ang, 0, 180, SERVOMIN, SERVOMAX);
@@ -20,7 +47,9 @@ void initServo()
 {
     myWire.begin(SDAPin, SLCPin);
 
-    if (!board1.begin())
+    scanI2C();
+
+        if (!board1.begin())
     {
         SerialCritical("Servo driver not initialized");
     }
@@ -64,7 +93,7 @@ void testServo()
     SerialLog("Testing servos...");
 
     // Move all servos to 90 (except 4 to 90 from 180)
-    for (int i = 0; i <= 4; i++)
+    for (int i = 0; i <= 3; i++)
     {
         setServo(i, 90);
     }
@@ -75,7 +104,6 @@ void testServo()
     {
         setServo(i, 0);
     }
-    setServo(4, 180);
     vTaskDelay(3000); // Hold position
 
     SerialSuccess("Servo test complete");

@@ -307,6 +307,8 @@ void setup()
     lastUpdateTime = millis();
     startTime = millis();
 
+    // testServo();
+
 
     pinMode(starter_button, INPUT_PULLDOWN);
     pinMode(colour_button, INPUT_PULLDOWN);
@@ -551,7 +553,23 @@ void loop()
                     // robot.leftSpeed_ =
                     // robot.rightSpeed_ =
 
-                    state = INIT;
+                    // if (robot.getCurrentGoalindex() == 1){
+
+                    //     float distance_to_travel = 5.0;
+                    //     float target_x = robot.getX() + distance_to_travel * cos(robot.getTheta());
+                    //     float target_y = robot.getY() + distance_to_travel * sin(robot.getTheta());
+                    //     if(robot.moveStraight(target_x, target_y)){
+                    //         Serial.println("Robot is aligned to path orientation!");
+                    //         robot.setIsStarting(true);
+                    //         robot.start_turning = true;
+                    //     }
+                    // }
+
+                    if(robot.getCurrentGoalindex() == 2){
+                        vTaskDelay(65000);
+                    }
+
+                        state = INIT;
                 }
                 else
                 {
