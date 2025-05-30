@@ -9,8 +9,8 @@ robot:
 
 goals:
     # Step = 0
-    # Starting Position (Goal #22)  
-  - x: 177
+    # Starting Position (Goal #2)  
+  - x: 122
     y: 175
     theta: -90
 
@@ -21,46 +21,46 @@ goals:
   #   theta: -90
 
   # Step = 1
-  # Goal 29
-  - x: 190
+  # Goal 9
+  - x: 110
     y: 133
-    theta: 0
+    theta: -180
 
     # Step = 2
     # Goal 14  PUSH CANS STARTING POS
-  - x: 222
+  - x: 77
     y: 132
-    theta: 90
+    theta: -270
 
     # Step = 3
     # Goal     PUSH CANS (touch planks)
-  - x: 222
+  - x: 77
     y: 170
-    theta: 90
+    theta: -270
 
       # Step = 4
     # Goal     PUSH CANS END
-  - x: 222
+  - x: 77
     y: 195
-    theta: 90
+    theta: -270
 
   # MOVE BACKWARDS A LITTLE BIT (esp)
 
 
-      # Step = 5
-    # Goal 30  midpoint
-  - x: 245
+     # Step = 5
+    # Goal 7  midpoint
+  - x: 50
     y: 50
-    theta: -35
+    theta: -155
 
     # Step = 6
-    # Goal 18
-  - x: 262
+    # Goal 0
+  - x: 32
     y: 40
     theta: -90
 
     # Step = 7
-    # Goal 18
-  - x: 262
+    # Goal 0
+  - x: 32
     y: 5
     theta: -90

@@ -206,10 +206,11 @@ namespace ecn
                 std::hypot(goals[current_goal_index].point.x - x_, goals[current_goal_index].point.y - y_));
 
             // Slow speed if the robot is close to a goal
-            float distance_to_goal_slowdown = 6.0;
+            float distance_to_goal_slowdown = 8.0;
             if (distanceToGoal < distance_to_goal_slowdown)
             {
-                float factor = 1 - std::pow(1 - (distanceToGoal / distance_to_goal_slowdown), 2);
+                // float factor = 1 - std::pow(1 - (distanceToGoal / distance_to_goal_slowdown), 2);
+                float factor = distanceToGoal / distance_to_goal_slowdown;
                 speed_to_set = std::max(0.8f, factor * target_speed_);
             }
             // Slow speed if the robot is starting

@@ -273,7 +273,9 @@ void setup()
     }
     delay(200);
 
-    Serial.println("RESET!");
+    Serial.println("");
+    Serial.print("RESET!\n");
+    Serial.println("");
 
     SerialTitle("Initialisation du système");
 
@@ -553,21 +555,24 @@ void loop()
                     // robot.leftSpeed_ =
                     // robot.rightSpeed_ =
 
-                    // if (robot.getCurrentGoalindex() == 1){
+                    if (robot.getCurrentGoalindex() == 5){
 
-                    //     float distance_to_travel = 5.0;
-                    //     float target_x = robot.getX() + distance_to_travel * cos(robot.getTheta());
-                    //     float target_y = robot.getY() + distance_to_travel * sin(robot.getTheta());
-                    //     if(robot.moveStraight(target_x, target_y)){
-                    //         Serial.println("Robot is aligned to path orientation!");
-                    //         robot.setIsStarting(true);
-                    //         robot.start_turning = true;
-                    //     }
-                    // }
-
-                    if(robot.getCurrentGoalindex() == 2){
-                        vTaskDelay(65000);
+                        float distance_to_travel = -15.0;
+                        float target_x = robot.getX() + distance_to_travel * cos(robot.getTheta());
+                        float target_y = robot.getY() + distance_to_travel * sin(robot.getTheta());
+                        if(robot.moveStraight(target_x, target_y)){
+                            Serial.println("Robot is aligned to path orientation!");
+                            robot.setIsStarting(true);
+                            robot.start_turning = true;
+                        }
                     }
+
+
+
+
+                    // if(robot.getCurrentGoalindex() == 2){
+                    //     vTaskDelay(65000);
+                    // }
 
                         state = INIT;
                 }

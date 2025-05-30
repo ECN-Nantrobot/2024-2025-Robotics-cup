@@ -22,5 +22,10 @@ sudo rm /etc/systemd/system/one_go.service
 sudo systemctl daemon-reload
 
 
-Live Logs output:
+# Live Logs output:
 journalctl -u one_go.service -f
+
+
+
+# Wifi: 
+cd /etc/netplan/

@@ -1,20 +1,12 @@
 robot:
   wheel_distance: 37.3
-  speed: 18.0
+  speed: 30.0
   pid:
-    kp: 30
+    kp: 28
     ki: 0.02
     kd: 0.6
 
-# TEAM BLUE STRATEGY
-# start at goal 22
-# goal 29 - pick up cans
-# goal 22 - drop off cans
-# goal 33 - pick up cans -- handle differently by esp 
-# (goal 24 - drop off cans -- reached by esp) 
-# goal 35 - pick up cans
-# goal 23 - drop off cans
-# goal 18 - final position
+# wait time 65s
 
 goals:
     # Step = 0
@@ -47,8 +39,13 @@ goals:
     y: 50
     theta: -65
 
-
     # Step = 4
+    # Goal 18
+  - x: 262
+    y: 40
+    theta: -90
+
+    # Step = 5
     # Goal 18
   - x: 262
     y: 5

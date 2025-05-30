@@ -7,12 +7,20 @@ robot:
     kd: 0.6
 
 
+# wait time 65s
+
 goals:
     # Step = 0
     # Starting Position (Goal #2)  
   - x: 122
     y: 175
     theta: -90
+
+  #   # Step = 1
+  #   # Goal 3   midpoint
+  # - x: 122
+  #   y: 154
+  #   theta: -90
 
   # Step = 1
   # Goal 9
@@ -21,39 +29,24 @@ goals:
     theta: -180
 
     # Step = 2
-    # Goal 14  PUSH CANS STARTING POS
-  - x: 77
+    # Goal 7  midpoint
+  - x: 60
     y: 132
-    theta: -270
+    theta: -100
 
-    # Step = 3
-    # Goal     PUSH CANS (touch planks)
-  - x: 77
-    y: 170
-    theta: -270
-
-      # Step = 4
-    # Goal     PUSH CANS END
-  - x: 77
-    y: 195
-    theta: -270
-
-  # MOVE BACKWARDS A LITTLE BIT (esp)
-
-
-     # Step = 5
+      # Step = 3
     # Goal 7  midpoint
   - x: 50
     y: 50
-    theta: -155
+    theta: -145
 
-    # Step = 6
+        # Step = 4
     # Goal 0
   - x: 32
     y: 40
     theta: -90
 
-    # Step = 7
+    # Step = 4
     # Goal 0
   - x: 32
     y: 5
