@@ -96,7 +96,7 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     float max_y               = 2 - reduction;
     float radius_around_robot = 0.3; // Radius around the robot to exclude points for putting obstacles on the map
 
-    float close_obstacle_threshold = 0.47;
+    float close_obstacle_threshold = 0.40;
 
 
     // Convert PointCloud2 to PCL PointCloud

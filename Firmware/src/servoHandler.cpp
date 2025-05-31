@@ -61,14 +61,11 @@ void initServo()
     board1.setPWMFreq(60); // Set PWM frequency for servos
 
     // Initialize servos 0-3 to 0
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 16; i++)
     {
         board1.setPWM(i, 0, angleToPulse(0));
         delay(20);
     }
-    // Initialize servo 4 to 180
-    board1.setPWM(4, 0, angleToPulse(130));
-    board1.setPWM(8, 0, angleToPulse(0));
 
     delay(20);
 

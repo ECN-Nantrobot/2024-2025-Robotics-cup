@@ -39,7 +39,7 @@ goals:
   # Step = 2
   # Goal PICK UP CANS (from 29)
   - x: 190
-    y: 109
+    y: 112
     theta: -90
 
   # Step = 3
@@ -80,30 +80,30 @@ goals:
 
     # MOVE BACKWARDS A LITTLE BIT (esp)
 
-  # Step = 9
-    # Goal 35
-  - x: 217
-    y: 65
-    theta: -90
+  # # Step = 9
+  #   # Goal 35
+  # - x: 217
+  #   y: 65
+  #   theta: -90
 
-    # Step = 10
-    # PICK UP CANS (from 35)
-  - x: 217
-    y: 31
-    theta: -90
+  #   # Step = 10
+  #   # PICK UP CANS (from 35)
+  # - x: 217
+  #   y: 31
+  #   theta: -90
 
-    # MOVE BACKWARDS A LITTLE BIT MORE (esp)
+  #   # MOVE BACKWARDS A LITTLE BIT MORE (esp)
 
-    # Step = 11
-    # Goal 23  (DROP OFF CANS)
-  - x: 177
-    y: 154
-    theta: 90
+  #   # Step = 11
+  #   # Goal 23  (DROP OFF CANS)
+  # - x: 177
+  #   y: 154
+  #   theta: 90
 
     # Step = 12
     # Goal 30  midpoint
   - x: 245
-    y: 50
+    y: 75
     theta: -25
 
     # Step = 13

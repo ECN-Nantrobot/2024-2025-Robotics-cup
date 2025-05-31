@@ -68,10 +68,9 @@ int straight_counter = 0;
 int go_back_counter_limit = 20;
 
 float max_straight_speed = 10.0; // Maximum speed for straight movement
-float straight_speed = 0.0; // Current speed for straight movement
+float straight_speed = 0.0;      // Current speed for straight movement
 
-    void
-    sendpath(const std::vector<Point> &path)
+void sendpath(const std::vector<Point> &path)
 {
     Serial.print("PATH:");
     for (size_t i = 0; i < path.size(); ++i)
@@ -164,45 +163,44 @@ void parseGoals(String data)
 //     Serial.println(robot.path_.size());
 // }
 
+// void moveStraightsimple(bool forward)
+// {
+//     if (straight_counter < max_straight_speed)
+//     {
+//         if (forward)
+//             straight_speed += 1;
+//         else
+//             straight_speed -= 1;
 
-void moveStraightsimple(bool forward){
-    if (straight_counter < max_straight_speed)
-    {
-        if(forward)
-            straight_speed += 1;
-        else
-            straight_speed -= 1;
+//         robot.setWheelSpeed(straight_speed, straight_speed);
+//     }
+//     if (straight_counter > max_straight_speed && straight_counter < (go_back_counter_limit - max_straight_speed))
+//     {
+//         if (forward)
+//             robot.setWheelSpeed(max_straight_speed, max_straight_speed);
+//         else
+//             robot.setWheelSpeed(-max_straight_speed, -max_straight_speed);
+//     }
+//     if (straight_counter >= (go_back_counter_limit - max_straight_speed) && straight_counter < go_back_counter_limit)
+//     {
+//         if (forward)
+//             straight_speed -= 1;
+//         else
+//             straight_speed += 1;
 
-        robot.setWheelSpeed(straight_speed, straight_speed);
+//         robot.setWheelSpeed(straight_speed, straight_speed);
+//     }
 
-    }
-    if (straight_counter > max_straight_speed && straight_counter < (go_back_counter_limit - max_straight_speed))
-    {
-        if(forward)
-            robot.setWheelSpeed(max_straight_speed, max_straight_speed);
-        else
-            robot.setWheelSpeed(-max_straight_speed, -max_straight_speed);
-    }
-    if (straight_counter >= (go_back_counter_limit - max_straight_speed) && straight_counter < go_back_counter_limit)
-    {
-        if (forward)
-            straight_speed -= 1;
-        else
-            straight_speed += 1;
+//     straight_counter++;
 
-        robot.setWheelSpeed(straight_speed, straight_speed);
-    }
-
-    straight_counter++;
-
-    if (straight_counter >= go_back_counter_limit)
-    {
-        straight_speed = 0;
-        robot.setWheelSpeed(straight_speed, straight_speed);
-        straight_counter = 0;
-        continue_after_straight = true;
-    }
-}
+//     if (straight_counter >= go_back_counter_limit)
+//     {
+//         straight_speed = 0;
+//         robot.setWheelSpeed(straight_speed, straight_speed);
+//         straight_counter = 0;
+//         continue_after_straight = true;
+//     }
+// }
 
 void parseSpeedAndPID(String data)
 {
@@ -315,6 +313,15 @@ void sendPositionUpdate()
     }
 }
 
+void setServos(int degrees)
+{
+    for (int i = 0; i < 16; i++)
+    {
+        setServo(i, degrees);
+        delay(10);
+    }
+}
+
 void setup()
 {
     Serial.begin(921600);
@@ -352,33 +359,11 @@ void setup()
 
     setMotorSpeeds(0, 0);
 
-    setServo(0, 0);
-    vTaskDelay(200); // Hold position
-    setServo(1, 0);
-    vTaskDelay(200); // Hold position
-    setServo(2, 0);
-    vTaskDelay(200); // Hold position
-    setServo(8, 0);
-
+    setServos(0);
     vTaskDelay(600); // Hold position
-
-    setServo(0, 90);
-    vTaskDelay(200); // Hold position
-    setServo(1, 90);
-    vTaskDelay(200); // Hold position
-    setServo(2, 90);
-    vTaskDelay(200); // Hold position
-    setServo(8, 90);
-
+    setServos(70);
     vTaskDelay(600); // Hold position
-
-    setServo(0, 0);
-    vTaskDelay(200); // Hold position
-    setServo(1, 0);
-    vTaskDelay(200); // Hold position
-    setServo(2, 0);
-    vTaskDelay(200); // Hold position
-    setServo(8, 0);
+    setServos(0);
 
     // pinMode(internalLed, OUTPUT);
     // digitalWrite(internalLed, LOW);
@@ -621,59 +606,30 @@ void loop()
 
                 if (robot.getCurrentGoalindex() == 2)
                 {
-                    setServo(0, 90);
-                    setServo(1, 90);
-                    setServo(2, 90);
-                    setServo(3, 90);
+
+                        setServos(70);
+                        vTaskDelay(500);
+
+                        Serial.println("Robot is aligned to path orientation!");
+                        robot.setIsStarting(true);
+                        robot.start_turning = true;
+                        robot.incrementCurrentGoalIndex();
+                        Serial.print("New current_goal_index: ");
+                        Serial.println(robot.getCurrentGoalindex());
+                        Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                        robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                        std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                        continue_after_straight = false;
+
+                        state = INIT;
                 }
-
-                if (robot.getCurrentGoalindex() == 4) // without start so real goal
+                if (robot.getCurrentGoalindex() == 7)
                 {
-                    setServo(0, 0);
-                    setServo(1, 0);
-                    setServo(2, 0);
-                    setServo(3, 0);
 
-                    moveStraightsimple(forward = false);
-                }
-                if (robot.getCurrentGoalindex() == 8) // without start so real goal
-                {
-                    moveStraightsimple(forward = false);
-                }
-                if (robot.getCurrentGoalindex() == 10)
-                {
-                    setServo(0, 90);
-                    setServo(1, 90);
-                    setServo(2, 90);
-                    setServo(3, 90);
+                    setServos(70);
+                    vTaskDelay(500);
 
-                    moveStraightsimple(forward = false);
-                }
-
-                if (robot.getCurrentGoalindex() == 11) // without start so real goal
-                {
-                    setServo(0, 0);
-                    setServo(1, 0);
-                    setServo(2, 0);
-                    setServo(3, 0);
-
-                    moveStraightsimple(forward = false);
-                }
-
-                else
-                {
-                    robot.incrementCurrentGoalIndex();
-                    Serial.print("New current_goal_index: ");
-                    Serial.println(robot.getCurrentGoalindex());
-                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
-                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
-                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
-
-                    state = INIT;
-                }
-
-                if (continue_after_straight == true)
-                {
                     Serial.println("Robot is aligned to path orientation!");
                     robot.setIsStarting(true);
                     robot.start_turning = true;
@@ -689,9 +645,177 @@ void loop()
                     state = INIT;
                 }
 
-                // if(robot.getCurrentGoalindex() == 2){
-                //     vTaskDelay(65000);
-                // }
+                if (robot.getCurrentGoalindex() == 4) // without start so real goal
+                {
+                    if (straight_counter == 0)
+                    {
+                        setServos(0);
+                        vTaskDelay(500);
+                    }
+                    // moveStraightsimple(false);
+                    if (straight_counter < go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(-5.0, -5.0);
+
+                        straight_counter++;
+                    }
+                    if (straight_counter >= go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(0, 0);
+                        straight_counter = 0;
+                        continue_after_straight = true;
+                    }
+                    if (continue_after_straight == true)
+                    {
+                        Serial.println("Robot is aligned to path orientation!");
+                        robot.setIsStarting(true);
+                        robot.start_turning = true;
+                        robot.incrementCurrentGoalIndex();
+                        Serial.print("New current_goal_index: ");
+                        Serial.println(robot.getCurrentGoalindex());
+                        Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                        robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                        std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                        continue_after_straight = false;
+
+                        state = INIT;
+                    }
+                }
+                if (robot.getCurrentGoalindex() == 8) // without start so real goal
+                {
+                    if (straight_counter == 0)
+                    {
+                        setServos(0);
+                        vTaskDelay(500);
+                    }
+                    // moveSt
+                    // moveStraightsimple(false);
+                    if (straight_counter < go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(-5.0, -5.0);
+
+                        straight_counter++;
+                    }
+                    if (straight_counter >= go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(0, 0);
+                        straight_counter = 0;
+                        continue_after_straight = true;
+                    }
+                    if (continue_after_straight == true)
+                    {
+                        Serial.println("Robot is aligned to path orientation!");
+                        robot.setIsStarting(true);
+                        robot.start_turning = true;
+                        robot.incrementCurrentGoalIndex();
+                        Serial.print("New current_goal_index: ");
+                        Serial.println(robot.getCurrentGoalindex());
+                        Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                        robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                        std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                        continue_after_straight = false;
+
+                        state = INIT;
+                    }
+                }
+                if (robot.getCurrentGoalindex() == 10)
+                {
+                    if (straight_counter == 0)
+                    {
+                        setServos(70);
+                        vTaskDelay(500);
+                    }
+
+                    // moveStraightsimple(false);
+                    if (straight_counter < go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(-5.0, -5.0);
+
+                        straight_counter++;
+                    }
+                    if (straight_counter >= go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(0, 0);
+                        straight_counter = 0;
+                        continue_after_straight = true;
+                    }
+                    if (continue_after_straight == true)
+                {
+                    Serial.println("Robot is aligned to path orientation!");
+                    robot.setIsStarting(true);
+                    robot.start_turning = true;
+                    robot.incrementCurrentGoalIndex();
+                    Serial.print("New current_goal_index: ");
+                    Serial.println(robot.getCurrentGoalindex());
+                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                    continue_after_straight = false;
+
+                    state = INIT;
+                }
+                }
+
+                if (robot.getCurrentGoalindex() == 11) // without start so real goal
+                {
+                    if (straight_counter == 0)
+                    {
+                        setServos(0);
+                        vTaskDelay(500);
+                    }
+
+                    // moveStraightsimple(false);
+                    if (straight_counter < go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(-5.0, -5.0);
+
+                        straight_counter++;
+                    }
+                    if (straight_counter >= go_back_counter_limit)
+                    {
+                        robot.setWheelSpeed(0, 0);
+                        straight_counter = 0;
+                        continue_after_straight = true;
+                    }
+                    if (continue_after_straight == true)
+                {
+                    Serial.println("Robot is aligned to path orientation!");
+                    robot.setIsStarting(true);
+                    robot.start_turning = true;
+                    robot.incrementCurrentGoalIndex();
+                    Serial.print("New current_goal_index: ");
+                    Serial.println(robot.getCurrentGoalindex());
+                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                    continue_after_straight = false;
+
+                    state = INIT;
+                }
+                }
+
+                else if (robot.getCurrentGoalindex() == 1 || robot.getCurrentGoalindex() == 3 || robot.getCurrentGoalindex() == 5 || robot.getCurrentGoalindex() == 6 || robot.getCurrentGoalindex() == 7 || robot.getCurrentGoalindex() == 9 || robot.getCurrentGoalindex() == 12 || robot.getCurrentGoalindex() == 13)
+                {
+
+                    robot.incrementCurrentGoalIndex();
+                    Serial.print("New current_goal_index: ");
+                    Serial.println(robot.getCurrentGoalindex());
+                    Serial.printf("New Goal: %f, %f, %f\n", robot.goals[robot.getCurrentGoalindex()].point.x, robot.goals[robot.getCurrentGoalindex()].point.y, robot.goals[robot.getCurrentGoalindex()].theta);
+                    robot.setTargetTheta(robot.goals[robot.getCurrentGoalindex()].theta);
+                    std::cout << "Set Target theta to: " << robot.goals[robot.getCurrentGoalindex()].theta << std::endl;
+
+                    state = INIT;
+                }
+
+                
+
+                if(robot.getCurrentGoalindex() == 9){
+                    vTaskDelay(15000);
+                }
             }
             else
             {
@@ -707,6 +831,12 @@ void loop()
         double time_duration = std::chrono::duration_cast<std::chrono::seconds>(now_time - start_time).count();
 
         if (time_duration > 100 && start_timer == true)
+        {
+            Serial.println("The exec time is over 100 sec");
+            robot.stop();
+        }
+
+        if (time_duration > 70 && time_duration < 90 && start_timer == true)
         {
             Serial.println("The exec time is over 100 sec");
             robot.stop();
