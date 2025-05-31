@@ -66,7 +66,6 @@ bool team_colour = 0;
 
 ecn::Point pop;
 
-double close_obstacle_threshold = 0.30;
 bool emergencystate             = false;
 
 int sendpathcounter = 0;
@@ -95,7 +94,10 @@ void processPointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr& cloud_msg
     float max_x               = 3 - reduction;
     float min_y               = 0 + reduction;
     float max_y               = 2 - reduction;
-    float radius_around_robot = 0.48;
+    float radius_around_robot = 0.3; // Radius around the robot to exclude points for putting obstacles on the map
+
+    float close_obstacle_threshold = 0.47;
+
 
     // Convert PointCloud2 to PCL PointCloud
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -767,6 +769,10 @@ int main(int argc, char** argv)
 
             if(command.rfind("Waiting for Save Start button...", 0) == 0){
                 led.start_flash_fast();
+            }
+
+            if (command.rfind("CurrentState: WAIT", 0) == 0) {
+                led.start_long_on_flash();
             }
 
             if (command.rfind("START!", 0) == 0) {

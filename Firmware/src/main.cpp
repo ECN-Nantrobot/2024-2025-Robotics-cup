@@ -67,7 +67,11 @@ bool continue_after_straight = false;
 int straight_counter = 0;
 int go_back_counter_limit = 20;
 
-void sendpath(const std::vector<Point> &path)
+float max_straight_speed = 10.0; // Maximum speed for straight movement
+float straight_speed = 0.0; // Current speed for straight movement
+
+    void
+    sendpath(const std::vector<Point> &path)
 {
     Serial.print("PATH:");
     for (size_t i = 0; i < path.size(); ++i)
@@ -159,6 +163,46 @@ void parseGoals(String data)
 //     Serial.print("Number of points in the path::: ");
 //     Serial.println(robot.path_.size());
 // }
+
+
+void moveStraightsimple(bool forward){
+    if (straight_counter < max_straight_speed)
+    {
+        if(forward)
+            straight_speed += 1;
+        else
+            straight_speed -= 1;
+
+        robot.setWheelSpeed(straight_speed, straight_speed);
+
+    }
+    if (straight_counter > max_straight_speed && straight_counter < (go_back_counter_limit - max_straight_speed))
+    {
+        if(forward)
+            robot.setWheelSpeed(max_straight_speed, max_straight_speed);
+        else
+            robot.setWheelSpeed(-max_straight_speed, -max_straight_speed);
+    }
+    if (straight_counter >= (go_back_counter_limit - max_straight_speed) && straight_counter < go_back_counter_limit)
+    {
+        if (forward)
+            straight_speed -= 1;
+        else
+            straight_speed += 1;
+
+        robot.setWheelSpeed(straight_speed, straight_speed);
+    }
+
+    straight_counter++;
+
+    if (straight_counter >= go_back_counter_limit)
+    {
+        straight_speed = 0;
+        robot.setWheelSpeed(straight_speed, straight_speed);
+        straight_counter = 0;
+        continue_after_straight = true;
+    }
+}
 
 void parseSpeedAndPID(String data)
 {
@@ -476,7 +520,7 @@ void loop()
                 processCommand(command);
             }
 
-            Serial.println("CurrentState: WAIT");
+            Serial.print("CurrentState: WAIT\n");
 
             break;
         case INIT:
@@ -590,33 +634,11 @@ void loop()
                     setServo(2, 0);
                     setServo(3, 0);
 
-                    if (straight_counter < go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(-5.0, -5.0);
-
-                        straight_counter++;
-                    }
-                    if (straight_counter >= go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(0, 0);
-                        straight_counter = 0;
-                        continue_after_straight = true;
-                    }
+                    moveStraightsimple(forward = false);
                 }
                 if (robot.getCurrentGoalindex() == 8) // without start so real goal
                 {
-                    if (straight_counter < go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(-5.0, -5.0);
-
-                        straight_counter++;
-                    }
-                    if (straight_counter >= go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(0, 0);
-                        straight_counter = 0;
-                        continue_after_straight = true;
-                    }
+                    moveStraightsimple(forward = false);
                 }
                 if (robot.getCurrentGoalindex() == 10)
                 {
@@ -625,18 +647,7 @@ void loop()
                     setServo(2, 90);
                     setServo(3, 90);
 
-                    if (straight_counter < go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(-5.0, -5.0);
-
-                        straight_counter++;
-                    }
-                    if (straight_counter >= go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(0, 0);
-                        straight_counter = 0;
-                        continue_after_straight = true;
-                    }
+                    moveStraightsimple(forward = false);
                 }
 
                 if (robot.getCurrentGoalindex() == 11) // without start so real goal
@@ -646,18 +657,7 @@ void loop()
                     setServo(2, 0);
                     setServo(3, 0);
 
-                    if (straight_counter < go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(-5.0, -5.0);
-
-                        straight_counter++;
-                    }
-                    if (straight_counter >= go_back_counter_limit)
-                    {
-                        robot.setWheelSpeed(0, 0);
-                        straight_counter = 0;
-                        continue_after_straight = true;
-                    }
+                    moveStraightsimple(forward = false);
                 }
 
                 else

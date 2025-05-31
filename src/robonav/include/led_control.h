@@ -56,6 +56,11 @@ public:
         start_flash(200); // 200ms on/off
     }
 
+    void start_long_on_flash()
+    {
+        start_flash(500); // 1s on/off
+    }
+
     void stop_flash()
     {
         flashing_ = false;
@@ -79,6 +84,21 @@ private:
             }
         });
     }
+
+    void start_long_on_flash(int interval_ms)
+    {
+        stop_flash(); // stop any existing thread
+        flashing_     = true;
+        flash_thread_ = std::thread([this, interval_ms]() {
+            while (flashing_) {
+                turn_on();
+                std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms));
+                turn_off();
+                std::this_thread::sleep_for(std::chrono::milliseconds(interval_ms/2));
+            }
+        });
+    }
+
 
     struct gpiod_chip* chip_;
     struct gpiod_line* line_;
