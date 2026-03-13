@@ -15,12 +15,14 @@ while coordinating high-level autonomy (Raspberry Pi + ROS2) and low-level actua
 ## Quick Summary (TL;DR)
 
 If you only need the short version:
-- This project is the software stack for our **Eurobot France 2025** robot (Raspberry Pi + ROS2 + ESP32).
-- ROS2 on the Raspberry Pi handles strategy, LiDAR perception, map updates, and high-level navigation decisions.
-- ESP32 handles real-time control: motors, servos, pump, stacking actions, and hardware safety logic.
-- LiDAR data is converted to pointcloud, transformed to map frame, and used for obstacle/collision-aware behavior.
-- The system uses YAML match strategies (blue/yellow), a serial ROS↔ESP protocol (`/dev/esp32`), and a state-machine-driven main loop.
-- The README below contains the full architecture, planning details (A* + Elastic Bands), data flow, and run/autostart steps.
+- This repository is the full competition software stack for our **Eurobot France 2025** robot, split between high-level ROS2 autonomy on the Raspberry Pi and real-time actuator control on the ESP32.
+- The robot mission flow is: navigate the table, pick cans, transport them, and stack them according to ordered match goals defined in YAML strategies (blue/yellow team variants).
+- On the ROS2 side, `main_node` coordinates mission sequencing, ESP synchronization, and runtime state progression, while `laser_to_pointcloud_node` converts LiDAR scans into map-frame pointcloud data.
+- Perception updates an OpenCV-backed maze/occupancy representation; close LiDAR points are used for collision-aware behavior and safety reactions during execution.
+- The planning stack includes A* path search and Elastic Band smoothing/optimization modules to turn discrete routes into smoother, obstacle-aware motion references.
+- Raspberry Pi and ESP32 communicate over serial (`/dev/esp32`) with command/ack/state messages so high-level decisions and low-level actions stay synchronized.
+- Deployment supports both manual ROS launching and automatic startup with `one_go.service`; additional operator setup/troubleshooting notes are collected in `noted.md`.
+- The detailed sections below explain architecture layers, data flow, planning internals, state-machine behavior, build/run steps, and autostart operations.
 
 ---
 
