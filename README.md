@@ -33,6 +33,16 @@ If you only need the short version:
 
 ---
 
+## 📸 Photo gallery
+
+![Eurobot competition table](docs/images/competition_table.jpg)
+![Team with robot at competition](docs/images/team_with_robot.jpg)
+![Robot close-up](docs/images/robot_closeup.jpg)
+![Stacking demo with cans and wood pieces](docs/images/stacking_demo.jpg)
+![Planning and simulation view](docs/images/planning_simulation.jpg)
+
+---
+
 ## 🏗️ 1) System architecture (code architecture, not just file tree)
 
 The software is designed as a **layered robotics stack**.
