@@ -1,57 +1,39 @@
-/*
-   Abstracted transport for reading and writing data from a UART-based
+/* 
+   Abstracted transport for reading and writing data from a UART-based 
    device such as a TMC2209
 
-   Written with help by Claude!
-  https://claude.ai/chat/335f50b1-3dd8-435e-9139-57ec7ca26a3c (at this time
-  chats are not shareable :(
+   Written with help by Claude! https://claude.ai/chat/335f50b1-3dd8-435e-9139-57ec7ca26a3c
+  (at this time chats are not shareable :(
 */
 
 #include "Adafruit_GenericDevice.h"
 
-/**
- * Basic UART device class that demonstrates using GenericDevice with a Stream
- * interface. This example shows how to wrap a Stream (like HardwareSerial or
- * SoftwareSerial) with read/write callbacks that can be used by BusIO's
- * register functions.
- */
-class UARTDevice {
-public:
-  UARTDevice(Stream *serial) : _serial(serial) {}
+Stream *uart_stream; // Will hold the pointer to our Stream object
 
-  // Static callback for writing data to UART
-  // Called by GenericDevice when data needs to be sent
-  static bool uart_write(void *thiz, const uint8_t *buffer, size_t len) {
-    UARTDevice *dev = (UARTDevice *)thiz;
-    dev->_serial->write(buffer, len);
+Adafruit_GenericDevice *create_uart_device(Stream *serial_port) {
+  uart_stream = serial_port; // Store the Stream pointer
+
+  auto uart_write = [](const uint8_t *buffer, size_t len) -> bool {
+    uart_stream->write(buffer, len);
     return true;
-  }
+  };
 
-  // Static callback for reading data from UART
-  // Includes timeout and will return false if not enough data available
-  static bool uart_read(void *thiz, uint8_t *buffer, size_t len) {
-    UARTDevice *dev = (UARTDevice *)thiz;
+  auto uart_read = [](uint8_t *buffer, size_t len) -> bool {
     uint16_t timeout = 100;
-    while (dev->_serial->available() < len && timeout--) {
+    while (uart_stream->available() < len && timeout--) {
       delay(1);
     }
     if (timeout == 0) {
       return false;
     }
     for (size_t i = 0; i < len; i++) {
-      buffer[i] = dev->_serial->read();
+      buffer[i] = uart_stream->read();
     }
     return true;
-  }
+  };
 
-  // Create a GenericDevice instance using our callbacks
-  Adafruit_GenericDevice *createDevice() {
-    return new Adafruit_GenericDevice(this, uart_read, uart_write);
-  }
-
-private:
-  Stream *_serial; // Underlying Stream instance (HardwareSerial, etc)
-};
+  return new Adafruit_GenericDevice(uart_read, uart_write);
+}
 
 void setup() {
   Serial.begin(115200);
@@ -61,15 +43,11 @@ void setup() {
 
   Serial.println("Generic Device test!");
 
-  // Initialize UART for device communication
   Serial1.begin(115200);
 
-  // Create UART wrapper and BusIO device
-  UARTDevice uart(&Serial1);
-  Adafruit_GenericDevice *device = uart.createDevice();
+  Adafruit_GenericDevice *device = create_uart_device(&Serial1);
   device->begin();
 
-  // Test write/read cycle
   uint8_t write_buf[4] = {0x5, 0x0, 0x0, 0x48};
   uint8_t read_buf[8];
 
@@ -85,7 +63,6 @@ void setup() {
     return;
   }
 
-  // Print response bytes
   Serial.print("Got response: ");
   for (int i = 0; i < 8; i++) {
     Serial.print("0x");

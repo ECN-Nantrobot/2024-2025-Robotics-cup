@@ -1,0 +1,52 @@
+robot:
+  wheel_distance: 37.3
+  speed: 30.0
+  pid:
+    kp: 28
+    ki: 0.02
+    kd: 0.6
+
+# wait time 65s
+
+goals:
+    # Step = 0
+    # Starting Position (Goal #22)  
+  - x: 177
+    y: 175
+    theta: -90
+
+  #   # Step = 1
+  #   # Goal 23   midpoint
+  # - x: 177
+  #   y: 154
+  #   theta: -90
+
+  # Step = 1
+  # Goal 29
+  - x: 190
+    y: 133
+    theta: 0
+
+    # Step = 2
+    # Goal 30  midpoint
+  - x: 235
+    y: 132
+    theta: -80
+
+      # Step = 3
+    # Goal 30  midpoint
+  - x: 245
+    y: 50
+    theta: -65
+
+    # Step = 4
+    # Goal 18
+  - x: 262
+    y: 40
+    theta: -90
+
+    # Step = 5
+    # Goal 18
+  - x: 262
+    y: 5
+    theta: -90

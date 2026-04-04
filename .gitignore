@@ -1,7 +1,17 @@
 .vscode/
-build/
+# .pio/
 *.log
 *.bin
 *.elf
-*.lck
-~*
+
+# ROS2 build, install, and log directories
+build/
+install/
+log/
+
+# Python / CMake / ROS2 generated files
+*.pyc
+*.pyo
+*.swp
+CMakeLists.txt.user
+colcon.lock

@@ -1,0 +1,66 @@
+robot:
+  wheel_distance: 37.3
+  speed: 30.0
+  pid:
+    kp: 28
+    ki: 0.02
+    kd: 0.6
+
+
+goals:
+    # Step = 0
+    # Starting Position (Goal #22)  
+  - x: 177
+    y: 184
+    theta: -90
+
+  #   # Step = 1
+  #   # Goal 3   midpoint
+  # - x: 122
+  #   y: 154
+  #   theta: -90
+
+  # Step = 1
+  # Goal 29
+  - x: 190
+    y: 133
+    theta: 0
+
+    # Step = 2
+    # Goal 14  PUSH CANS STARTING POS
+  - x: 222
+    y: 132
+    theta: 90
+
+    # Step = 3
+    # Goal     PUSH CANS (touch planks)
+  - x: 222
+    y: 170
+    theta: 90
+
+      # Step = 4
+    # Goal     PUSH CANS END
+  - x: 222
+    y: 187
+    theta: 90
+
+  # MOVE BACKWARDS A LITTLE BIT (esp)
+
+
+      # Step = 5
+    # Goal 30  midpoint
+  - x: 245
+    y: 50
+    theta: -35
+
+    # Step = 6
+    # Goal 18
+  - x: 262
+    y: 40
+    theta: -90
+
+    # Step = 7
+    # Goal 18
+  - x: 262
+    y: 5
+    theta: -90

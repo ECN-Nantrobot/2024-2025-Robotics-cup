@@ -1,8 +1,9 @@
-#include "Config.h"
+#include "config.h"
 #include "pumpHandler.h"
 #include "debug.h"
 
-void initPump() {
+void initPump()
+{
     pinMode(pumpPin, OUTPUT);
     pinMode(vanPin, OUTPUT);
 
@@ -12,13 +13,15 @@ void initPump() {
     SerialSuccess("Pump initialized successfully");
 }
 
-void pumpActivate() {
+void pumpActivate()
+{
     digitalWrite(pumpPin, HIGH);
     digitalWrite(vanPin, LOW);
     SerialLog("Pump activated");
 }
 
-void pumpDeactivate() {
+void pumpDeactivate()
+{
     digitalWrite(pumpPin, LOW);
     digitalWrite(vanPin, HIGH);
     unsigned long startTime = millis();
@@ -27,7 +30,8 @@ void pumpDeactivate() {
     SerialLog("Pump deactivated (valve purge complete)");
 }
 
-void testPump() {
+void testPump()
+{
     SerialLog("Testing pump...");
     pumpActivate();
     vTaskDelay(1000); // 1s test duration
