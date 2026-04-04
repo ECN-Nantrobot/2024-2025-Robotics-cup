@@ -33,17 +33,16 @@ If you only need the short version:
 
 ---
 
-## 📸 Photo gallery
+## Photos
 
 ![Eurobot competition table](docs/images/competition_table.jpg)
-![Team with robot at competition](docs/images/team_with_robot.jpg)
+![Team with robot at competition](docs/images/robot.jpg)
 ![Robot close-up](docs/images/robot_closeup.jpg)
-![Stacking demo with cans and wood pieces](docs/images/stacking_demo.jpg)
 ![Planning and simulation view](docs/images/planning_simulation.jpg)
 
 ---
 
-## 🏗️ 1) System architecture (code architecture, not just file tree)
+## 1) System architecture (code architecture, not just file tree)
 
 The software is designed as a **layered robotics stack**.
 
@@ -61,7 +60,7 @@ Core behavior ⚡:
 
 ---
 
-## 🛰️ Layer B — Environment modeling and local world update (ROS2 + OpenCV + PointCloud)
+## Layer B — Environment modeling and local world update (ROS2 + OpenCV + PointCloud)
 Responsibility 📌:
 - convert raw LiDAR scans into useful obstacle information,
 - maintain occupancy/maze image representation,
@@ -77,7 +76,7 @@ This is what gives the planner a live, robot-centric table understanding.
 
 ---
 
-## 🗺️ Layer C — Path planning and path shaping (A* + Elastic Bands)
+## Layer C — Path planning and path shaping (A* + Elastic Bands)
 Responsibility 📌:
 - compute traversable path from robot to current goal,
 - refine the path for smooth and obstacle-aware motion.
@@ -100,7 +99,7 @@ Responsibility 📌:
 
 ---
 
-## 🔌 Layer D — Motion command bridging (ROS2 ↔ ESP32 serial protocol)
+## Layer D — Motion command bridging (ROS2 ↔ ESP32 serial protocol)
 Responsibility 📌:
 - convert ROS-level goals/tuning into compact serial commands,
 - receive acknowledgements and finite state updates from ESP.
@@ -128,7 +127,7 @@ Communication behavior in practice:
 
 ---
 
-## ⚙️ Layer E — Real-time low-level control (ESP32 firmware)
+## Layer E — Real-time low-level control (ESP32 firmware)
 Responsibility 📌:
 - deterministic wheel/servo/pump/stacking control,
 - panel/safety handling,
@@ -141,7 +140,7 @@ Core behavior ⚡:
 
 ---
 
-## 🧩 Layer F — Launch/runtime orchestration
+## Layer F — Launch/runtime orchestration
 Responsibility 📌:
 - bring up the complete runtime graph reliably.
 
