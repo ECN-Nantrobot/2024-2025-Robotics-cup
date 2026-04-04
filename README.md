@@ -33,31 +33,31 @@ If you only need the short version:
 
 ---
 
-## 1) System architecture (code architecture, not just file tree)
+## 🏗️ 1) System architecture (code architecture, not just file tree)
 
 The software is designed as a **layered robotics stack**.
 
-## Layer A — Match strategy and mission sequencing (ROS2)
-Responsibility:
+## 🎯 Layer A — Match strategy and mission sequencing (ROS2)
+Responsibility 📌:
 - load team strategy (blue/yellow),
 - keep an ordered goal list,
 - advance mission state machine,
 - synchronize with ESP (start/reset/ack/state).
 
-Core behavior:
+Core behavior ⚡:
 - `main_node` loads YAML goals and robot tuning parameters.
 - It sends high-level goals and PID/speed values over serial.
 - It tracks progress and decides when to move to the next objective.
 
 ---
 
-## Layer B — Environment modeling and local world update (ROS2 + OpenCV + PointCloud)
-Responsibility:
+## 🛰️ Layer B — Environment modeling and local world update (ROS2 + OpenCV + PointCloud)
+Responsibility 📌:
 - convert raw LiDAR scans into useful obstacle information,
 - maintain occupancy/maze image representation,
 - mark dangerous/blocked regions around detected clusters.
 
-Core behavior:
+Core behavior ⚡:
 1. LiDAR `/scan` is projected to PointCloud2 and transformed into map frame.
 2. Point cloud is filtered and clustered.
 3. Cluster centers are smoothed over time.
@@ -67,8 +67,8 @@ This is what gives the planner a live, robot-centric table understanding.
 
 ---
 
-## Layer C — Path planning and path shaping (A* + Elastic Bands)
-Responsibility:
+## 🗺️ Layer C — Path planning and path shaping (A* + Elastic Bands)
+Responsibility 📌:
 - compute traversable path from robot to current goal,
 - refine the path for smooth and obstacle-aware motion.
 
@@ -90,12 +90,12 @@ Responsibility:
 
 ---
 
-## Layer D — Motion command bridging (ROS2 ↔ ESP32 serial protocol)
-Responsibility:
+## 🔌 Layer D — Motion command bridging (ROS2 ↔ ESP32 serial protocol)
+Responsibility 📌:
 - convert ROS-level goals/tuning into compact serial commands,
 - receive acknowledgements and finite state updates from ESP.
 
-Core behavior:
+Core behavior ⚡:
 - ROS sends messages such as:
   - `GOALS:...`
   - speed/PID command payloads,
@@ -118,24 +118,24 @@ Communication behavior in practice:
 
 ---
 
-## Layer E — Real-time low-level control (ESP32 firmware)
-Responsibility:
+## ⚙️ Layer E — Real-time low-level control (ESP32 firmware)
+Responsibility 📌:
 - deterministic wheel/servo/pump/stacking control,
 - panel/safety handling,
 - sensor and actuator timing not suitable for Linux user-space jitter.
 
-Core behavior:
+Core behavior ⚡:
 - Execute movement primitives and mechanism sequences.
 - Handle pickup/stacking actions.
 - Return status to ROS so high-level state machine can continue.
 
 ---
 
-## Layer F — Launch/runtime orchestration
-Responsibility:
+## 🧩 Layer F — Launch/runtime orchestration
+Responsibility 📌:
 - bring up the complete runtime graph reliably.
 
-Core behavior:
+Core behavior ⚡:
 - ROS launch starts TF/static transform, robot state publisher, LiDAR driver, pointcloud transform, and main autonomy node.
 - systemd service can autostart all of this on Raspberry Pi boot.
 
@@ -239,7 +239,7 @@ Design intent:
 
 ---
 
-## 5) Technologies used
+## 🛠️ 5) Technologies used
 
 ### Raspberry Pi / ROS side
 - ROS 2 Humble
@@ -257,7 +257,7 @@ Design intent:
 
 ---
 
-## 6) Runtime sequence during a match
+## ⏱️ 6) Runtime sequence during a match
 
 1. Boot RPi and ESP.
 2. Launch ROS graph (manual or systemd).
@@ -276,21 +276,21 @@ Design intent:
 
 ## 🚀 7) Build and run
 
-### ROS2 workspace (RPi)
+### 🧪 ROS2 workspace (RPi)
 ```bash
 colcon build --symlink-install
 source install/setup.bash
 ros2 launch robonav launch.launch.py
 ```
 
-### ESP firmware
+### 🔋 ESP firmware
 - Open `Firmware/` with PlatformIO.
 - Build and upload to ESP32.
 - Ensure serial mapping is correct (`/dev/esp32` expected on RPi side).
 
 ---
 
-## 8) Autostart (RPi)
+## 🔁 8) Autostart (RPi)
 Use the provided service assets to launch on boot:
 - `src/robonav/autostart/one_go.sh`
 - `src/robonav/autostart/one_go.service`
@@ -302,7 +302,7 @@ journalctl -u one_go.service -f
 
 ---
 
-## 9) Practical operations notes
+## 📝 9) Practical operations notes
 
 - Always confirm team color strategy file before match.
 - Validate LiDAR and ESP serial devices after reboot.
