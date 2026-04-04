@@ -1,4 +1,4 @@
-# 2024–2025 Eurobot France Robot (ROS 2 + ESP32)
+# 🤖 2024–2025 Eurobot France Robot (ROS 2 + ESP32)
 
 This repository contains the software used for our **Eurobot France 2025** mobile robot.
 
@@ -12,7 +12,7 @@ while coordinating high-level autonomy (Raspberry Pi + ROS2) and low-level actua
 ---
 
 
-## Quick Summary (TL;DR)
+## ⚡ Quick Summary (TL;DR)
 
 If you only need the short version:
 - This repository is the full competition software stack for our **Eurobot France 2025** robot, split between high-level ROS2 autonomy on the Raspberry Pi and real-time actuator control on the ESP32.
@@ -23,6 +23,13 @@ If you only need the short version:
 - Raspberry Pi and ESP32 communicate over serial (`/dev/esp32`) with command/ack/state messages so high-level decisions and low-level actions stay synchronized.
 - Deployment supports both manual ROS launching and automatic startup with `one_go.service`; additional operator setup/troubleshooting notes are collected in `noted.md`.
 - The detailed sections below explain architecture layers, data flow, planning internals, state-machine behavior, build/run steps, and autostart operations.
+
+---
+
+## 🎥 Competition links
+
+- **YouTube live stream (competition):** https://www.youtube.com/watch?v=Y8KNj2Q6Nss
+- **Official Eurobot 2025 page:** https://www.eurobot.org/eurobot-contest/eurobot-2025/
 
 ---
 
@@ -134,7 +141,7 @@ Core behavior:
 
 ---
 
-## 2) Data flow between components
+## 🔄 2) Data flow between components
 
 End-to-end loop:
 1. **LiDAR driver** publishes `/scan`.
@@ -148,7 +155,7 @@ End-to-end loop:
 
 ---
 
-## 3) ROS2 package functionality details (`robonav`)
+## 🧠 3) ROS2 package functionality details (`robonav`)
 
 ### 3.1 Main autonomy node
 `main_node` integrates:
@@ -213,7 +220,7 @@ Competition behavior is configured through YAML:
 
 ---
 
-## 4) ESP32 firmware functionality (control architecture)
+## ⚙️ 4) ESP32 firmware functionality (control architecture)
 
 The ESP firmware acts as a **real-time execution controller**.
 
@@ -267,7 +274,7 @@ Design intent:
 
 ---
 
-## 7) Build and run
+## 🚀 7) Build and run
 
 ### ROS2 workspace (RPi)
 ```bash
