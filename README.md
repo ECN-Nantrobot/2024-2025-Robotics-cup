@@ -1,12 +1,16 @@
 # 🤖 2024–2025 Eurobot France Robot (ROS 2 + ESP32)
 
+<p align="center">
+<img src="docs/images/competition_table.jpg" width="700" alt="Eurobot competition table">
+</p>
+
 This repository contains the software used for our **Eurobot France 2025** mobile robot.
 
 Competition objective (software side):
 - move safely on the table,
 - pick up cans,
 - move them to scoring zones,
-- and stack them with a wooden piece,
+- and stack them with a wooden plank,
 while coordinating high-level autonomy (Raspberry Pi + ROS2) and low-level actuation (ESP32).
 
 ---
@@ -14,7 +18,6 @@ while coordinating high-level autonomy (Raspberry Pi + ROS2) and low-level actua
 
 ## ⚡ Quick Summary (TL;DR)
 
-If you only need the short version:
 - This repository is the full competition software stack for our **Eurobot France 2025** robot, split between high-level ROS2 autonomy on the Raspberry Pi and real-time actuator control on the ESP32.
 - The robot mission flow is: navigate the table, pick cans, transport them, and stack them according to ordered match goals defined in YAML strategies (blue/yellow team variants).
 - On the ROS2 side, `main_node` coordinates mission sequencing, ESP synchronization, and runtime state progression, while `laser_to_pointcloud_node` converts LiDAR scans into map-frame pointcloud data.
@@ -35,10 +38,12 @@ If you only need the short version:
 
 ## Photos
 
-![Eurobot competition table](docs/images/competition_table.jpg)
-![Team with robot at competition](docs/images/robot.jpg)
-![Robot close-up](docs/images/robot_closeup.jpg)
-![Planning and simulation view](docs/images/planning_simulation.jpg)
+  
+<p align="center">
+  <img src="docs/images/robot.jpg" width="500" alt="Team with robot at competition"> <img src="docs/images/robot_closeup.jpg" width="500" alt="Robot close-up">
+  <br>
+  <img src="docs/images/planning_simulation.png" width="600" alt="Planning and simulation view">
+</p>
 
 ---
 
