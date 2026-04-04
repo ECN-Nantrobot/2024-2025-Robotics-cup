@@ -970,7 +970,11 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
   #endif
 #else
     #if !defined(DISABLE_ALL_LIBRARY_WARNINGS)
+<<<<<<< HEAD
       #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+=======
+      // #warning >>>>------>> TOUCH_CS pin not defined, TFT_eSPI touch functions will not be available!
+>>>>>>> main
     #endif
 #endif
 

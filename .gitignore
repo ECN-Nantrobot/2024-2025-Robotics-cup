@@ -1,4 +1,5 @@
 .vscode/
+<<<<<<< HEAD
 # .pio/
 *.log
 *.bin
@@ -15,3 +16,11 @@ log/
 *.swp
 CMakeLists.txt.user
 colcon.lock
+=======
+build/
+*.log
+*.bin
+*.elf
+*.lck
+~*
+>>>>>>> main

@@ -6,4 +6,8 @@ void initServo();
 void setServo(int servo, int value);
 void testServo();
 
+<<<<<<< HEAD
 #endif
+=======
+#endif
+>>>>>>> main

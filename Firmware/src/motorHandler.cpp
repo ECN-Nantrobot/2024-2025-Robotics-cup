@@ -1,7 +1,12 @@
+<<<<<<< HEAD
 #include "robot.h"
+=======
+>>>>>>> main
 #include <math.h>
 #include "motorHandler.h"
+#include "servoHandler.h"
 #include <AccelStepper.h>
+<<<<<<< HEAD
 #include "config.h"
 #include "debug.h"
 #include "servoHandler.h"
@@ -47,6 +52,49 @@ void initMotor()
     if (robotXMutex == NULL)
     {
         Serial.println("Failed to create mutex!");
+=======
+#include "Config.h"
+#include "debug.h"
+
+SemaphoreHandle_t robotXMutex;
+
+const double oneStepAngle = 2.0 * M_PI / stepsPerRevolution; // [rad]
+const double metersPerStep = oneStepAngle * wheelDiameter / 2; // [m]
+const float stepDistance = (PI * wheelDiameter) / stepsPerRevolution; // [m]
+
+// Create motor instances
+AccelStepper motorR(motorInterfaceType, stepPin1, dirPin1);
+AccelStepper motorL(motorInterfaceType, stepPin2, dirPin2);
+AccelStepper motorX(motorInterfaceType, stepPinX, dirPinX);
+
+void initMotor() {
+    // Set maximum speed and acceleration
+    motorL.setMaxSpeed(20000);
+    motorL.setAcceleration(2000 / 32);
+
+    motorR.setMaxSpeed(20000);
+    motorR.setAcceleration(2000 / 32);
+
+    motorX.setMaxSpeed(20000 / 32);
+    motorX.setAcceleration(50000 / 32);
+
+    // Invert direction if needed
+    motorL.setPinsInverted(true, false, false);
+    motorX.setPinsInverted(true, false, false);
+
+    motorL.setCurrentPosition(0);
+    motorR.setCurrentPosition(0);
+    motorX.setCurrentPosition(0);
+
+    motorL.setSpeed(0);
+    motorR.setSpeed(0);
+    motorX.setSpeed(10000 / 32);
+
+    // Create the mutex before starting the task
+    robotXMutex = xSemaphoreCreateMutex();
+    if (robotXMutex == NULL) {
+        SerialCritical("Failed to create robotXMutex!");
+>>>>>>> main
     }
 
     xTaskCreatePinnedToCore(
@@ -54,13 +102,18 @@ void initMotor()
         "allRunSpeed", // Name
         2048,          // Stack size
         NULL,          // Parameters
+<<<<<<< HEAD
         1,             // Lower priority (instead of a high value)
+=======
+        1,             // Priority
+>>>>>>> main
         NULL,          // Task handle
         1              // CPU core (1)
     );
 
     disableCore1WDT();
 
+<<<<<<< HEAD
     Serial.println("Motors initialized!");
 }
 
@@ -153,6 +206,20 @@ void allRunSpeed(void *pvParameters)
 
 void initialize_Z_axis() {
     // pinMode(buttonPinX, INPUT_PULLDOWN);
+=======
+    SerialLog("Motors initialized.");
+
+    motorL.move(0);
+    motorR.move(0);
+
+    initialize_Z_axis();
+}
+
+int end_X_sensor = LOW;
+
+void initialize_Z_axis() {
+    pinMode(buttonPinX, INPUT_PULLDOWN);
+>>>>>>> main
 
     SerialLog("Initializing X axis...");
 
@@ -168,8 +235,13 @@ void initialize_Z_axis() {
     const int requiredHighCount = 5; // Number of consecutive HIGH signals needed
 
     while (1) {
+<<<<<<< HEAD
         // end_X_sensor = digitalRead(buttonPinX);
         end_X_sensor = HIGH;
+=======
+        end_X_sensor = digitalRead(buttonPinX);
+
+>>>>>>> main
         if (end_X_sensor == HIGH) {
             consecutiveHighCount++;
             if (consecutiveHighCount >= requiredHighCount) {
@@ -209,17 +281,75 @@ void moveAxeZ(int position, bool wait) {
   }
 }
 
+<<<<<<< HEAD
 void go(int distance)
 {
+=======
+
+void setMotorSpeeds(float leftSpeed, float rightSpeed) {
+    // Convert speed from [m/s] to [steps/s]
+    leftSpeed = leftSpeed / metersPerStep;
+    rightSpeed = rightSpeed / metersPerStep;
+
+    // Set speeds in steps per second
+    motorL.setSpeed(leftSpeed);
+    motorR.setSpeed(rightSpeed);
+
+    SerialLog("Motor speeds set: Left Speed = " + String(leftSpeed) + ", Right Speed = " + String(rightSpeed));
+}
+
+void go(int distance){
+>>>>>>> main
     motorL.setCurrentPosition(0);
     motorR.setCurrentPosition(0);
 
     motorL.move(distance);
     motorR.move(distance);
 
+<<<<<<< HEAD
     while (motorR.isRunning())
     {
         // Optionally, you can add a small delay to prevent the CPU from being overloaded
         delay(10);
+=======
+      while (motorR.isRunning()) {
+          // Optionally, you can add a small delay to prevent the CPU from being overloaded
+          delay(10);
+      }
+}
+
+void allRunSpeed(void *pvParameters) {
+    while (1) {
+        // Check if each motor takes a step
+        bool leftStep = motorL.runSpeed();
+        bool rightStep = motorR.runSpeed();
+        motorX.run();
+
+        // If at least one motor stepped, update the odometry
+        if (leftStep || rightStep) {
+            // Compute the distance traveled by each wheel
+            float dL = leftStep ? stepDistance : 0;
+            float dR = rightStep ? stepDistance : 0;
+
+            // Differential drive equations
+            float d_center = (dL + dR) / 2.0;
+            float dTheta = (dR - dL) / trackWidth;
+
+            // Update the robot's position accurately
+            float thetaMid = robotTheta + dTheta / 2.0;
+
+            // Protect access to robotX, robotY, and robotTheta with the mutex
+            // if (xSemaphoreTake(robotXMutex, portMAX_DELAY) == pdTRUE) {
+
+            _robotX += d_center * cos(thetaMid);
+            _robotY += d_center * sin(thetaMid);
+            _robotTheta += dTheta;
+
+            //   xSemaphoreGive(robotXMutex);
+            // }
+        }
+
+        // Optionally add a small delay or yield to let other tasks run
+>>>>>>> main
     }
 }

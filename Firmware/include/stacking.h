@@ -8,4 +8,8 @@ void resetStackingPosition();
 
 void testAll();
 
+<<<<<<< HEAD
 #endif // STACKING_H
+=======
+#endif // STACKING_H
+>>>>>>> main

@@ -9,7 +9,13 @@ Adafruit_SPIDevice *spi_dev = NULL; // new Adafruit_SPIDevice(SPIDEVICE_CS);
 Adafruit_I2CDevice *i2c_dev = new Adafruit_I2CDevice(I2C_ADDRESS);
 
 void setup() {
+<<<<<<< HEAD
   while (!Serial) { delay(10); }
+=======
+  while (!Serial) {
+    delay(10);
+  }
+>>>>>>> main
   Serial.begin(115200);
   Serial.println("I2C or SPI device register test");
 
@@ -27,6 +33,7 @@ void setup() {
     }
   }
 
+<<<<<<< HEAD
   Adafruit_BusIO_Register id_reg = Adafruit_BusIO_Register(i2c_dev, spi_dev, ADDRBIT8_HIGH_TOREAD, 0x0F);
   uint8_t id=0;
   id_reg.read(&id);
@@ -36,3 +43,14 @@ void setup() {
 void loop() {
   
 }
+=======
+  Adafruit_BusIO_Register id_reg =
+      Adafruit_BusIO_Register(i2c_dev, spi_dev, ADDRBIT8_HIGH_TOREAD, 0x0F);
+  uint8_t id = 0;
+  id_reg.read(&id);
+  Serial.print("ID register = 0x");
+  Serial.println(id, HEX);
+}
+
+void loop() {}
+>>>>>>> main

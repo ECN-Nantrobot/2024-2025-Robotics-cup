@@ -6,6 +6,7 @@
 
 #include "Adafruit_GenericDevice.h"
 
+<<<<<<< HEAD
 /*!  @brief Create a Generic device with the provided read/write functions
      @param read_func Function pointer for reading raw data
      @param write_func Function pointer for writing raw data
@@ -16,6 +17,21 @@ Adafruit_GenericDevice::Adafruit_GenericDevice(
     busio_genericdevice_write_t write_func,
     busio_genericdevice_readreg_t readreg_func,
     busio_genericdevice_writereg_t writereg_func) {
+=======
+/*!
+ * @brief Create a Generic device with the provided read/write functions
+ * @param obj Pointer to object instance
+ * @param read_func Function pointer for reading raw data
+ * @param write_func Function pointer for writing raw data
+ * @param readreg_func Function pointer for reading registers (optional)
+ * @param writereg_func Function pointer for writing registers (optional) */
+Adafruit_GenericDevice::Adafruit_GenericDevice(
+    void *obj, busio_genericdevice_read_t read_func,
+    busio_genericdevice_write_t write_func,
+    busio_genericdevice_readreg_t readreg_func,
+    busio_genericdevice_writereg_t writereg_func) {
+  _obj = obj;
+>>>>>>> main
   _read_func = read_func;
   _write_func = write_func;
   _readreg_func = readreg_func;
@@ -23,14 +39,21 @@ Adafruit_GenericDevice::Adafruit_GenericDevice(
   _begun = false;
 }
 
+<<<<<<< HEAD
 /*! @brief Initializes the device
     @return true if initialization was successful, otherwise false */
+=======
+/*! @brief Simple begin function (doesn't do much at this time)
+    @return true always
+*/
+>>>>>>> main
 bool Adafruit_GenericDevice::begin(void) {
   _begun = true;
   return true;
 }
 
 /*! @brief Write a buffer of data
+<<<<<<< HEAD
     @param buffer Pointer to buffer of data to write
     @param len Number of bytes to write
     @return true if write was successful, otherwise false */
@@ -56,10 +79,38 @@ bool Adafruit_GenericDevice::read(uint8_t *buffer, size_t len) {
     @param buf Buffer to store read data
     @param bufsiz Size of data to read in bytes
     @return true if read was successful, otherwise false */
+=======
+   @param buffer Pointer to buffer of data to write
+   @param len Number of bytes to write
+   @return true if write was successful, otherwise false */
+bool Adafruit_GenericDevice::write(const uint8_t *buffer, size_t len) {
+  if (!_begun)
+    return false;
+  return _write_func(_obj, buffer, len);
+}
+
+/*! @brief Read data into a buffer
+   @param buffer Pointer to buffer to read data into
+   @param len Number of bytes to read
+   @return true if read was successful, otherwise false */
+bool Adafruit_GenericDevice::read(uint8_t *buffer, size_t len) {
+  if (!_begun)
+    return false;
+  return _read_func(_obj, buffer, len);
+}
+
+/*! @brief Read from a register location
+   @param addr_buf Buffer containing register address
+   @param addrsiz Size of register address in bytes
+   @param buf Buffer to store read data
+   @param bufsiz Size of data to read in bytes
+   @return true if read was successful, otherwise false */
+>>>>>>> main
 bool Adafruit_GenericDevice::readRegister(uint8_t *addr_buf, uint8_t addrsiz,
                                           uint8_t *buf, uint16_t bufsiz) {
   if (!_begun || !_readreg_func)
     return false;
+<<<<<<< HEAD
   return _readreg_func(addr_buf, addrsiz, buf, bufsiz);
 }
 
@@ -69,10 +120,25 @@ bool Adafruit_GenericDevice::readRegister(uint8_t *addr_buf, uint8_t addrsiz,
     @param buf Buffer containing data to write
     @param bufsiz Size of data to write in bytes
     @return true if write was successful, otherwise false */
+=======
+  return _readreg_func(_obj, addr_buf, addrsiz, buf, bufsiz);
+}
+
+/*! @brief Write to a register location
+   @param addr_buf Buffer containing register address
+   @param addrsiz Size of register address in bytes
+   @param buf Buffer containing data to write
+   @param bufsiz Size of data to write in bytes
+   @return true if write was successful, otherwise false */
+>>>>>>> main
 bool Adafruit_GenericDevice::writeRegister(uint8_t *addr_buf, uint8_t addrsiz,
                                            const uint8_t *buf,
                                            uint16_t bufsiz) {
   if (!_begun || !_writereg_func)
     return false;
+<<<<<<< HEAD
   return _writereg_func(addr_buf, addrsiz, buf, bufsiz);
+=======
+  return _writereg_func(_obj, addr_buf, addrsiz, buf, bufsiz);
+>>>>>>> main
 }

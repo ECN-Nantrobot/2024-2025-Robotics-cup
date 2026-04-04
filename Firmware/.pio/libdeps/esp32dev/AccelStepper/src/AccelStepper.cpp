@@ -41,6 +41,10 @@ void AccelStepper::move(long relative)
 boolean AccelStepper::runSpeed()
 {
     // Dont do anything unless we actually have a step interval
+<<<<<<< HEAD
+=======
+    // Serial.println(_stepInterval);
+>>>>>>> main
     if (!_stepInterval)
 	return false;
 
@@ -262,6 +266,10 @@ AccelStepper::AccelStepper(void (*forward)(), void (*backward)())
 
 void AccelStepper::setMaxSpeed(float speed)
 {
+<<<<<<< HEAD
+=======
+    Serial.print("setMaxSpeed");Serial.println("speed");
+>>>>>>> main
     if (speed < 0.0)
        speed = -speed;
     if (_maxSpeed != speed)

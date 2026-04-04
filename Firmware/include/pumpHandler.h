@@ -8,4 +8,8 @@ void pumpDeactivate();
 
 void testPump();
 
+<<<<<<< HEAD
 #endif
+=======
+#endif
+>>>>>>> main

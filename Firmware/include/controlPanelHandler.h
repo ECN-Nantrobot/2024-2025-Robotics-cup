@@ -7,4 +7,8 @@ void initControlPanel();
 void controlPanel(void *pvParameters);
 void startProcess(void *pvParameters);
 
+<<<<<<< HEAD
 #endif
+=======
+#endif
+>>>>>>> main

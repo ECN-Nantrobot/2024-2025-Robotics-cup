@@ -1,6 +1,10 @@
 #include "Adafruit_SPIDevice.h"
 
+<<<<<<< HEAD
 //#define DEBUG_SERIAL Serial
+=======
+// #define DEBUG_SERIAL Serial
+>>>>>>> main
 
 /*!
  *    @brief  Create an SPI device with the given CS pin and settings

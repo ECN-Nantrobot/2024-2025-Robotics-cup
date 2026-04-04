@@ -1,9 +1,14 @@
+<<<<<<< HEAD
 #include "config.h"
+=======
+#include "Config.h"
+>>>>>>> main
 #include "servoHandler.h"
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include "debug.h"
 
+<<<<<<< HEAD
 #define SERVOMIN 190 // Minimum pulse length
 #define SERVOMAX 800 // Maximum pulse length
 
@@ -38,11 +43,20 @@ void scanI2C()
 
 int angleToPulse(int ang)
 {
+=======
+#define SERVOMIN 190  // Minimum pulse length
+#define SERVOMAX 800  // Maximum pulse length
+
+Adafruit_PWMServoDriver board1 = Adafruit_PWMServoDriver(0x40, myWire);
+
+int angleToPulse(int ang) {
+>>>>>>> main
     int pulse = map(ang, 0, 180, SERVOMIN, SERVOMAX);
     SerialLog("Angle to pulse: angle = " + String(ang) + ", pulse = " + String(pulse));
     return pulse;
 }
 
+<<<<<<< HEAD
 void initServo()
 {
     myWire.begin(SDAPin, SLCPin);
@@ -55,23 +69,41 @@ void initServo()
     }
     else
     {
+=======
+void initServo() {
+    myWire.begin(SDAPin, SLCPin);
+
+    if (!board1.begin()) {
+        SerialCritical("Servo driver not initialized");
+    } else {
+>>>>>>> main
         SerialLog("Servo driver initialized");
     }
 
     board1.setPWMFreq(60); // Set PWM frequency for servos
 
     // Initialize servos 0-3 to 0
+<<<<<<< HEAD
     for (int i = 0; i < 16; i++)
     {
         board1.setPWM(i, 0, angleToPulse(0));
         delay(20);
     }
 
+=======
+    for (int i = 0; i < 4; i++) {
+        board1.setPWM(i, 0, angleToPulse(0));
+        delay(20);
+    }
+    // Initialize servo 4 to 180
+    board1.setPWM(4, 0, angleToPulse(130));
+>>>>>>> main
     delay(20);
 
     SerialSuccess("Servo initialization complete");
 }
 
+<<<<<<< HEAD
 void setServo(int servo, int value)
 {
     if (value < 0)
@@ -81,12 +113,20 @@ void setServo(int servo, int value)
 
     if (xSemaphoreTake(i2cMutex, portMAX_DELAY))
     {
+=======
+void setServo(int servo, int value) {
+    if (value < 0) value = 0;
+    if (value > 180) value = 110;
+
+    if (xSemaphoreTake(i2cMutex, portMAX_DELAY)){
+>>>>>>> main
         SerialLog("Set servo " + String(servo) + " to " + String(value));
         board1.setPWM(servo, 0, angleToPulse(value));
         xSemaphoreGive(i2cMutex);
     }
 }
 
+<<<<<<< HEAD
 void testServo()
 {
     SerialLog("Testing servos...");
@@ -94,11 +134,19 @@ void testServo()
     // Move all servos to 90 (except 4 to 90 from 180)
     for (int i = 0; i <= 3; i++)
     {
+=======
+void testServo() {
+    SerialLog("Testing servos...");
+
+    // Move all servos to 90 (except 4 to 90 from 180)
+    for (int i = 0; i <= 4; i++) {
+>>>>>>> main
         setServo(i, 90);
     }
     vTaskDelay(3000); // Hold position
 
     // Return them to initial state (0 or 180 for #4)
+<<<<<<< HEAD
     for (int i = 0; i <= 3; i++)
     {
         setServo(i, 0);
@@ -107,3 +155,13 @@ void testServo()
 
     SerialSuccess("Servo test complete");
 }
+=======
+    for (int i = 0; i <= 3; i++) {
+        setServo(i, 0);
+    }
+    setServo(4, 180);
+    vTaskDelay(3000); // Hold position
+
+    SerialSuccess("Servo test complete");
+}
+>>>>>>> main

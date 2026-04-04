@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 COMPONENT_ADD_INCLUDEDIRS = .
+=======
+COMPONENT_ADD_INCLUDEDIRS = .
+>>>>>>> main

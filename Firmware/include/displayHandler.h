@@ -7,6 +7,7 @@
 #include <SPI.h>
 #include <ecn_logo.h>
 #include <displayConfig.h>
+#include <Config.h>
 
 namespace ecn
 {
@@ -199,7 +200,11 @@ namespace ecn
 
         static void autoUpdateDisplay(void *pvParameters){
             if (pvParameters == NULL) {
+<<<<<<< HEAD
                 // Serial.println("Error: NULL instance passed to autoUpdateDisplay!");
+=======
+                Serial.println("Error: NULL instance passed to autoUpdateDisplay!");
+>>>>>>> main
                 vTaskDelete(NULL); // Terminate the task safely
                 return;
             }
