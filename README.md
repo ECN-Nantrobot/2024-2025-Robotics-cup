@@ -1,4 +1,4 @@
-# 🤖 2024–2025 Eurobot France Robot from EC NATES Team
+# 🤖 2025 Eurobot France Robot from EC NATES Team
 
 <p align="center">
 <img src="docs/images/competition_table.jpg" width="700" alt="Eurobot competition table">
@@ -18,7 +18,7 @@ while coordinating high-level autonomy (Raspberry Pi + ROS2) and low-level actua
 
 ## ⚡ Quick Summary (TL;DR)
 
-- This repository is the full competition software stack for our **Eurobot France 2025** robot, split between high-level ROS2 autonomy on the **Raspberry Pi** and real-time actuator control on the **ESP32**.
+- This repository is the full competition software stack for our **Eurobot France 2025** robot, split between high-level **ROS2** autonomy on the **Raspberry Pi** and real-time actuator control on the **ESP32**.
 - The robot mission flow is: navigate the table, pick cans, transport them, and stack them according to ordered match goals defined in YAML strategies (blue/yellow team variants).
 - On the ROS2 side, `main_node` coordinates mission sequencing, ESP synchronization, and runtime state progression, while `laser_to_pointcloud_node` converts LiDAR scans into map-frame pointcloud data.
 - Perception updates an OpenCV-backed maze/occupancy representation; close LiDAR points are used for collision-aware behavior and safety reactions during execution.
